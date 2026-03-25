@@ -36,6 +36,8 @@ npm run dev
 - `REDIS_URL` — Redis URL (defaults to localhost:6379)
 - `AUTO_SYNC_ENABLED` — Enable automatic background data refresh (default: `true`)
 - `AUTO_SYNC_STALE_HOURS` — Hours before representative data is considered stale (default: `24`)
+- `DISTRICT_DATA_DIR` — Override path for local district GeoJSON files (optional)
+- `DISTRICT_LIVE_FALLBACK` — Allow live Census fetch when local district file is missing (default: `false`; set `true` during development)
 
 ### Frontend (.env)
 - `VITE_MAPBOX_TOKEN` — Mapbox GL JS access token
@@ -81,6 +83,44 @@ Two endpoints are throttled per IP address (anonymous requests):
 | `GET /api/representatives/<id>/summary/` | 10 requests / hour |
 
 Exceeding the limit returns `429 Too Many Requests` with a `Retry-After` header. All other read endpoints are unthrottled.
+
+## District Border Data
+
+Congressional district boundaries are served from pre-built local GeoJSON files in
+`backend/representatives/district_data/`. Storing them locally eliminates live Census
+API dependency during normal app usage and makes rendering fast.
+
+### Generating district data
+
+Run once before the first deployment (and again after redistricting):
+
+```bash
+cd backend
+python manage.py build_district_data
+```
+
+This fetches simplified boundary data for all 51 state codes from the Census TIGER API
+and saves one file per state (`CA.json`, `TX.json`, etc.). The command is safe to
+interrupt and re-run — already-downloaded states are skipped unless you add `--overwrite`.
+
+```bash
+# Fetch only specific states
+python manage.py build_district_data --states CA TX NY
+
+# Re-download everything (e.g. after redistricting)
+python manage.py build_district_data --overwrite
+```
+
+**Commit the generated files** to version control. They change rarely (only after
+redistricting, roughly every 10 years) and committing them means deployments don't
+need a Census API connection.
+
+### Development without local files
+
+Set `DISTRICT_LIVE_FALLBACK=true` in `backend/.env` to fall back to live Census
+requests when a local file is missing. This is the default in `.env.example` for
+convenience during development. In production, keep it `false` and rely on the
+committed files.
 
 ## Automatic Data Refresh
 

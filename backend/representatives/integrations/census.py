@@ -1,4 +1,7 @@
+import json
 import requests
+from pathlib import Path
+from typing import Optional
 
 
 TIGER_BASE = 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Legislative/MapServer'
@@ -16,6 +19,29 @@ STATE_FIPS = {
     'VA': '51', 'WA': '53', 'WV': '54', 'WI': '55', 'WY': '56',
     'DC': '11',
 }
+
+
+def get_district_data_dir() -> Path:
+    """Return the local district data directory (settings override or project default)."""
+    from django.conf import settings
+    configured = getattr(settings, 'DISTRICT_DATA_DIR', None)
+    if configured:
+        return Path(configured)
+    # Default: backend/representatives/district_data/
+    return Path(__file__).resolve().parent.parent / 'district_data'
+
+
+def load_local_congressional_districts(state: str) -> Optional[dict]:
+    """
+    Load pre-built congressional district GeoJSON from a local file.
+    Returns None if the file has not been generated yet.
+    Run `python manage.py build_district_data` to populate these files.
+    """
+    path = get_district_data_dir() / f'{state.upper()}.json'
+    if not path.exists():
+        return None
+    with open(path) as f:
+        return json.load(f)
 
 
 def fetch_congressional_districts(state: str) -> dict:
