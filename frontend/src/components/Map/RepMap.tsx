@@ -175,6 +175,22 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
 
   const handleMouseLeave = useCallback(() => setHoverInfo(null), [])
 
+  const handleMapClick = useCallback(
+    (e: Parameters<NonNullable<React.ComponentProps<typeof Map>['onClick']>>[0]) => {
+      const feature = e.features?.[0]
+      if (!feature?.properties) return
+      const stateAbbr = feature.properties.state_abbr as string
+      const cd = parseInt(String(feature.properties.CD119 ?? ''), 10)
+      if (!stateAbbr) return
+      // At-large reps have district_number === null in the DB; Census stores them as CD119 = 0.
+      const rep = allReps.find(
+        (r) => r.level === 'house' && r.state === stateAbbr && (r.district_number ?? 0) === cd
+      )
+      if (rep) onRepSelect(rep)
+    },
+    [allReps, onRepSelect]
+  )
+
   const pinPositions = useMemo(() => {
     const positions: Record<number, Position> = {}
 
@@ -249,6 +265,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
         interactiveLayerIds={isDragging ? [] : fillLayerIds}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
+        onClick={handleMapClick}
       >
         <NavigationControl position="bottom-left" />
         <DistrictOverlay bounds={bounds} />

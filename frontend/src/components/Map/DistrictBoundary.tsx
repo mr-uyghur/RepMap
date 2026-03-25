@@ -22,8 +22,9 @@ export default function DistrictBoundary({ state, districtNumber, party }: Props
   const [geojson, setGeojson] = useState<GeoJSON | null>(null)
 
   useEffect(() => {
-    // Senators have no district number — nothing to fetch or display.
-    if (!state || districtNumber == null) {
+    // This component is only rendered for house reps (checked in RepMap).
+    // At-large house reps have districtNumber === null, which maps to CD119 = 0.
+    if (!state) {
       setGeojson(null)
       return
     }
@@ -39,14 +40,17 @@ export default function DistrictBoundary({ state, districtNumber, party }: Props
       .catch(console.error)
   }, [state, districtNumber])
 
-  if (!geojson || districtNumber == null) return null
+  if (!geojson) return null
+
+  // Normalize: at-large house reps have districtNumber === null, which Census stores as CD119 = "00" (→ 0).
+  const normalizedDistrict = districtNumber ?? 0
 
   // Filter to just the rep's district.
   // 119th Congress TIGER data stores the district number zero-padded in CD119 (e.g. "33" or "03").
   const filtered: GeoJSON = {
     ...geojson,
     features: geojson.features.filter(
-      (f) => parseInt(String(f.properties?.CD119 ?? ''), 10) === districtNumber
+      (f) => parseInt(String(f.properties?.CD119 ?? ''), 10) === normalizedDistrict
     ),
   }
 
