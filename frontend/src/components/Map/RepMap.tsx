@@ -8,7 +8,7 @@ import { useRepStore } from '../../store/repStore'
 import { fetchAllReps } from '../../api/representatives'
 import RepresentativePin from './RepresentativePin'
 import DistrictBoundary from './DistrictBoundary'
-import DistrictOverlay from './DistrictOverlay'
+import DistrictOverlay, { getCachedDistrictGeoJSON, subscribeToDistrictGeoJSON } from './DistrictOverlay'
 import type { ViewBounds } from './DistrictOverlay'
 import type { Representative } from '../../types'
 
@@ -20,6 +20,93 @@ const GROUP_OFFSETS: Record<number, [number, number][]> = {
   2: [[-32, 0], [32, 0]],
   3: [[-52, 0], [0, 0], [52, 0]],
   4: [[-60, 0], [-20, 0], [20, 0], [60, 0]],
+}
+
+type Position = { latitude: number; longitude: number }
+type Ring = [number, number][]
+type Polygon = Ring[]
+type FeatureGeometry = {
+  type?: 'Polygon' | 'MultiPolygon'
+  coordinates?: Polygon[] | Polygon
+}
+
+function polygonArea(ring: Ring) {
+  let area = 0
+  for (let i = 0; i < ring.length; i += 1) {
+    const [x1, y1] = ring[i]
+    const [x2, y2] = ring[(i + 1) % ring.length]
+    area += (x1 * y2) - (x2 * y1)
+  }
+  return Math.abs(area) / 2
+}
+
+// Returns a point guaranteed to lie inside the polygon ring using a horizontal
+// scanline approach. Tries several latitudes and picks the midpoint of the
+// longest interior span — robust for concave and irregular districts.
+function pointOnSurface(ring: Ring): Position {
+  let west = Infinity, east = -Infinity, south = Infinity, north = -Infinity
+  for (const [lng, lat] of ring) {
+    west = Math.min(west, lng); east = Math.max(east, lng)
+    south = Math.min(south, lat); north = Math.max(north, lat)
+  }
+
+  let bestLng = (west + east) / 2
+  let bestLat = (south + north) / 2
+  let bestSpan = -1
+
+  // Probe 5 scanlines; whichever yields the widest interior segment wins.
+  for (let t = 0.2; t <= 0.81; t += 0.15) {
+    const scanLat = south + t * (north - south)
+    const xs: number[] = []
+
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [x1, y1] = ring[i]
+      const [x2, y2] = ring[j]
+      // Strict inequality on one side avoids double-counting shared vertices.
+      if ((y1 <= scanLat && y2 > scanLat) || (y2 <= scanLat && y1 > scanLat)) {
+        xs.push(x1 + (scanLat - y1) * (x2 - x1) / (y2 - y1))
+      }
+    }
+
+    xs.sort((a, b) => a - b)
+
+    // Pairs of intersections define inside spans (even-odd fill rule).
+    for (let i = 0; i + 1 < xs.length; i += 2) {
+      const span = xs[i + 1] - xs[i]
+      if (span > bestSpan) {
+        bestSpan = span
+        bestLng = (xs[i] + xs[i + 1]) / 2
+        bestLat = scanLat
+      }
+    }
+  }
+
+  return { latitude: bestLat, longitude: bestLng }
+}
+
+function getDistrictAnchor(geometry: FeatureGeometry | undefined): Position | null {
+  if (!geometry?.coordinates) return null
+
+  const polygons = geometry.type === 'Polygon'
+    ? [geometry.coordinates as Polygon]
+    : geometry.type === 'MultiPolygon'
+      ? geometry.coordinates as Polygon[]
+      : []
+
+  let largestRing: Ring | null = null
+  let largestArea = -1
+
+  for (const polygon of polygons) {
+    const outerRing = polygon[0]
+    if (!outerRing || outerRing.length < 3) continue
+    const area = polygonArea(outerRing)
+    if (area > largestArea) {
+      largestArea = area
+      largestRing = outerRing
+    }
+  }
+
+  return largestRing ? pointOnSurface(largestRing) : null
 }
 
 // Default bounds covering the continental US — replaced on first map move.
@@ -34,6 +121,8 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
   const { zoom, center, selectedRepId, darkMode, setZoom, setCenter } = useMapStore()
   const { reps, allReps, setReps, setLoading } = useRepStore()
   const [bounds, setBounds] = useState<ViewBounds>(DEFAULT_BOUNDS)
+  const [districtGeoVersion, setDistrictGeoVersion] = useState(0)
+  const [hoverInfo, setHoverInfo] = useState<{ x: number; y: number; label: string } | null>(null)
 
   useEffect(() => {
     setLoading(true)
@@ -42,6 +131,10 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
       .catch((err) => console.error('Failed to load reps:', err))
       .finally(() => setLoading(false))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => subscribeToDistrictGeoJSON(() => {
+    setDistrictGeoVersion((version) => version + 1)
+  }), [])
 
   const handleMoveEnd = useCallback(
     (e: ViewStateChangeEvent) => {
@@ -56,13 +149,46 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     [setCenter, setZoom, mapRef]
   )
 
+  const handleMouseMove = useCallback((e: Parameters<NonNullable<React.ComponentProps<typeof Map>['onMouseMove']>>[0]) => {
+    const feature = e.features?.[0]
+    if (!feature?.properties) { setHoverInfo(null); return }
+    const stateAbbr = feature.properties.state_abbr as string
+    const cd = parseInt(String(feature.properties.CD119 ?? ''), 10)
+    const label = cd === 0 ? `${stateAbbr} \u2013 At-Large` : `${stateAbbr} \u2013 District ${cd}`
+    setHoverInfo({ x: e.point.x, y: e.point.y, label })
+  }, [])
+
+  const handleMouseLeave = useCallback(() => setHoverInfo(null), [])
+
+  const pinPositions = useMemo(() => {
+    const positions: Record<number, Position> = {}
+
+    for (const rep of reps) {
+      if (rep.level !== 'house' || rep.district_number == null) continue
+
+      const featureCollection = getCachedDistrictGeoJSON(rep.state) as {
+        features?: Array<{ properties?: Record<string, string | number | null>; geometry?: FeatureGeometry }>
+      } | undefined
+
+      const feature = featureCollection?.features?.find(
+        (candidate) => parseInt(String(candidate.properties?.CD119 ?? ''), 10) === rep.district_number
+      )
+
+      const anchor = getDistrictAnchor(feature?.geometry)
+      if (anchor) positions[rep.id] = anchor
+    }
+
+    return positions
+  }, [districtGeoVersion, reps])
+
   // Group co-located pins by their coordinates and assign spread offsets.
   // This handles senators (same state centroid) and at-large states where
   // the single House rep also shares the centroid with both senators.
   const pinOffsets = useMemo(() => {
     const groups: Record<string, number[]> = {}
     for (const rep of reps) {
-      const key = `${rep.latitude.toFixed(3)},${rep.longitude.toFixed(3)}`
+      const position = pinPositions[rep.id] ?? rep
+      const key = `${position.latitude.toFixed(3)},${position.longitude.toFixed(3)}`
       if (!groups[key]) groups[key] = []
       groups[key].push(rep.id)
     }
@@ -73,7 +199,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
       ids.forEach((id, i) => { offsets[id] = slots[i] })
     }
     return offsets
-  }, [reps])
+  }, [pinPositions, reps])
 
   // Find the selected rep to determine which district boundary to highlight.
   // Search allReps so the boundary works even when a ZIP filter is active.
@@ -82,39 +208,63 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     : null
 
   return (
-    <Map
-      ref={mapRef}
-      mapboxAccessToken={MAPBOX_TOKEN}
-      initialViewState={{
-        longitude: center[0],
-        latitude: center[1],
-        zoom,
-      }}
-      style={{ width: '100%', height: '100%' }}
-      mapStyle={darkMode ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11'}
-      onMoveEnd={handleMoveEnd}
-    >
-      <NavigationControl position="bottom-left" />
-      <DistrictOverlay bounds={bounds} />
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <Map
+        ref={mapRef}
+        mapboxAccessToken={MAPBOX_TOKEN}
+        initialViewState={{
+          longitude: center[0],
+          latitude: center[1],
+          zoom,
+        }}
+        style={{ width: '100%', height: '100%' }}
+        mapStyle={darkMode ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11'}
+        onMoveEnd={handleMoveEnd}
+        interactiveLayerIds={['district-overlay-fill']}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
+        <NavigationControl position="bottom-left" />
+        <DistrictOverlay bounds={bounds} />
 
-      {/* Highlight the selected House rep's congressional district.
-          Senators have no district_number, so DistrictBoundary renders nothing. */}
-      {selectedRep?.level === 'house' && (
-        <DistrictBoundary
-          state={selectedRep.state}
-          districtNumber={selectedRep.district_number}
-          party={selectedRep.party}
-        />
+        {/* Highlight the selected House rep's congressional district.
+            Senators have no district_number, so DistrictBoundary renders nothing. */}
+        {selectedRep?.level === 'house' && (
+          <DistrictBoundary
+            state={selectedRep.state}
+            districtNumber={selectedRep.district_number}
+            party={selectedRep.party}
+          />
+        )}
+
+        {reps.map((rep) => (
+          <RepresentativePin
+            key={rep.id}
+            rep={{
+              ...rep,
+              ...(pinPositions[rep.id] ?? {}),
+            }}
+            onClick={onRepSelect}
+            offset={pinOffsets[rep.id]}
+          />
+        ))}
+      </Map>
+      {hoverInfo && (
+        <div style={{
+          position: 'absolute',
+          left: hoverInfo.x + 12,
+          top: hoverInfo.y - 10,
+          background: 'rgba(0,0,0,0.75)',
+          color: '#fff',
+          padding: '4px 8px',
+          borderRadius: 4,
+          fontSize: 13,
+          pointerEvents: 'none',
+          whiteSpace: 'nowrap',
+        }}>
+          {hoverInfo.label}
+        </div>
       )}
-
-      {reps.map((rep) => (
-        <RepresentativePin
-          key={rep.id}
-          rep={rep}
-          onClick={onRepSelect}
-          offset={pinOffsets[rep.id]}
-        />
-      ))}
-    </Map>
+    </div>
   )
 }

@@ -81,7 +81,7 @@ def _fetch_district_centroids(state):
     url = f'{TIGER_BASE}/0/query'
     params = {
         'where': f"STATE='{fips}'",
-        'outFields': 'STATE,CD119,CENTLAT,CENTLON',
+        'outFields': 'STATE,CD119,INTPTLAT,INTPTLON',
         'returnGeometry': 'false',
         'f': 'json',
     }
@@ -99,8 +99,8 @@ def _fetch_district_centroids(state):
     for feature in data.get('features', []):
         attrs = feature.get('attributes', {})
         cd = attrs.get('CD119')
-        centlat = attrs.get('CENTLAT')
-        centlon = attrs.get('CENTLON')
+        centlat = attrs.get('INTPTLAT')
+        centlon = attrs.get('INTPTLON')
         if cd is None or centlat is None or centlon is None:
             continue
         try:

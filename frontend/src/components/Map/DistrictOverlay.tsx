@@ -45,13 +45,14 @@ export interface ViewBounds {
   west: number
 }
 
+export type FeatureCollection = { type: string; features: object[] }
+
 interface Props {
   bounds: ViewBounds
 }
 
 // Module-level GeoJSON cache: state code → FeatureCollection.
 // Persists across remounts so each state is only fetched once per session.
-type FeatureCollection = { type: string; features: object[] }
 const geoCache: Record<string, FeatureCollection> = {}
 
 // Module-level request throttle: max 2 concurrent district fetches so the
@@ -66,6 +67,15 @@ const subscribers = new Set<() => void>()
 
 function notifySubscribers() {
   subscribers.forEach((fn) => fn())
+}
+
+export function subscribeToDistrictGeoJSON(subscriber: () => void) {
+  subscribers.add(subscriber)
+  return () => { subscribers.delete(subscriber) }
+}
+
+export function getCachedDistrictGeoJSON(state: string) {
+  return geoCache[state]
 }
 
 function drainQueue() {
@@ -98,7 +108,7 @@ function buildMergedWithParty(partyMap: Record<string, string>): GeoJSON {
     for (const feature of fc.features as any[]) {
       const distNum = parseInt(String(feature.properties?.CD119 ?? ''), 10)
       const party = partyMap[`${state}-${distNum}`] ?? 'other'
-      features.push({ ...feature, properties: { ...feature.properties, party } })
+      features.push({ ...feature, properties: { ...feature.properties, party, state_abbr: state } })
     }
   }
   return { type: 'FeatureCollection', features }
@@ -124,10 +134,10 @@ export default function DistrictOverlay({ bounds }: Props) {
   // Also immediately re-renders with the updated party colors.
   useEffect(() => {
     const notify = () => setGeojson(buildMergedWithParty(partyMap))
-    subscribers.add(notify)
+    const unsubscribe = subscribeToDistrictGeoJSON(notify)
     // Render immediately in case geoCache is already populated (remount or partyMap update).
     notify()
-    return () => { subscribers.delete(notify) }
+    return unsubscribe
   }, [partyMap])
 
   useEffect(() => {
