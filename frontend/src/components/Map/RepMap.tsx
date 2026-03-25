@@ -103,6 +103,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
         <DistrictBoundary
           state={selectedRep.state}
           districtNumber={selectedRep.district_number}
+          party={selectedRep.party}
         />
       )}
 

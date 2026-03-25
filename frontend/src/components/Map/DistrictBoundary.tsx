@@ -14,30 +14,10 @@ interface GeoJSON {
 interface Props {
   state: string
   districtNumber: number | null
+  party?: string
 }
 
-const fillLayer = {
-  id: 'district-fill',
-  source: 'district-source',
-  type: 'fill' as const,
-  paint: {
-    'fill-color': '#3b82f6',
-    'fill-opacity': 0.12,
-  },
-}
-
-const lineLayer = {
-  id: 'district-line',
-  source: 'district-source',
-  type: 'line' as const,
-  paint: {
-    'line-color': '#1d4ed8',
-    'line-width': 2,
-    'line-opacity': 0.7,
-  },
-}
-
-export default function DistrictBoundary({ state, districtNumber }: Props) {
+export default function DistrictBoundary({ state, districtNumber, party }: Props) {
   const [geojson, setGeojson] = useState<GeoJSON | null>(null)
 
   useEffect(() => {
@@ -66,10 +46,23 @@ export default function DistrictBoundary({ state, districtNumber }: Props) {
   // Nothing to render if the district wasn't found in the Census data
   if (filtered.features.length === 0) return null
 
+  const fillColor = party === 'republican' ? '#dc2626' : party === 'democrat' ? '#2563eb' : '#6b7280'
+  const lineColor = party === 'republican' ? '#b91c1c' : party === 'democrat' ? '#1d4ed8' : '#4b5563'
+
   return (
     <Source id="district-source" type="geojson" data={filtered as any}>
-      <Layer {...fillLayer} />
-      <Layer {...lineLayer} />
+      <Layer
+        id="district-fill"
+        source="district-source"
+        type="fill"
+        paint={{ 'fill-color': fillColor, 'fill-opacity': 0.2 }}
+      />
+      <Layer
+        id="district-line"
+        source="district-source"
+        type="line"
+        paint={{ 'line-color': lineColor, 'line-width': 2, 'line-opacity': 0.8 }}
+      />
     </Source>
   )
 }

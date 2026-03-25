@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Layer, Source } from 'react-map-gl'
 import { fetchCongressionalDistricts } from '../../api/representatives'
+import { useRepStore } from '../../store/repStore'
 
 // Geographic centre of each state — used to decide which states are in the
 // current viewport so we only fetch what is visible.
@@ -58,11 +59,13 @@ const geoCache: Record<string, FeatureCollection> = {}
 const inFlight = new Set<string>()
 const fetchQueue: string[] = []
 const MAX_CONCURRENT = 2
-const subscribers = new Set<(geojson: GeoJSON) => void>()
+
+// Subscribers are parameterless — each component instance rebuilds the merged
+// GeoJSON itself so it can inject the current party map.
+const subscribers = new Set<() => void>()
 
 function notifySubscribers() {
-  const merged = buildMerged()
-  subscribers.forEach((fn) => fn(merged))
+  subscribers.forEach((fn) => fn())
 }
 
 function drainQueue() {
@@ -86,26 +89,46 @@ function drainQueue() {
 
 type GeoJSON = { type: string; features: object[] }
 
-function buildMerged(): GeoJSON {
+// Merges all cached state GeoJSONs into one FeatureCollection, annotating each
+// feature with a `party` property derived from the rep store lookup.
+function buildMergedWithParty(partyMap: Record<string, string>): GeoJSON {
   const features: object[] = []
-  for (const fc of Object.values(geoCache)) {
-    if (fc?.features) features.push(...fc.features)
+  for (const [state, fc] of Object.entries(geoCache)) {
+    if (!fc?.features) continue
+    for (const feature of fc.features as any[]) {
+      const distNum = parseInt(String(feature.properties?.CD119 ?? ''), 10)
+      const party = partyMap[`${state}-${distNum}`] ?? 'other'
+      features.push({ ...feature, properties: { ...feature.properties, party } })
+    }
   }
   return { type: 'FeatureCollection', features }
 }
 
 export default function DistrictOverlay({ bounds }: Props) {
-  // Lazy initializer: if geoCache is already populated (e.g. after a remount),
-  // start rendering immediately instead of waiting for the effect to re-fetch.
-  const [geojson, setGeojson] = useState<GeoJSON>(() => buildMerged())
+  const { allReps } = useRepStore()
 
-  // Register this instance as a subscriber so it gets notified when any
-  // in-flight request (including ones started by the Strict Mode dead mount)
-  // completes and updates geoCache.
+  // Build a state+district → party lookup from all House reps.
+  const partyMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const rep of allReps) {
+      if (rep.level === 'house' && rep.district_number != null) {
+        map[`${rep.state}-${rep.district_number}`] = rep.party
+      }
+    }
+    return map
+  }, [allReps])
+
+  const [geojson, setGeojson] = useState<GeoJSON>({ type: 'FeatureCollection', features: [] })
+
+  // Re-subscribe whenever partyMap changes so the closure captures the latest lookup.
+  // Also immediately re-renders with the updated party colors.
   useEffect(() => {
-    subscribers.add(setGeojson)
-    return () => { subscribers.delete(setGeojson) }
-  }, [])
+    const notify = () => setGeojson(buildMergedWithParty(partyMap))
+    subscribers.add(notify)
+    // Render immediately in case geoCache is already populated (remount or partyMap update).
+    notify()
+    return () => { subscribers.delete(notify) }
+  }, [partyMap])
 
   useEffect(() => {
     const needed = Object.entries(STATE_CENTROIDS)
@@ -131,13 +154,24 @@ export default function DistrictOverlay({ bounds }: Props) {
       <Layer
         id="district-overlay-fill"
         type="fill"
-        paint={{ 'fill-color': '#22c55e', 'fill-opacity': 0.15 }}
+        paint={{
+          'fill-color': ['match', ['get', 'party'],
+            'democrat',   '#2563eb',
+            'republican', '#dc2626',
+            /* other */   '#9ca3af',
+          ],
+          'fill-opacity': 0.15,
+        }}
       />
       <Layer
         id="district-overlay-line"
         type="line"
         paint={{
-          'line-color': '#15803d',
+          'line-color': ['match', ['get', 'party'],
+            'democrat',   '#1d4ed8',
+            'republican', '#b91c1c',
+            /* other */   '#6b7280',
+          ],
           'line-width': 3,
           'line-opacity': 1,
         }}
