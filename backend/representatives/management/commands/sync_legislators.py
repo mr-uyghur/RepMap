@@ -8,8 +8,9 @@ Usage:
 import yaml
 import requests
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 
-from representatives.models import Representative
+from representatives.models import Representative, SyncStatus
 
 LEGISLATORS_URL = (
     'https://raw.githubusercontent.com/unitedstates/congress-legislators/main/legislators-current.yaml'
@@ -236,4 +237,13 @@ class Command(BaseCommand):
             self.style.SUCCESS(
                 f'Done. Created {created} legislators ({skipped} skipped).'
             )
+        )
+
+        SyncStatus.objects.update_or_create(
+            id=1,
+            defaults={
+                'last_synced_at': timezone.now(),
+                'is_syncing': False,
+                'last_error': '',
+            },
         )

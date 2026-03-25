@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from .throttles import ZipcodeLookupThrottle, AISummaryThrottle
 
 from .models import Representative, AISummary
+from .services.auto_sync import trigger_sync_if_stale
 from .serializers import RepresentativeListSerializer, RepresentativeDetailSerializer, AISummarySerializer
 from .integrations.google_civic import fetch_reps_by_zipcode
 from .integrations.census import fetch_congressional_districts, fetch_state_boundary, STATE_FIPS
@@ -36,6 +37,7 @@ class RepresentativeViewSet(viewsets.ReadOnlyModelViewSet):
         return []
 
     def list(self, request):
+        trigger_sync_if_stale()
         zipcode = request.query_params.get('zipcode', '').strip()
 
         if zipcode:

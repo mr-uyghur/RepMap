@@ -65,6 +65,21 @@ class Representative(models.Model):
         return f"Rep. {self.name} ({self.state}-{self.district_number})"
 
 
+class SyncStatus(models.Model):
+    """Singleton (id=1) tracking the last successful representative data sync."""
+    last_synced_at = models.DateTimeField(null=True, blank=True)
+    is_syncing = models.BooleanField(default=False)
+    last_error = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name_plural = 'sync status'
+
+    def __str__(self):
+        if self.last_synced_at:
+            return f'Last synced: {self.last_synced_at.isoformat()}'
+        return 'Never synced'
+
+
 class AISummary(models.Model):
     CONTENT_TYPES = [
         ('bio', 'Bio'),

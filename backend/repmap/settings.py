@@ -133,6 +133,12 @@ REST_FRAMEWORK = {
 GOOGLE_CIVIC_API_KEY = os.environ.get('GOOGLE_CIVIC_API_KEY', '')
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 
+# Auto-sync: automatically refresh representative data in the background when stale.
+# Set AUTO_SYNC_ENABLED=false to disable (e.g. during development when you want manual control).
+# AUTO_SYNC_STALE_HOURS controls how old the data must be before a refresh is triggered.
+AUTO_SYNC_ENABLED = os.environ.get('AUTO_SYNC_ENABLED', 'true').lower() == 'true'
+AUTO_SYNC_STALE_HOURS = int(os.environ.get('AUTO_SYNC_STALE_HOURS', '24'))
+
 # Production security settings — only active when DEBUG=False
 if not DEBUG:
     SECURE_SSL_REDIRECT = True

@@ -34,6 +34,8 @@ npm run dev
 - `ANTHROPIC_API_KEY` — Anthropic API key for AI summaries
 - `DATABASE_URL` — PostgreSQL URL (defaults to SQLite if not set)
 - `REDIS_URL` — Redis URL (defaults to localhost:6379)
+- `AUTO_SYNC_ENABLED` — Enable automatic background data refresh (default: `true`)
+- `AUTO_SYNC_STALE_HOURS` — Hours before representative data is considered stale (default: `24`)
 
 ### Frontend (.env)
 - `VITE_MAPBOX_TOKEN` — Mapbox GL JS access token
@@ -79,6 +81,26 @@ Two endpoints are throttled per IP address (anonymous requests):
 | `GET /api/representatives/<id>/summary/` | 10 requests / hour |
 
 Exceeding the limit returns `429 Too Many Requests` with a `Retry-After` header. All other read endpoints are unthrottled.
+
+## Automatic Data Refresh
+
+Representative records are refreshed automatically in the background — no manual `sync_legislators` runs needed in normal operation.
+
+**How it works:**
+1. The first `GET /api/representatives/` request after the stale window fires a background daemon thread.
+2. The thread calls the existing `sync_legislators` command (fetches the public Congress dataset + Census coordinates).
+3. Existing data is served immediately while the refresh runs — no blocking.
+4. On completion, `SyncStatus.last_synced_at` is updated. Subsequent requests skip the sync until the next stale window.
+
+**Preventing duplicate syncs:**  An in-process `threading.Lock` plus a `SyncStatus.is_syncing` DB flag ensure only one sync runs at a time.
+
+**Config:**
+| Variable | Default | Description |
+|---|---|---|
+| `AUTO_SYNC_ENABLED` | `true` | Set `false` to disable auto-refresh and rely on manual `sync_legislators` |
+| `AUTO_SYNC_STALE_HOURS` | `24` | Hours after which data is considered stale |
+
+**Multi-worker note:** The threading lock guards within a single process. If you run Gunicorn with multiple workers, the DB `is_syncing` flag reduces but does not fully eliminate duplicate syncs across workers. For multi-worker production, consider a cron job (`0 2 * * * python manage.py sync_legislators`) as a more reliable alternative.
 
 ### Production Security Headers
 

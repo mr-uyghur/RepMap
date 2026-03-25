@@ -1,6 +1,8 @@
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.test import TestCase, override_settings
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from representatives.integrations.google_civic import (
@@ -8,13 +10,18 @@ from representatives.integrations.google_civic import (
     _extract_state,
     _parse_civic_response,
 )
-from representatives.models import Representative
+from representatives.models import Representative, SyncStatus
+from representatives.services.auto_sync import is_stale, trigger_sync_if_stale
 
 
 # ---------------------------------------------------------------------------
 # ZIP-code endpoint behaviour
 # ---------------------------------------------------------------------------
 
+@override_settings(
+    AUTO_SYNC_ENABLED=False,
+    CACHES={'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}},
+)
 class ZipcodeEndpointTests(TestCase):
     def setUp(self):
         self.client = APIClient()
@@ -155,3 +162,65 @@ class ParseCivicResponseTests(TestCase):
         # CA centroid is ~37.18 N, ~-119.47 W — far from the US default (39.8, -98.6)
         self.assertAlmostEqual(rep.latitude, 37.1841, places=1)
         self.assertAlmostEqual(rep.longitude, -119.4696, places=1)
+
+
+# ---------------------------------------------------------------------------
+# Auto-sync staleness and trigger logic
+# ---------------------------------------------------------------------------
+
+class IsStaleTests(TestCase):
+    def test_no_sync_status_is_stale(self):
+        """No SyncStatus row means data has never been synced — always stale."""
+        self.assertTrue(is_stale())
+
+    @override_settings(AUTO_SYNC_STALE_HOURS=24)
+    def test_recent_sync_is_not_stale(self):
+        SyncStatus.objects.create(id=1, last_synced_at=timezone.now() - timedelta(hours=1))
+        self.assertFalse(is_stale())
+
+    @override_settings(AUTO_SYNC_STALE_HOURS=24)
+    def test_old_sync_is_stale(self):
+        SyncStatus.objects.create(id=1, last_synced_at=timezone.now() - timedelta(hours=25))
+        self.assertTrue(is_stale())
+
+    @override_settings(AUTO_SYNC_STALE_HOURS=1)
+    def test_custom_threshold_respected(self):
+        SyncStatus.objects.create(id=1, last_synced_at=timezone.now() - timedelta(minutes=90))
+        self.assertTrue(is_stale())
+
+
+class TriggerSyncTests(TestCase):
+    @override_settings(AUTO_SYNC_ENABLED=False)
+    def test_disabled_setting_prevents_sync(self):
+        with patch('representatives.services.auto_sync.threading.Thread') as mock_thread:
+            trigger_sync_if_stale()
+        mock_thread.assert_not_called()
+
+    def test_already_syncing_prevents_new_thread(self):
+        SyncStatus.objects.create(id=1, is_syncing=True, last_synced_at=None)
+        with patch('representatives.services.auto_sync.threading.Thread') as mock_thread:
+            trigger_sync_if_stale()
+        mock_thread.assert_not_called()
+
+    @override_settings(AUTO_SYNC_ENABLED=True, AUTO_SYNC_STALE_HOURS=24)
+    def test_fresh_data_prevents_sync(self):
+        SyncStatus.objects.create(id=1, last_synced_at=timezone.now() - timedelta(hours=1))
+        with patch('representatives.services.auto_sync.threading.Thread') as mock_thread:
+            trigger_sync_if_stale()
+        mock_thread.assert_not_called()
+
+    @override_settings(AUTO_SYNC_ENABLED=True, AUTO_SYNC_STALE_HOURS=24)
+    def test_stale_data_spawns_thread(self):
+        SyncStatus.objects.create(id=1, last_synced_at=timezone.now() - timedelta(hours=25))
+        with patch('representatives.services.auto_sync.threading.Thread') as mock_thread:
+            mock_thread.return_value.start = lambda: None
+            trigger_sync_if_stale()
+        mock_thread.assert_called_once()
+
+    @override_settings(AUTO_SYNC_ENABLED=True)
+    def test_no_status_row_spawns_thread(self):
+        """First-ever request (empty DB) should trigger a sync."""
+        with patch('representatives.services.auto_sync.threading.Thread') as mock_thread:
+            mock_thread.return_value.start = lambda: None
+            trigger_sync_if_stale()
+        mock_thread.assert_called_once()
