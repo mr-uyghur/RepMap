@@ -32,6 +32,9 @@ def fetch_congressional_districts(state: str) -> dict:
         'outSR': '4326',
         'f': 'geojson',
         'returnGeometry': 'true',
+        # Simplify geometry server-side: 0.01° ≈ 1 km, invisible at district zoom
+        # levels (≤8) but reduces payload size by ~5-10× for coastal states.
+        'maxAllowableOffset': '0.01',
     }
 
     response = requests.get(url, params=params, timeout=30)

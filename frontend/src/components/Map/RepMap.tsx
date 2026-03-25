@@ -8,7 +8,7 @@ import { useRepStore } from '../../store/repStore'
 import { fetchAllReps } from '../../api/representatives'
 import RepresentativePin from './RepresentativePin'
 import DistrictBoundary from './DistrictBoundary'
-import DistrictOverlay, { getCachedDistrictGeoJSON, subscribeToDistrictGeoJSON } from './DistrictOverlay'
+import DistrictOverlay, { getCachedDistrictGeoJSON, subscribeToDistrictGeoJSON, getLoadedStateCodes } from './DistrictOverlay'
 import type { ViewBounds } from './DistrictOverlay'
 import type { Representative } from '../../types'
 
@@ -122,6 +122,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
   const { reps, allReps, setReps, setLoading } = useRepStore()
   const [bounds, setBounds] = useState<ViewBounds>(DEFAULT_BOUNDS)
   const [districtGeoVersion, setDistrictGeoVersion] = useState(0)
+  const [fillLayerIds, setFillLayerIds] = useState<string[]>([])
   const [hoverInfo, setHoverInfo] = useState<{ x: number; y: number; label: string } | null>(null)
 
   useEffect(() => {
@@ -134,6 +135,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
 
   useEffect(() => subscribeToDistrictGeoJSON(() => {
     setDistrictGeoVersion((version) => version + 1)
+    setFillLayerIds(getLoadedStateCodes().map((s) => `district-fill-${s}`))
   }), [])
 
   const handleMoveEnd = useCallback(
@@ -220,7 +222,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
         style={{ width: '100%', height: '100%' }}
         mapStyle={darkMode ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11'}
         onMoveEnd={handleMoveEnd}
-        interactiveLayerIds={['district-overlay-fill']}
+        interactiveLayerIds={fillLayerIds}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       >

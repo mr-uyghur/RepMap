@@ -141,7 +141,7 @@ class DistrictViewSet(viewsets.ViewSet):
         if not state:
             return Response({'error': 'Valid 2-letter state abbreviation required.'}, status=400)
 
-        cache_key = f'district_geojson_{state}'
+        cache_key = f'district_geojson_v2_{state}'  # v2: simplified geometry (0.01° offset)
         try:
             cached = cache.get(cache_key)
             if cached:

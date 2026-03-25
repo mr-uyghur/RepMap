@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Layer, Source } from 'react-map-gl'
 import { fetchCongressionalDistricts } from '../../api/representatives'
+import { getCachedDistrictGeoJSON } from './DistrictOverlay'
 
 interface GeoJSON {
   type: string
@@ -26,6 +27,12 @@ export default function DistrictBoundary({ state, districtNumber, party }: Props
       setGeojson(null)
       return
     }
+    const cached = getCachedDistrictGeoJSON(state) as GeoJSON | undefined
+    if (cached) {
+      setGeojson(cached)
+      return
+    }
+
     setGeojson(null)
     fetchCongressionalDistricts(state)
       .then((data) => setGeojson(data as GeoJSON))

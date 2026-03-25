@@ -78,6 +78,12 @@ export function getCachedDistrictGeoJSON(state: string) {
   return geoCache[state]
 }
 
+// Returns the state codes that have been fully fetched and cached this session.
+// Used by RepMap to compute interactiveLayerIds for the per-state fill layers.
+export function getLoadedStateCodes(): string[] {
+  return Object.keys(geoCache)
+}
+
 function drainQueue() {
   while (inFlight.size < MAX_CONCURRENT && fetchQueue.length > 0) {
     const state = fetchQueue.shift()!
@@ -97,21 +103,16 @@ function drainQueue() {
   }
 }
 
-type GeoJSON = { type: string; features: object[] }
-
-// Merges all cached state GeoJSONs into one FeatureCollection, annotating each
-// feature with a `party` property derived from the rep store lookup.
-function buildMergedWithParty(partyMap: Record<string, string>): GeoJSON {
-  const features: object[] = []
-  for (const [state, fc] of Object.entries(geoCache)) {
-    if (!fc?.features) continue
-    for (const feature of fc.features as any[]) {
-      const distNum = parseInt(String(feature.properties?.CD119 ?? ''), 10)
-      const party = partyMap[`${state}-${distNum}`] ?? 'other'
-      features.push({ ...feature, properties: { ...feature.properties, party, state_abbr: state } })
-    }
-  }
-  return { type: 'FeatureCollection', features }
+// Annotate a single state's raw features with party + state_abbr.
+// Called only for newly-arrived states rather than rebuilding everything.
+function annotateStateFeatures(state: string, partyMap: Record<string, string>): object[] {
+  const fc = geoCache[state]
+  if (!fc?.features) return []
+  return (fc.features as any[]).map((feature: any) => {
+    const distNum = parseInt(String(feature.properties?.CD119 ?? ''), 10)
+    const party = partyMap[`${state}-${distNum}`] ?? 'other'
+    return { ...feature, properties: { ...feature.properties, party, state_abbr: state } }
+  })
 }
 
 export default function DistrictOverlay({ bounds }: Props) {
@@ -128,19 +129,42 @@ export default function DistrictOverlay({ bounds }: Props) {
     return map
   }, [allReps])
 
-  const [geojson, setGeojson] = useState<GeoJSON>({ type: 'FeatureCollection', features: [] })
+  // Per-state annotated features: state abbr → annotated feature array.
+  // Each state gets its own Mapbox Source so adding a new state never causes
+  // Mapbox to re-upload geometry for previously loaded states.
+  const [stateFeatures, setStateFeatures] = useState<Record<string, object[]>>({})
 
-  // Re-subscribe whenever partyMap changes so the closure captures the latest lookup.
-  // Also immediately re-renders with the updated party colors.
+  // When partyMap changes, reset and rebuild all cached states.
+  // When a new state arrives, only annotate that state and merge it in.
   useEffect(() => {
-    const notify = () => setGeojson(buildMergedWithParty(partyMap))
+    const processedStates = new Set<string>()
+
+    const notify = () => {
+      const newStates = Object.keys(geoCache).filter((s) => !processedStates.has(s))
+      if (newStates.length === 0) return
+
+      const isReset = processedStates.size === 0
+      newStates.forEach((s) => processedStates.add(s))
+
+      const updates: Record<string, object[]> = {}
+      newStates.forEach((state) => { updates[state] = annotateStateFeatures(state, partyMap) })
+
+      if (isReset) {
+        setStateFeatures(updates)
+      } else {
+        setStateFeatures((prev) => ({ ...prev, ...updates }))
+      }
+    }
+
     const unsubscribe = subscribeToDistrictGeoJSON(notify)
-    // Render immediately in case geoCache is already populated (remount or partyMap update).
-    notify()
+    notify() // process any states already in geoCache
     return unsubscribe
   }, [partyMap])
 
   useEffect(() => {
+    const centerLat = (bounds.north + bounds.south) / 2
+    const centerLng = (bounds.east + bounds.west) / 2
+
     const needed = Object.entries(STATE_CENTROIDS)
       .filter(([, [lat, lng]]) =>
         lat >= bounds.south - BOUNDS_BUFFER &&
@@ -148,44 +172,59 @@ export default function DistrictOverlay({ bounds }: Props) {
         lng >= bounds.west - BOUNDS_BUFFER &&
         lng <= bounds.east + BOUNDS_BUFFER
       )
+      .map(([state, [lat, lng]]): [string, number] => [
+        state, Math.hypot(lat - centerLat, lng - centerLng),
+      ])
+      .sort((a, b) => a[1] - b[1])
       .map(([state]) => state)
       .filter((state) => !geoCache[state] && !inFlight.has(state))
 
     if (needed.length === 0) return
 
-    needed.forEach((state) => fetchQueue.push(state))
+    // Prepend so the state closest to the viewport centre is processed next,
+    // before any states queued by an earlier pan.
+    fetchQueue.unshift(...needed)
     drainQueue()
   }, [bounds])
 
-  if (geojson.features.length === 0) return null
+  if (Object.keys(stateFeatures).length === 0) return null
 
   return (
-    <Source id="district-overlay" type="geojson" data={geojson as any}>
-      <Layer
-        id="district-overlay-fill"
-        type="fill"
-        paint={{
-          'fill-color': ['match', ['get', 'party'],
-            'democrat',   '#2563eb',
-            'republican', '#dc2626',
-            /* other */   '#9ca3af',
-          ],
-          'fill-opacity': 0.15,
-        }}
-      />
-      <Layer
-        id="district-overlay-line"
-        type="line"
-        paint={{
-          'line-color': ['match', ['get', 'party'],
-            'democrat',   '#1d4ed8',
-            'republican', '#b91c1c',
-            /* other */   '#6b7280',
-          ],
-          'line-width': 3,
-          'line-opacity': 1,
-        }}
-      />
-    </Source>
+    <>
+      {Object.entries(stateFeatures).map(([state, features]) => (
+        <Source
+          key={state}
+          id={`district-${state}`}
+          type="geojson"
+          data={{ type: 'FeatureCollection', features } as any}
+        >
+          <Layer
+            id={`district-fill-${state}`}
+            type="fill"
+            paint={{
+              'fill-color': ['match', ['get', 'party'],
+                'democrat',   '#2563eb',
+                'republican', '#dc2626',
+                /* other */   '#9ca3af',
+              ],
+              'fill-opacity': 0.15,
+            }}
+          />
+          <Layer
+            id={`district-line-${state}`}
+            type="line"
+            paint={{
+              'line-color': ['match', ['get', 'party'],
+                'democrat',   '#1d4ed8',
+                'republican', '#b91c1c',
+                /* other */   '#6b7280',
+              ],
+              'line-width': 3,
+              'line-opacity': 1,
+            }}
+          />
+        </Source>
+      ))}
+    </>
   )
 }
