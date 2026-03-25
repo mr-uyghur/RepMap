@@ -187,11 +187,31 @@ export default function DistrictOverlay({ bounds }: Props) {
     drainQueue()
   }, [bounds])
 
+  // Only mount Sources/Layers for states currently in the viewport + buffer.
+  // States outside this set are unmounted from Mapbox (GPU freed) but remain in
+  // stateFeatures so they remount instantly — without a re-fetch — on re-entry.
+  const mountedStates = useMemo(() => {
+    const inViewport = new Set<string>()
+    for (const [state, [lat, lng]] of Object.entries(STATE_CENTROIDS)) {
+      if (
+        lat >= bounds.south - BOUNDS_BUFFER &&
+        lat <= bounds.north + BOUNDS_BUFFER &&
+        lng >= bounds.west - BOUNDS_BUFFER &&
+        lng <= bounds.east + BOUNDS_BUFFER
+      ) {
+        inViewport.add(state)
+      }
+    }
+    return inViewport
+  }, [bounds])
+
   if (Object.keys(stateFeatures).length === 0) return null
 
   return (
     <>
-      {Object.entries(stateFeatures).map(([state, features]) => (
+      {Object.entries(stateFeatures)
+        .filter(([state]) => mountedStates.has(state))
+        .map(([state, features]) => (
         <Source
           key={state}
           id={`district-${state}`}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Map, { NavigationControl } from 'react-map-gl'
 import type { MapRef, ViewStateChangeEvent } from 'react-map-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
@@ -124,6 +124,8 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
   const [districtGeoVersion, setDistrictGeoVersion] = useState(0)
   const [fillLayerIds, setFillLayerIds] = useState<string[]>([])
   const [hoverInfo, setHoverInfo] = useState<{ x: number; y: number; label: string } | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const lastHoverUpdateRef = useRef(0)
 
   useEffect(() => {
     setLoading(true)
@@ -151,7 +153,18 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     [setCenter, setZoom, mapRef]
   )
 
+  const handleDragStart = useCallback(() => {
+    setIsDragging(true)
+    setHoverInfo(null)
+  }, [])
+
+  const handleDragEnd = useCallback(() => setIsDragging(false), [])
+
   const handleMouseMove = useCallback((e: Parameters<NonNullable<React.ComponentProps<typeof Map>['onMouseMove']>>[0]) => {
+    const now = Date.now()
+    if (now - lastHoverUpdateRef.current < 100) return
+    lastHoverUpdateRef.current = now
+
     const feature = e.features?.[0]
     if (!feature?.properties) { setHoverInfo(null); return }
     const stateAbbr = feature.properties.state_abbr as string
@@ -209,6 +222,15 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     ? (allReps.find((r) => r.id === selectedRepId) ?? reps.find((r) => r.id === selectedRepId) ?? null)
     : null
 
+  // Zoom-level pin filtering: fewer DOM Markers at lower zoom = faster repositioning
+  // during zoom animation. Matches the README-documented intended behavior.
+  // zoom < 4: no pins  |  zoom 4–7: senators only  |  zoom ≥ 7: all reps
+  const pinsToShow = useMemo(() => {
+    if (zoom < 4) return []
+    if (zoom < 7) return reps.filter((rep) => rep.level === 'senate')
+    return reps
+  }, [zoom, reps])
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <Map
@@ -222,7 +244,9 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
         style={{ width: '100%', height: '100%' }}
         mapStyle={darkMode ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11'}
         onMoveEnd={handleMoveEnd}
-        interactiveLayerIds={fillLayerIds}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        interactiveLayerIds={isDragging ? [] : fillLayerIds}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       >
@@ -239,7 +263,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
           />
         )}
 
-        {reps.map((rep) => (
+        {pinsToShow.map((rep) => (
           <RepresentativePin
             key={rep.id}
             rep={{
