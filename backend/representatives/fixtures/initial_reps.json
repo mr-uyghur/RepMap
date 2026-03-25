@@ -1,0 +1,212 @@
+[
+  {
+    "model": "representatives.representative",
+    "pk": 1,
+    "fields": {
+      "name": "Alex Johnson",
+      "level": "senate",
+      "party": "democrat",
+      "state": "CA",
+      "district_number": null,
+      "photo_url": "https://via.placeholder.com/150/0000FF/FFFFFF?text=AJ",
+      "website": "https://example.com/johnson",
+      "phone": "(202) 555-0101",
+      "social_links": {"twitter": "@alexjohnson"},
+      "term_start": "2021-01-03",
+      "term_end": "2027-01-03",
+      "latitude": 36.7783,
+      "longitude": -119.4179,
+      "external_ids": {"bioguide_id": "J000001"},
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "representatives.representative",
+    "pk": 2,
+    "fields": {
+      "name": "Maria Rodriguez",
+      "level": "senate",
+      "party": "democrat",
+      "state": "CA",
+      "district_number": null,
+      "photo_url": "https://via.placeholder.com/150/0000FF/FFFFFF?text=MR",
+      "website": "https://example.com/rodriguez",
+      "phone": "(202) 555-0102",
+      "social_links": {"twitter": "@mariarodriguez"},
+      "term_start": "2019-01-03",
+      "term_end": "2025-01-03",
+      "latitude": 36.7783,
+      "longitude": -119.4179,
+      "external_ids": {"bioguide_id": "R000001"},
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "representatives.representative",
+    "pk": 3,
+    "fields": {
+      "name": "James Wilson",
+      "level": "senate",
+      "party": "republican",
+      "state": "TX",
+      "district_number": null,
+      "photo_url": "https://via.placeholder.com/150/FF0000/FFFFFF?text=JW",
+      "website": "https://example.com/wilson",
+      "phone": "(202) 555-0103",
+      "social_links": {"twitter": "@jameswilson"},
+      "term_start": "2015-01-03",
+      "term_end": "2027-01-03",
+      "latitude": 31.9686,
+      "longitude": -99.9018,
+      "external_ids": {"bioguide_id": "W000001"},
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "representatives.representative",
+    "pk": 4,
+    "fields": {
+      "name": "Sarah Martinez",
+      "level": "senate",
+      "party": "republican",
+      "state": "TX",
+      "district_number": null,
+      "photo_url": "https://via.placeholder.com/150/FF0000/FFFFFF?text=SM",
+      "website": "https://example.com/martinez",
+      "phone": "(202) 555-0104",
+      "social_links": {"twitter": "@sarahmartinez"},
+      "term_start": "2013-01-03",
+      "term_end": "2025-01-03",
+      "latitude": 31.9686,
+      "longitude": -99.9018,
+      "external_ids": {"bioguide_id": "M000001"},
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "representatives.representative",
+    "pk": 5,
+    "fields": {
+      "name": "Robert Chen",
+      "level": "senate",
+      "party": "democrat",
+      "state": "NY",
+      "district_number": null,
+      "photo_url": "https://via.placeholder.com/150/0000FF/FFFFFF?text=RC",
+      "website": "https://example.com/chen",
+      "phone": "(202) 555-0105",
+      "social_links": {"twitter": "@robertchen"},
+      "term_start": "2017-01-03",
+      "term_end": "2023-01-03",
+      "latitude": 42.1657,
+      "longitude": -74.9481,
+      "external_ids": {"bioguide_id": "C000001"},
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "representatives.representative",
+    "pk": 6,
+    "fields": {
+      "name": "Linda Thompson",
+      "level": "house",
+      "party": "democrat",
+      "state": "CA",
+      "district_number": 33,
+      "photo_url": "https://via.placeholder.com/150/0000FF/FFFFFF?text=LT",
+      "website": "https://example.com/thompson",
+      "phone": "(202) 555-0106",
+      "social_links": {"twitter": "@lindathompson"},
+      "term_start": "2023-01-03",
+      "term_end": "2025-01-03",
+      "latitude": 33.9416,
+      "longitude": -118.4085,
+      "external_ids": {"bioguide_id": "T000001"},
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "representatives.representative",
+    "pk": 7,
+    "fields": {
+      "name": "David Park",
+      "level": "house",
+      "party": "democrat",
+      "state": "CA",
+      "district_number": 12,
+      "photo_url": "https://via.placeholder.com/150/0000FF/FFFFFF?text=DP",
+      "website": "https://example.com/park",
+      "phone": "(202) 555-0107",
+      "social_links": {"twitter": "@davidpark"},
+      "term_start": "2021-01-03",
+      "term_end": "2023-01-03",
+      "latitude": 37.7749,
+      "longitude": -122.4194,
+      "external_ids": {"bioguide_id": "P000001"},
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "representatives.representative",
+    "pk": 8,
+    "fields": {
+      "name": "Emily Watson",
+      "level": "house",
+      "party": "democrat",
+      "state": "NY",
+      "district_number": 12,
+      "photo_url": "https://via.placeholder.com/150/0000FF/FFFFFF?text=EW",
+      "website": "https://example.com/watson",
+      "phone": "(202) 555-0108",
+      "social_links": {"twitter": "@emilywatson"},
+      "term_start": "2019-01-03",
+      "term_end": "2023-01-03",
+      "latitude": 40.7128,
+      "longitude": -74.006,
+      "external_ids": {"bioguide_id": "W000002"},
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "representatives.representative",
+    "pk": 9,
+    "fields": {
+      "name": "Michael Davis",
+      "level": "house",
+      "party": "republican",
+      "state": "TX",
+      "district_number": 7,
+      "photo_url": "https://via.placeholder.com/150/FF0000/FFFFFF?text=MD",
+      "website": "https://example.com/davis",
+      "phone": "(202) 555-0109",
+      "social_links": {"twitter": "@michaeldavis"},
+      "term_start": "2023-01-03",
+      "term_end": "2025-01-03",
+      "latitude": 29.7604,
+      "longitude": -95.3698,
+      "external_ids": {"bioguide_id": "D000001"},
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "representatives.representative",
+    "pk": 10,
+    "fields": {
+      "name": "Patricia Brown",
+      "level": "house",
+      "party": "democrat",
+      "state": "IL",
+      "district_number": 7,
+      "photo_url": "https://via.placeholder.com/150/0000FF/FFFFFF?text=PB",
+      "website": "https://example.com/brown",
+      "phone": "(202) 555-0110",
+      "social_links": {"twitter": "@patriciabrown"},
+      "term_start": "2017-01-03",
+      "term_end": "2023-01-03",
+      "latitude": 41.8781,
+      "longitude": -87.6298,
+      "external_ids": {"bioguide_id": "B000001"},
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  }
+]

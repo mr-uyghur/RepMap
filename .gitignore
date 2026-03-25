@@ -1,0 +1,101 @@
+# ============================================================
+# RepMap — root .gitignore
+# ============================================================
+
+# ----- Environment / secrets (NEVER commit these) -----------
+.env
+.env.local
+.env.*.local
+*.env
+secrets.json
+credentials.json
+service-account*.json
+
+# ----- OS files ---------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ----- Editor -----------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+
+# ============================================================
+# Backend — Python / Django
+# ============================================================
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.py[cod]
+backend/**/*$py.class
+backend/*.pyc
+backend/**/*.pyc
+
+# Virtual environments
+backend/venv/
+backend/.venv/
+backend/env/
+backend/.env/
+
+# Django runtime artefacts
+backend/db.sqlite3
+backend/db.sqlite3-journal
+backend/*.sqlite3
+backend/media/
+backend/staticfiles/
+backend/static/
+
+# pytest / coverage
+backend/.pytest_cache/
+backend/htmlcov/
+backend/.coverage
+backend/coverage.xml
+backend/*.egg-info/
+backend/dist/
+backend/build/
+
+# mypy / ruff / flake8
+backend/.mypy_cache/
+backend/.ruff_cache/
+
+# Celery
+backend/celerybeat-schedule
+backend/celerybeat.pid
+
+# ============================================================
+# Frontend — Node / Vite / React
+# ============================================================
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/coverage/
+frontend/.nyc_output/
+
+# Vite build output
+frontend/dist-ssr/
+
+# TypeScript cache
+frontend/*.tsbuildinfo
+
+# Storybook
+frontend/storybook-static/
+
+# ============================================================
+# Logs (anywhere in the repo)
+# ============================================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+pip-log.txt
+pip-delete-this-directory.txt
