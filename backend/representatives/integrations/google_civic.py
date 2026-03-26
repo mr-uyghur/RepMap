@@ -8,8 +8,26 @@ from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
-CIVIC_API_BASE = 'https://www.googleapis.com/civicinfo/v2'
+_CENSUS_GEOCODER_URL = 'https://geocoding.geo.census.gov/geocoder/geographies/address'
+# Nominatim (OpenStreetMap) — free, no key, returns centroid for a US postal code.
+_NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search'
+_NOMINATIM_HEADERS = {'User-Agent': 'RepMap/1.0'}
 _ZIPCODE_RE = re.compile(r'^\d{5}$')
+
+# Reverse of census.STATE_FIPS — maps 2-digit FIPS code → state abbreviation.
+_FIPS_TO_STATE = {
+    '01': 'AL', '02': 'AK', '04': 'AZ', '05': 'AR', '06': 'CA',
+    '08': 'CO', '09': 'CT', '10': 'DE', '11': 'DC', '12': 'FL',
+    '13': 'GA', '15': 'HI', '16': 'ID', '17': 'IL', '18': 'IN',
+    '19': 'IA', '20': 'KS', '21': 'KY', '22': 'LA', '23': 'ME',
+    '24': 'MD', '25': 'MA', '26': 'MI', '27': 'MN', '28': 'MS',
+    '29': 'MO', '30': 'MT', '31': 'NE', '32': 'NV', '33': 'NH',
+    '34': 'NJ', '35': 'NM', '36': 'NY', '37': 'NC', '38': 'ND',
+    '39': 'OH', '40': 'OK', '41': 'OR', '42': 'PA', '44': 'RI',
+    '45': 'SC', '46': 'SD', '47': 'TN', '48': 'TX', '49': 'UT',
+    '50': 'VT', '51': 'VA', '53': 'WA', '54': 'WV', '55': 'WI',
+    '56': 'WY',
+}
 
 ALLOWED_PHOTO_HOSTS = {
     'clerk.house.gov',
@@ -84,38 +102,141 @@ def _extract_district(division_id: str) -> Optional[int]:
     return None
 
 
+def geocode_zip(zipcode: str):
+    """Return (lat, lng) for the centroid of a ZIP code via Census Geocoder.
+
+    Returns (None, None) if the ZIP is not found. Raises on network failure.
+    """
+    if not _ZIPCODE_RE.match(zipcode):
+        raise ValueError("Invalid zipcode format")
+
+    cache_key = f'zip_latlong_{zipcode}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached['lat'], cached['lng']
+
+    params = {
+        'postalcode': zipcode,
+        'countrycodes': 'us',
+        'format': 'json',
+        'limit': 1,
+    }
+    try:
+        response = requests.get(
+            _NOMINATIM_URL, params=params, headers=_NOMINATIM_HEADERS, timeout=10
+        )
+        response.raise_for_status()
+        results = response.json()
+    except requests.RequestException as e:
+        raise Exception(f"Nominatim geocoder error: {e}")
+
+    if not results:
+        return None, None
+
+    try:
+        lat = float(results[0]['lat'])
+        lng = float(results[0]['lon'])
+    except (KeyError, ValueError, TypeError):
+        return None, None
+
+    cache.set(cache_key, {'lat': lat, 'lng': lng}, 60 * 60 * 24 * 7)  # 7 days
+    return lat, lng
+
+
 def fetch_reps_by_zipcode(zipcode: str):
-    """Fetch representatives from Google Civic API for a given zipcode."""
+    """Return federal representatives for a ZIP code.
+
+    Uses the US Census Geocoder (free, no API key) to map the ZIP to a
+    congressional district, then looks up matching records in the local DB.
+    """
     from representatives.models import Representative
 
     if not _ZIPCODE_RE.match(zipcode):
         raise ValueError("Invalid zipcode format")
 
-    cache_key = f'civic_api_{zipcode}'  # safe: digits only after validation
-    cached = cache.get(cache_key)
+    # Cache only the geocoder result (state + district), not DB objects.
+    cache_key = f'zip_district_{zipcode}'
+    geo = cache.get(cache_key)
 
-    if not cached:
-        api_key = settings.GOOGLE_CIVIC_API_KEY
-        if not api_key:
-            return []
+    if geo is None:
+        state_abbr, district_number = _geocode_zip_to_district(zipcode)
+        geo = {'state': state_abbr, 'district': district_number}
+        if state_abbr:
+            cache.set(cache_key, geo, 60 * 60 * 24)  # 24 hours
+    else:
+        state_abbr = geo['state']
+        district_number = geo['district']
 
-        url = f'{CIVIC_API_BASE}/representatives'
-        params = {
-            'key': api_key,
-            'address': zipcode,
-            'levels': 'country',
-            'roles': 'legislatorUpperBody,legislatorLowerBody',
-        }
+    if not state_abbr:
+        return []
 
-        try:
-            response = requests.get(url, params=params, timeout=10)
-            response.raise_for_status()
-            cached = response.json()
-            cache.set(cache_key, cached, 60 * 60 * 24)  # 24 hours
-        except requests.RequestException as e:
-            raise Exception(f"Google Civic API error: {e}")
+    reps = []
 
-    return _parse_civic_response(cached)
+    # House rep for this district (district_number=None means at-large).
+    house_rep = Representative.objects.filter(
+        level='house', state=state_abbr, district_number=district_number
+    ).first()
+    if house_rep:
+        reps.append(house_rep)
+
+    # Both senators for this state.
+    senators = list(
+        Representative.objects.filter(level='senate', state=state_abbr).order_by('name')
+    )
+    reps.extend(senators)
+
+    return reps
+
+
+def _geocode_zip_to_district(zipcode: str):
+    """Call the Census Geocoder to find the congressional district for a ZIP.
+
+    Returns (state_abbr, district_number) where district_number is an int
+    (or None for at-large states).  Returns (None, None) on any failure.
+    """
+    params = {
+        'address': zipcode,
+        'benchmark': 'Public_AR_Current',
+        'vintage': 'Current_Current',
+        'layers': '54',  # Congressional Districts
+        'format': 'json',
+    }
+    try:
+        response = requests.get(_CENSUS_GEOCODER_URL, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+    except requests.RequestException as e:
+        raise Exception(f"Census Geocoder error: {e}")
+
+    matches = data.get('result', {}).get('addressMatches', [])
+    if not matches:
+        return None, None
+
+    geographies = matches[0].get('geographies', {})
+    districts = geographies.get('Congressional Districts', [])
+    if not districts:
+        return None, None
+
+    district = districts[0]
+    state_fips = district.get('STATEFP', '')
+    state_abbr = _FIPS_TO_STATE.get(state_fips)
+    if not state_abbr:
+        return None, None
+
+    # BASENAME is the district number as a plain string ('17', '00' for at-large).
+    # CD119FP / CD118FP are zero-padded equivalents; fall back through them.
+    raw_cd = (
+        district.get('CD119FP')
+        or district.get('CD118FP')
+        or district.get('BASENAME', '')
+    )
+    try:
+        cd = int(raw_cd)
+        district_number = None if cd == 0 else cd  # 0 = at-large in Census data
+    except (ValueError, TypeError):
+        district_number = None
+
+    return state_abbr, district_number
 
 
 def _parse_civic_response(data: dict):

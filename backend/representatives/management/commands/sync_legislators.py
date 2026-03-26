@@ -76,6 +76,13 @@ PARTY_MAP = {
     'Independent': 'independent',
 }
 
+SOCIAL_URL_BUILDERS = {
+    'twitter': lambda value: f'https://x.com/{value}',
+    'facebook': lambda value: value if str(value).startswith('http') else f'https://www.facebook.com/{value}',
+    'youtube': lambda value: value if str(value).startswith('http') else f'https://www.youtube.com/{value}',
+    'instagram': lambda value: f'https://www.instagram.com/{value}',
+}
+
 
 def _fetch_district_centroids(state):
     """
@@ -182,6 +189,32 @@ def _fetch_committee_data(log=None):
     return bioguide_to_committees
 
 
+def _build_social_links(person_ids):
+    links = {}
+    for platform, builder in SOCIAL_URL_BUILDERS.items():
+        value = person_ids.get(platform)
+        if not value:
+            continue
+        try:
+            links[platform] = builder(value)
+        except Exception:
+            continue
+    return links
+
+
+def _build_external_ids(person_ids):
+    keys = [
+        'bioguide', 'govtrack', 'opensecrets', 'votesmart', 'wikidata',
+        'ballotpedia', 'cspan',
+    ]
+    external_ids = {}
+    for key in keys:
+        value = person_ids.get(key)
+        if value:
+            external_ids[f'{key}_id'] = value
+    return external_ids
+
+
 class Command(BaseCommand):
     help = 'Sync all current US legislators from unitedstates.io'
 
@@ -250,7 +283,8 @@ class Command(BaseCommand):
             )
             party_raw = term.get('party', '')
             party = PARTY_MAP.get(party_raw, 'other')
-            bioguide_id = person.get('id', {}).get('bioguide', '')
+            person_ids = person.get('id', {})
+            bioguide_id = person_ids.get('bioguide', '')
             lat, lng = STATE_CENTROIDS[state]
 
             # Office room: address field is "Room Building; Washington DC zip".
@@ -267,14 +301,14 @@ class Command(BaseCommand):
                 photo_url='',
                 website=term.get('url', ''),
                 phone=term.get('phone', ''),
-                social_links={},
+                social_links=_build_social_links(person_ids),
                 term_start=term.get('start') or None,
                 term_end=term.get('end') or None,
                 office_room=office_room,
                 committee_assignments=committee_data.get(bioguide_id, []),
                 latitude=lat,
                 longitude=lng,
-                external_ids={'bioguide_id': bioguide_id},
+                external_ids=_build_external_ids(person_ids),
             )
             created += 1
 
@@ -297,7 +331,8 @@ class Command(BaseCommand):
             )
             party_raw = term.get('party', '')
             party = PARTY_MAP.get(party_raw, 'other')
-            bioguide_id = person.get('id', {}).get('bioguide', '')
+            person_ids = person.get('id', {})
+            bioguide_id = person_ids.get('bioguide', '')
 
             raw_address = term.get('address', '') or ''
             office_room = raw_address.split(';')[0].strip()
@@ -311,14 +346,14 @@ class Command(BaseCommand):
                 photo_url='',
                 website=term.get('url', ''),
                 phone=term.get('phone', ''),
-                social_links={},
+                social_links=_build_social_links(person_ids),
                 term_start=term.get('start') or None,
                 term_end=term.get('end') or None,
                 office_room=office_room,
                 committee_assignments=committee_data.get(bioguide_id, []),
                 latitude=lat,
                 longitude=lng,
-                external_ids={'bioguide_id': bioguide_id},
+                external_ids=_build_external_ids(person_ids),
             )
             created += 1
 

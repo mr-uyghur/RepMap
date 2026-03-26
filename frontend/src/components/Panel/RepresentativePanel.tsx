@@ -19,6 +19,57 @@ const PARTY_LABELS: Record<string, string> = {
 
 const NA = 'Not available'
 
+function getDistrictLabel(rep: Representative) {
+  if (rep.district_label) return rep.district_label
+  if (rep.level === 'senate') return rep.state
+  if (rep.district_number == null) return `${rep.state} - At-Large`
+  return `${rep.state} - District ${rep.district_number}`
+}
+
+function getChamberLabel(rep: Representative) {
+  return rep.level === 'senate' ? 'US Senator' : 'US Representative'
+}
+
+function getOfficialProfileLinks(rep: Representative) {
+  const links = [
+    rep.congress_gov_url ? { label: 'Congress.gov', href: rep.congress_gov_url } : null,
+    rep.bioguide_url ? { label: 'Bioguide', href: rep.bioguide_url } : null,
+  ].filter(Boolean)
+
+  if (links.length > 0) return links as { label: string; href: string }[]
+
+  const bioguideId = rep.external_ids?.bioguide_id
+  if (!bioguideId) return []
+
+  return [
+    {
+      label: 'Congress.gov',
+      href: `https://www.congress.gov/member/${bioguideId}`,
+    },
+    {
+      label: 'Bioguide',
+      href: `https://bioguide.congress.gov/search/bio/${bioguideId}`,
+    },
+  ]
+}
+
+function getSocialLink(platform: string, value: string) {
+  if (value.startsWith('http://') || value.startsWith('https://')) return value
+  const normalized = value.replace(/^@/, '')
+  switch (platform) {
+    case 'twitter':
+      return `https://x.com/${normalized}`
+    case 'facebook':
+      return `https://www.facebook.com/${normalized}`
+    case 'youtube':
+      return `https://www.youtube.com/${normalized}`
+    case 'instagram':
+      return `https://www.instagram.com/${normalized}`
+    default:
+      return ''
+  }
+}
+
 function Field({ label, children, dm }: { label: string; children: React.ReactNode; dm: boolean }) {
   return (
     <div style={{ marginBottom: '12px' }}>
@@ -60,6 +111,7 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
   // Normalize defensively: guard against the backend returning a string instead of an array
   // (can happen with legacy data or if DRF serialization is misconfigured).
   const committees = Array.isArray(rep?.committee_assignments) ? rep.committee_assignments : []
+  const profileLinks = rep ? getOfficialProfileLinks(rep) : []
 
   const linkColor = dm ? '#60a5fa' : '#2563eb'
 
@@ -92,11 +144,11 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
                 {rep.name}
               </h2>
               <p style={{ margin: '0 0 2px', fontSize: '13px', color: '#9ca3af' }}>
-                {rep.level === 'senate' ? 'US Senator' : 'US Representative'}{' \u2022 '}
+                {getChamberLabel(rep)}{' \u2022 '}
                 <span style={{ color: color, fontWeight: '600' }}>{PARTY_LABELS[rep.party] ?? rep.party}</span>
               </p>
               <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>
-                {rep.state}{rep.district_number ? ' \u2014 District ' + rep.district_number : ''}
+                {getDistrictLabel(rep)}
               </p>
             </>
           ) : null}
@@ -135,14 +187,32 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
               : NA}
           </Field>
 
+          {profileLinks.length > 0 && (
+            <Field label="Official Profiles" dm={dm}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {profileLinks.map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: linkColor, wordBreak: 'break-all' }}
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            </Field>
+          )}
+
           <Field label="Term" dm={dm}>
             {rep.term_start || rep.term_end
               ? formatDate(rep.term_start) + ' \u2013 ' + formatDate(rep.term_end)
               : NA}
           </Field>
 
-          <Field label="Office" dm={dm}>
-            {rep.office_room || NA}
+          <Field label="Office Address" dm={dm}>
+            {rep.office_address || rep.office_room || NA}
           </Field>
 
           {committees.length > 0 && (
@@ -159,10 +229,18 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
             <Field label="Social" dm={dm}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {socialEntries.map(function([platform, handle]) {
+                  const value = String(handle)
+                  const href = getSocialLink(platform, value)
                   return (
                     <span key={platform} style={{ fontSize: '13px' }}>
                       <span style={{ textTransform: 'capitalize', color: '#6b7280' }}>{platform}:</span>{' '}
-                      <span>{String(handle)}</span>
+                      {href ? (
+                        <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: linkColor, wordBreak: 'break-all' }}>
+                          {value}
+                        </a>
+                      ) : (
+                        <span>{value}</span>
+                      )}
                     </span>
                   )
                 })}

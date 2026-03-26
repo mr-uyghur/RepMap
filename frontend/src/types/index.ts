@@ -19,8 +19,12 @@ export interface Representative {
   term_start?: string | null
   term_end?: string | null
   office_room?: string
+  office_address?: string
   committee_assignments?: string[]
   external_ids?: Record<string, string>
+  district_label?: string
+  congress_gov_url?: string
+  bioguide_url?: string
   updated_at?: string
   summaries?: AISummary[]
 }
@@ -46,12 +50,9 @@ export interface MapState {
 export interface RepState {
   reps: Representative[]
   allReps: Representative[]
-  filteredByZip: boolean
   loading: boolean
   error: string | null
   setReps: (reps: Representative[]) => void
-  setFilteredReps: (reps: Representative[]) => void
-  clearZipFilter: () => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
 }

@@ -1,6 +1,11 @@
 import client from './client'
 import type { Representative, AISummary, SummaryType } from '../types'
 
+export async function lookupZip(zipcode: string): Promise<{ lat: number; lng: number }> {
+  const { data } = await client.get('/api/zip-lookup/', { params: { zipcode } })
+  return data
+}
+
 export async function fetchRepsByZipcode(zipcode: string): Promise<Representative[]> {
   const { data } = await client.get('/api/representatives/', {
     params: { zipcode },

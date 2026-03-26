@@ -120,6 +120,7 @@ interface Props {
 export default function RepMap({ mapRef, onRepSelect }: Props) {
   const { zoom, center, selectedRepId, darkMode, setZoom, setCenter } = useMapStore()
   const { reps, allReps, setReps, setLoading } = useRepStore()
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [bounds, setBounds] = useState<ViewBounds>(DEFAULT_BOUNDS)
   const [districtGeoVersion, setDistrictGeoVersion] = useState(0)
   const [fillLayerIds, setFillLayerIds] = useState<string[]>([])
@@ -131,7 +132,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     setLoading(true)
     fetchAllReps()
       .then(setReps)
-      .catch((err) => console.error('Failed to load reps:', err))
+      .catch(() => setLoadError('Could not load representatives. Is the backend running at http://localhost:8000?'))
       .finally(() => setLoading(false))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -292,6 +293,16 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
           />
         ))}
       </Map>
+      {loadError && (
+        <div style={{
+          position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
+          background: '#7f1d1d', color: '#fecaca', padding: '10px 16px',
+          borderRadius: 6, zIndex: 20, fontSize: 13, maxWidth: 420, textAlign: 'center',
+          pointerEvents: 'none',
+        }}>
+          {loadError}
+        </div>
+      )}
       {hoverInfo && (
         <div style={{
           position: 'absolute',

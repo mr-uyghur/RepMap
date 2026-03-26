@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import axios from 'axios'
-import { fetchRepsByZipcode } from '../../api/representatives'
-import { useRepStore } from '../../store/repStore'
+import { lookupZip } from '../../api/representatives'
 import { useMapStore } from '../../store/mapStore'
 
 interface Props {
@@ -13,7 +12,6 @@ export default function ZipcodeSearch({ onFlyTo }: Props) {
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const { filteredByZip, setFilteredReps, clearZipFilter } = useRepStore()
   const darkMode = useMapStore((s) => s.darkMode)
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -27,25 +25,21 @@ export default function ZipcodeSearch({ onFlyTo }: Props) {
     setError(null)
 
     try {
-      const reps = await fetchRepsByZipcode(zipcode.trim())
-      setFilteredReps(reps)
-      const target = reps.find((r) => r.level === 'house') ?? reps[0]
-      onFlyTo(target.latitude, target.longitude)
+      const { lat, lng } = await lookupZip(zipcode.trim())
+      onFlyTo(lat, lng)
     } catch (err) {
-      const message =
-        axios.isAxiosError(err) && err.response?.data?.error
-          ? err.response.data.error
-          : 'Failed to search. Please try again.'
-      setError(message)
+      if (axios.isAxiosError(err)) {
+        if (!err.response) {
+          setError('Could not reach the server. Is the backend running?')
+        } else {
+          setError(err.response.data?.error ?? 'Could not locate that ZIP code.')
+        }
+      } else {
+        setError('Could not locate that ZIP code.')
+      }
     } finally {
       setSearching(false)
     }
-  }
-
-  const handleClear = () => {
-    setZipcode('')
-    setError(null)
-    clearZipFilter()
   }
 
   const dm = darkMode
@@ -105,29 +99,9 @@ export default function ZipcodeSearch({ onFlyTo }: Props) {
       {error && (
         <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#f87171' }}>{error}</p>
       )}
-      {filteredByZip ? (
-        <p style={{ margin: '8px 0 0', fontSize: '11px', color: dm ? '#9ca3af' : '#6b7280' }}>
-          Showing representatives for ZIP {zipcode}.{' '}
-          <button
-            onClick={handleClear}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: dm ? '#60a5fa' : '#2563eb',
-              cursor: 'pointer',
-              fontSize: '11px',
-              padding: 0,
-              textDecoration: 'underline',
-            }}
-          >
-            Show all
-          </button>
-        </p>
-      ) : (
-        <p style={{ margin: '8px 0 0', fontSize: '11px', color: '#9ca3af' }}>
-          Pan the map to explore representatives
-        </p>
-      )}
+      <p style={{ margin: '8px 0 0', fontSize: '11px', color: '#9ca3af' }}>
+        Pan the map to explore representatives
+      </p>
     </div>
   )
 }

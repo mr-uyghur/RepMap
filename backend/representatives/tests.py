@@ -15,7 +15,41 @@ from representatives.services.auto_sync import is_stale, trigger_sync_if_stale
 
 
 # ---------------------------------------------------------------------------
-# ZIP-code endpoint behaviour
+# ZIP lookup endpoint (map recenter only)
+# ---------------------------------------------------------------------------
+
+class ZipLookupEndpointTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_valid_zip_returns_lat_lng(self):
+        with patch('representatives.views.geocode_zip', return_value=(37.33, -121.88)):
+            response = self.client.get('/api/zip-lookup/', {'zipcode': '95131'})
+        self.assertEqual(response.status_code, 200)
+        self.assertAlmostEqual(response.data['lat'], 37.33)
+        self.assertAlmostEqual(response.data['lng'], -121.88)
+
+    def test_invalid_format_returns_400(self):
+        for bad in ('abc', '1234', '123456', '1234a'):
+            with self.subTest(zipcode=bad):
+                response = self.client.get('/api/zip-lookup/', {'zipcode': bad})
+                self.assertEqual(response.status_code, 400)
+
+    def test_zip_not_found_returns_404(self):
+        with patch('representatives.views.geocode_zip', return_value=(None, None)):
+            response = self.client.get('/api/zip-lookup/', {'zipcode': '00000'})
+        self.assertEqual(response.status_code, 404)
+        self.assertIn('error', response.data)
+
+    def test_geocoder_error_returns_503(self):
+        with patch('representatives.views.geocode_zip', side_effect=Exception('timeout')):
+            response = self.client.get('/api/zip-lookup/', {'zipcode': '10001'})
+        self.assertEqual(response.status_code, 503)
+        self.assertIn('error', response.data)
+
+
+# ---------------------------------------------------------------------------
+# ZIP-code /representatives/ endpoint behaviour
 # ---------------------------------------------------------------------------
 
 @override_settings(
@@ -26,17 +60,10 @@ class ZipcodeEndpointTests(TestCase):
     def setUp(self):
         self.client = APIClient()
 
-    @override_settings(GOOGLE_CIVIC_API_KEY='')
-    def test_zip_without_api_key_returns_503(self):
-        response = self.client.get('/api/representatives/', {'zipcode': '10001'})
-        self.assertEqual(response.status_code, 503)
-        self.assertIn('error', response.data)
-
-    @override_settings(GOOGLE_CIVIC_API_KEY='test-key')
-    def test_zip_when_civic_api_raises_returns_503(self):
+    def test_zip_when_geocoder_raises_returns_503(self):
         with patch(
             'representatives.views.fetch_reps_by_zipcode',
-            side_effect=Exception('network error'),
+            side_effect=Exception('Census Geocoder error: network error'),
         ):
             response = self.client.get('/api/representatives/', {'zipcode': '10001'})
         self.assertEqual(response.status_code, 503)
@@ -44,7 +71,6 @@ class ZipcodeEndpointTests(TestCase):
         # Must not fall back to unrelated database records
         self.assertNotIn('results', response.data)
 
-    @override_settings(GOOGLE_CIVIC_API_KEY='test-key')
     def test_zip_no_results_returns_404(self):
         with patch('representatives.views.fetch_reps_by_zipcode', return_value=[]):
             response = self.client.get('/api/representatives/', {'zipcode': '10001'})
@@ -73,6 +99,125 @@ class ZipcodeEndpointTests(TestCase):
             '/api/representatives/', {'lat': '40.7', 'lng': '-74.0', 'zoom': '10'}
         )
         self.assertEqual(response.status_code, 200)
+
+
+# ---------------------------------------------------------------------------
+# Census Geocoder integration
+# ---------------------------------------------------------------------------
+
+class CensusGeocoderTests(TestCase):
+    """Unit tests for _geocode_zip_to_district and fetch_reps_by_zipcode."""
+
+    def _geocoder_response(self, state_fips, cd_fp):
+        """Build a minimal Census Geocoder JSON response."""
+        return {
+            'result': {
+                'addressMatches': [{
+                    'geographies': {
+                        'Congressional Districts': [{
+                            'STATEFP': state_fips,
+                            'CD119FP': cd_fp,
+                            'BASENAME': str(int(cd_fp)),
+                        }]
+                    }
+                }]
+            }
+        }
+
+    def test_geocoder_returns_state_and_district(self):
+        from representatives.integrations.google_civic import _geocode_zip_to_district
+        with patch('representatives.integrations.google_civic.requests.get') as mock_get:
+            mock_get.return_value.json.return_value = self._geocoder_response('06', '17')
+            mock_get.return_value.raise_for_status = lambda: None
+            state, district = _geocode_zip_to_district('95131')
+        self.assertEqual(state, 'CA')
+        self.assertEqual(district, 17)
+
+    def test_geocoder_at_large_returns_none_district(self):
+        from representatives.integrations.google_civic import _geocode_zip_to_district
+        with patch('representatives.integrations.google_civic.requests.get') as mock_get:
+            mock_get.return_value.json.return_value = self._geocoder_response('02', '00')
+            mock_get.return_value.raise_for_status = lambda: None
+            state, district = _geocode_zip_to_district('99501')
+        self.assertEqual(state, 'AK')
+        self.assertIsNone(district)
+
+    def test_geocoder_no_match_returns_none_none(self):
+        from representatives.integrations.google_civic import _geocode_zip_to_district
+        with patch('representatives.integrations.google_civic.requests.get') as mock_get:
+            mock_get.return_value.json.return_value = {'result': {'addressMatches': []}}
+            mock_get.return_value.raise_for_status = lambda: None
+            state, district = _geocode_zip_to_district('00000')
+        self.assertIsNone(state)
+        self.assertIsNone(district)
+
+    def test_geocoder_network_error_raises(self):
+        from representatives.integrations.google_civic import _geocode_zip_to_district
+        import requests as req
+        with patch('representatives.integrations.google_civic.requests.get',
+                   side_effect=req.RequestException('timeout')):
+            with self.assertRaises(Exception) as ctx:
+                _geocode_zip_to_district('10001')
+        self.assertIn('Census Geocoder error', str(ctx.exception))
+
+    @override_settings(
+        AUTO_SYNC_ENABLED=False,
+        CACHES={'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}},
+    )
+    def test_fetch_reps_by_zipcode_returns_db_reps(self):
+        """fetch_reps_by_zipcode returns House rep + senators from DB after geocoding."""
+        from representatives.integrations.google_civic import fetch_reps_by_zipcode
+        from representatives.models import Representative
+        Representative.objects.create(
+            name='House Rep', level='house', party='democrat',
+            state='CA', district_number=17, latitude=37.0, longitude=-121.0,
+        )
+        Representative.objects.create(
+            name='Senator A', level='senate', party='democrat',
+            state='CA', district_number=None, latitude=37.0, longitude=-119.0,
+        )
+        with patch(
+            'representatives.integrations.google_civic._geocode_zip_to_district',
+            return_value=('CA', 17),
+        ):
+            reps = fetch_reps_by_zipcode('95131')
+        self.assertEqual(len(reps), 2)
+        levels = {r.level for r in reps}
+        self.assertIn('house', levels)
+        self.assertIn('senate', levels)
+
+
+# ---------------------------------------------------------------------------
+# Security settings: SECURE_SSL_REDIRECT must be opt-in
+# ---------------------------------------------------------------------------
+
+class SecuritySettingsTests(TestCase):
+    def test_ssl_redirect_off_by_default(self):
+        """SECURE_SSL_REDIRECT must be False unless explicitly set via env var.
+
+        If True by default, Django's SecurityMiddleware 301-redirects every plain
+        HTTP request (including all local dev API calls) before the view runs.
+        """
+        from django.conf import settings
+        self.assertFalse(getattr(settings, 'SECURE_SSL_REDIRECT', False))
+
+    @override_settings(
+        SECURE_SSL_REDIRECT=False,
+        GOOGLE_CIVIC_API_KEY='test-key',
+        AUTO_SYNC_ENABLED=False,
+        CACHES={'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}},
+    )
+    def test_zipcode_endpoint_not_redirected_without_ssl_setting(self):
+        """With SECURE_SSL_REDIRECT=False, the ZIP endpoint returns a real API response (not 301)."""
+        with patch('representatives.views.fetch_reps_by_zipcode', return_value=[]):
+            response = self.client.get('/api/representatives/', {'zipcode': '10001'})
+        self.assertNotEqual(response.status_code, 301)
+
+    @override_settings(SECURE_SSL_REDIRECT=True)
+    def test_http_request_redirects_in_production_mode(self):
+        """With SECURE_SSL_REDIRECT=True (production opt-in), plain HTTP is redirected to HTTPS."""
+        response = self.client.get('/api/representatives/')
+        self.assertEqual(response.status_code, 301)
 
 
 # ---------------------------------------------------------------------------

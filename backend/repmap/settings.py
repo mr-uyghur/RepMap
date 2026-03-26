@@ -148,9 +148,15 @@ DISTRICT_DATA_DIR = os.environ.get('DISTRICT_DATA_DIR') or None
 # Set false in production once you have run `build_district_data` and committed the files.
 DISTRICT_LIVE_FALLBACK = os.environ.get('DISTRICT_LIVE_FALLBACK', 'true').lower() == 'true'
 
-# Production security settings — only active when DEBUG=False
+# SECURE_SSL_REDIRECT is opt-in via env var. Do NOT derive it from DEBUG=False —
+# the Django dev server and most local setups serve plain HTTP, so auto-enabling
+# this setting would 301-redirect every API call and break local development.
+# Production deployments should set SECURE_SSL_REDIRECT=True explicitly.
+SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'False') == 'True'
+
+# Remaining security headers are safe to enable whenever DEBUG=False (they don't
+# cause redirects or break HTTP clients, they just add response headers / cookie flags).
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True

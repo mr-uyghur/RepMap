@@ -30,7 +30,7 @@ npm run dev
 
 ### Backend (.env)
 - `DJANGO_SECRET_KEY` — Django secret key
-- `GOOGLE_CIVIC_API_KEY` — Google Civic Information API key
+- `GOOGLE_CIVIC_API_KEY` — No longer used for ZIP code search (Google shut down that endpoint in April 2025). The key is kept in the config for potential future use but is not required.
 - `ANTHROPIC_API_KEY` — Anthropic API key for AI summaries
 - `DATABASE_URL` — PostgreSQL URL (defaults to SQLite if not set)
 - `REDIS_URL` — Redis URL (defaults to localhost:6379)
@@ -148,4 +148,6 @@ When `DEBUG=False`, Django automatically sets:
 - `Strict-Transport-Security` (1 year, includes subdomains)
 - `X-Content-Type-Options: nosniff`
 - Secure flags on session and CSRF cookies
-- HTTPS redirect (proxy-aware via `X-Forwarded-Proto`)
+- Proxy-aware HTTPS header (`X-Forwarded-Proto`)
+
+**`SECURE_SSL_REDIRECT` is opt-in** — set `SECURE_SSL_REDIRECT=True` in your production environment to redirect plain HTTP requests to HTTPS. It is **not** auto-enabled by `DEBUG=False`, so the local Django dev server (which serves plain HTTP) is unaffected.

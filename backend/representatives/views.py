@@ -7,12 +7,13 @@ from datetime import timedelta
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from .throttles import ZipcodeLookupThrottle, AISummaryThrottle
 
 from .models import Representative, AISummary
 from .services.auto_sync import trigger_sync_if_stale
 from .serializers import RepresentativeListSerializer, RepresentativeDetailSerializer, AISummarySerializer
-from .integrations.google_civic import fetch_reps_by_zipcode
+from .integrations.google_civic import fetch_reps_by_zipcode, geocode_zip
 from .integrations.census import (
     fetch_congressional_districts, fetch_state_boundary, STATE_FIPS,
     load_local_congressional_districts,
@@ -54,15 +55,10 @@ class RepresentativeViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(serializer.data)
 
     def _handle_zipcode_request(self, zipcode):
-        if not settings.GOOGLE_CIVIC_API_KEY:
-            return Response(
-                {'error': 'Representative lookup by ZIP code is not available.'},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
         try:
             reps = fetch_reps_by_zipcode(zipcode)
         except Exception as e:
-            logger.warning("Google Civic API error for zip %s: %s", zipcode, e)
+            logger.warning("ZIP lookup error for %s: %s", zipcode, e)
             return Response(
                 {'error': 'Representative lookup is temporarily unavailable. Please try again later.'},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -205,3 +201,29 @@ class DistrictViewSet(viewsets.ViewSet):
         except Exception:
             logger.exception("Failed to fetch state boundary for %s", state)
             return Response({'error': 'Failed to fetch boundary data.'}, status=500)
+
+
+class ZipLookupView(APIView):
+    """GET /api/zip-lookup/?zipcode=12345 — returns {lat, lng} for a ZIP code centroid."""
+
+    def get(self, request):
+        zipcode = request.query_params.get('zipcode', '').strip()
+        if not ZIPCODE_RE.match(zipcode):
+            return Response(
+                {'error': 'Enter a valid 5-digit ZIP code.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            lat, lng = geocode_zip(zipcode)
+        except Exception as e:
+            logger.warning("ZIP geocode error for %s: %s", zipcode, e)
+            return Response(
+                {'error': 'Could not look up that ZIP code. Please try again.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        if lat is None:
+            return Response(
+                {'error': 'ZIP code not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return Response({'lat': lat, 'lng': lng})
