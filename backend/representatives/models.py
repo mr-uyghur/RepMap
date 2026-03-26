@@ -31,6 +31,35 @@ class JSONTextField(models.TextField):
         return json.dumps(value)
 
 
+class JSONListField(models.TextField):
+    """
+    Stores a list as JSON text. Parallel to JSONTextField but defaults to []
+    instead of {} — suitable for list-valued fields like committee_assignments.
+    """
+    def from_db_value(self, value, expression, connection):
+        if value is None:
+            return []
+        try:
+            return json.loads(value)
+        except (TypeError, ValueError):
+            return []
+
+    def to_python(self, value):
+        if isinstance(value, list):
+            return value
+        if value is None:
+            return []
+        try:
+            return json.loads(value)
+        except (TypeError, ValueError):
+            return []
+
+    def get_prep_value(self, value):
+        if value is None:
+            return '[]'
+        return json.dumps(value)
+
+
 class Representative(models.Model):
     LEVEL_CHOICES = [('house', 'US House'), ('senate', 'US Senate')]
     PARTY_CHOICES = [
@@ -51,6 +80,8 @@ class Representative(models.Model):
     social_links = JSONTextField(default=dict)
     term_start = models.DateField(null=True, blank=True)
     term_end = models.DateField(null=True, blank=True)
+    office_room = models.CharField(max_length=200, blank=True)
+    committee_assignments = JSONListField(default=list)
     latitude = models.FloatField()
     longitude = models.FloatField()
     external_ids = JSONTextField(default=dict)

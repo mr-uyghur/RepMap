@@ -18,6 +18,8 @@ export interface Representative {
   social_links?: Record<string, string>
   term_start?: string | null
   term_end?: string | null
+  office_room?: string
+  committee_assignments?: string[]
   external_ids?: Record<string, string>
   updated_at?: string
   summaries?: AISummary[]

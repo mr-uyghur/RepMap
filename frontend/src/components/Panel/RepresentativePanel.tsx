@@ -57,6 +57,9 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
     d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : NA
 
   const socialEntries = rep?.social_links ? Object.entries(rep.social_links).filter(([, v]) => v) : []
+  // Normalize defensively: guard against the backend returning a string instead of an array
+  // (can happen with legacy data or if DRF serialization is misconfigured).
+  const committees = Array.isArray(rep?.committee_assignments) ? rep.committee_assignments : []
 
   const linkColor = dm ? '#60a5fa' : '#2563eb'
 
@@ -137,6 +140,20 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
               ? formatDate(rep.term_start) + ' \u2013 ' + formatDate(rep.term_end)
               : NA}
           </Field>
+
+          <Field label="Office" dm={dm}>
+            {rep.office_room || NA}
+          </Field>
+
+          {committees.length > 0 && (
+            <Field label="Committees" dm={dm}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {committees.map((name) => (
+                  <span key={name} style={{ fontSize: '13px' }}>{name}</span>
+                ))}
+              </div>
+            </Field>
+          )}
 
           {socialEntries.length > 0 && (
             <Field label="Social" dm={dm}>

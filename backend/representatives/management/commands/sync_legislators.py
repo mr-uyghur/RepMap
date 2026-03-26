@@ -15,6 +15,13 @@ from representatives.models import Representative, SyncStatus
 LEGISLATORS_URL = (
     'https://raw.githubusercontent.com/unitedstates/congress-legislators/main/legislators-current.yaml'
 )
+COMMITTEES_URL = (
+    'https://raw.githubusercontent.com/unitedstates/congress-legislators/main/committees-current.yaml'
+)
+COMMITTEE_MEMBERSHIP_URL = (
+    'https://raw.githubusercontent.com/unitedstates/congress-legislators/main/'
+    'committee-membership-current.yaml'
+)
 TIGER_BASE = (
     'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Legislative/MapServer'
 )
@@ -112,6 +119,69 @@ def _fetch_district_centroids(state):
     return centroids
 
 
+def _fetch_committee_data(log=None):
+    """
+    Return a dict mapping bioguide_id → [committee name, ...] using the
+    unitedstates/congress-legislators committee files. Returns an empty dict
+    on any fetch failure so the rest of the sync continues unaffected.
+
+    Pass a callable as `log` to receive diagnostic messages (e.g. self.stdout.write).
+    """
+    if log is None:
+        log = lambda msg: None  # noqa: E731
+
+    try:
+        committees_resp = requests.get(COMMITTEES_URL, timeout=30)
+        committees_resp.raise_for_status()
+        committees_raw = yaml.safe_load(committees_resp.text)
+        log(f'  committees-current.yaml: fetched OK ({len(committees_raw or [])} top-level entries)')
+    except Exception as exc:
+        log(f'  ERROR fetching committees YAML: {exc}')
+        return {}
+
+    # Build thomas_id → human-readable name map (top-level committees only).
+    id_to_name: dict[str, str] = {}
+    for committee in (committees_raw or []):
+        thomas_id = committee.get('thomas_id', '')
+        name = committee.get('name', '')
+        if thomas_id and name:
+            id_to_name[thomas_id] = name
+        # Include subcommittees so members show their subcommittee assignments too.
+        for sub in committee.get('subcommittees', []):
+            sub_id = thomas_id + sub.get('thomas_id', '')
+            sub_name = f"{name} — {sub.get('name', '')}"
+            if sub_id and sub.get('name'):
+                id_to_name[sub_id] = sub_name
+    log(f'  Built id_to_name map: {len(id_to_name)} committee/subcommittee entries')
+
+    try:
+        membership_resp = requests.get(COMMITTEE_MEMBERSHIP_URL, timeout=30)
+        membership_resp.raise_for_status()
+        membership = yaml.safe_load(membership_resp.text)
+        log(f'  committee-membership-current.yaml: fetched OK ({len(membership)} committee keys)')
+    except Exception as exc:
+        log(f'  ERROR fetching committee membership JSON: {exc}')
+        return {}
+
+    # Invert: bioguide → [committee name, ...]
+    bioguide_to_committees: dict[str, list[str]] = {}
+    skipped_unknown_id = 0
+    for thomas_id, members in membership.items():
+        committee_name = id_to_name.get(thomas_id, '')
+        if not committee_name:
+            skipped_unknown_id += 1
+            continue
+        for member in members:
+            bioguide = member.get('bioguide', '')
+            if not bioguide:
+                continue
+            bioguide_to_committees.setdefault(bioguide, []).append(committee_name)
+
+    log(f'  Membership: {skipped_unknown_id} committee keys had no name match (subcommittees not in YAML)')
+    log(f'  Result: {len(bioguide_to_committees)} legislators with 1+ committee assignments')
+    return bioguide_to_committees
+
+
 class Command(BaseCommand):
     help = 'Sync all current US legislators from unitedstates.io'
 
@@ -126,6 +196,13 @@ class Command(BaseCommand):
             return
 
         self.stdout.write(f'Fetched {len(legislators)} legislators.')
+
+        self.stdout.write('Fetching committee membership data...')
+        committee_data = _fetch_committee_data(log=self.stdout.write)
+        if committee_data:
+            self.stdout.write(f'  Loaded committee assignments for {len(committee_data)} legislators.')
+        else:
+            self.stdout.write('  Committee data unavailable; assignments will be empty.')
 
         # Separate senators and house reps, grab each person's current term
         senators = []
@@ -176,6 +253,11 @@ class Command(BaseCommand):
             bioguide_id = person.get('id', {}).get('bioguide', '')
             lat, lng = STATE_CENTROIDS[state]
 
+            # Office room: address field is "Room Building; Washington DC zip".
+            # Take the part before the semicolon if present.
+            raw_address = term.get('address', '') or ''
+            office_room = raw_address.split(';')[0].strip()
+
             Representative.objects.create(
                 name=full_name,
                 level='senate',
@@ -188,6 +270,8 @@ class Command(BaseCommand):
                 social_links={},
                 term_start=term.get('start') or None,
                 term_end=term.get('end') or None,
+                office_room=office_room,
+                committee_assignments=committee_data.get(bioguide_id, []),
                 latitude=lat,
                 longitude=lng,
                 external_ids={'bioguide_id': bioguide_id},
@@ -215,6 +299,9 @@ class Command(BaseCommand):
             party = PARTY_MAP.get(party_raw, 'other')
             bioguide_id = person.get('id', {}).get('bioguide', '')
 
+            raw_address = term.get('address', '') or ''
+            office_room = raw_address.split(';')[0].strip()
+
             Representative.objects.create(
                 name=full_name,
                 level='house',
@@ -227,15 +314,19 @@ class Command(BaseCommand):
                 social_links={},
                 term_start=term.get('start') or None,
                 term_end=term.get('end') or None,
+                office_room=office_room,
+                committee_assignments=committee_data.get(bioguide_id, []),
                 latitude=lat,
                 longitude=lng,
                 external_ids={'bioguide_id': bioguide_id},
             )
             created += 1
 
+        with_committees = Representative.objects.exclude(committee_assignments='[]').count()
         self.stdout.write(
             self.style.SUCCESS(
-                f'Done. Created {created} legislators ({skipped} skipped).'
+                f'Done. Created {created} legislators ({skipped} skipped). '
+                f'{with_committees} have non-empty committee assignments.'
             )
         )
 
