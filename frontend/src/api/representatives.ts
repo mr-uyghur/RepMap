@@ -1,5 +1,5 @@
 import client from './client'
-import type { Representative, AISummary, SummaryType } from '../types'
+import type { Representative, AISummary, SummaryType, LegislationResponse } from '../types'
 
 export async function lookupZip(zipcode: string): Promise<{ lat: number; lng: number }> {
   // Translate a ZIP code into map coordinates for fly-to behavior.
@@ -71,5 +71,10 @@ export interface SyncStatus {
 
 export async function getSyncStatus(): Promise<SyncStatus> {
   const { data } = await client.get('/api/sync-status/')
+  return data
+}
+
+export async function getRepLegislation(bioguide_id: string): Promise<LegislationResponse> {
+  const { data } = await client.get(`/api/representatives/${bioguide_id}/legislation/`)
   return data
 }

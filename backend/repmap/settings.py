@@ -130,11 +130,13 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'zipcode_lookup': '30/hour',
         'ai_summary': '10/hour',
+        'votes_lookup': '30/hour',
+        'legislation_lookup': '20/hour',
     },
 }
 
-GOOGLE_CIVIC_API_KEY = os.environ.get('GOOGLE_CIVIC_API_KEY', '')
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+CONGRESS_API_KEY = os.environ.get('CONGRESS_API_KEY', '')
 
 # Auto-sync: automatically refresh representative data in the background when stale.
 # Set AUTO_SYNC_ENABLED=false to disable (e.g. during development when you want manual control).

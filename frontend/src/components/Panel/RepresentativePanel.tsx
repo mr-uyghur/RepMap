@@ -3,6 +3,7 @@ import { fetchRepDetail } from '../../api/representatives'
 import { useMapStore } from '../../store/mapStore'
 import { useRepStore } from '../../store/repStore'
 import type { Representative } from '../../types'
+import LegislationTab from './LegislationTab'
 
 const PARTY_COLORS: Record<string, string> = {
   democrat: '#2563eb',
@@ -19,6 +20,7 @@ const PARTY_LABELS: Record<string, string> = {
 }
 
 const NA = 'Not available'
+
 
 function getDistrictLabel(rep: Representative) {
   if (rep.district_label) return rep.district_label
@@ -117,6 +119,7 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
   const profileLinks = rep ? getOfficialProfileLinks(rep) : []
 
   const linkColor = dm ? '#60a5fa' : '#2563eb'
+  const bioguideId = rep?.bioguide_id ?? ''
 
   return (
     <div
@@ -198,17 +201,29 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
       {!loading && rep && (
         <div style={{ padding: '0 16px 24px', flex: 1 }}>
           {/* The live panel currently shows stored profile/contact data only. */}
-          <Field label="Phone" dm={dm}>
-            {rep.phone
-              ? <a href={'tel:' + rep.phone} style={{ color: linkColor }}>{rep.phone}</a>
-              : NA}
-          </Field>
+          {rep.phone && (
+            <Field label="Phone" dm={dm}>
+              <a
+                href={'tel:' + rep.phone}
+                style={{ display: 'inline-block', padding: '5px 14px', borderRadius: '999px', border: '1.5px solid ' + linkColor, color: linkColor, background: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '500', textDecoration: 'none' }}
+              >
+                Call
+              </a>
+            </Field>
+          )}
 
-          <Field label="Official Website" dm={dm}>
-            {rep.website
-              ? <a href={rep.website} target="_blank" rel="noopener noreferrer" style={{ color: linkColor, wordBreak: 'break-all' }}>{rep.website}</a>
-              : NA}
-          </Field>
+          {rep.website && (
+            <Field label="Official Website" dm={dm}>
+              <a
+                href={rep.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'inline-block', padding: '5px 14px', borderRadius: '999px', border: '1.5px solid ' + linkColor, color: linkColor, background: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '500', textDecoration: 'none' }}
+              >
+                Visit Website
+              </a>
+            </Field>
+          )}
 
           {profileLinks.length > 0 && (
             <Field label="Official Profiles" dm={dm}>
@@ -270,6 +285,8 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
               </div>
             </Field>
           )}
+
+          <LegislationTab bioguide_id={bioguideId} />
         </div>
       )}
     </div>

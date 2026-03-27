@@ -8,17 +8,18 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .throttles import ZipcodeLookupThrottle, AISummaryThrottle
+from .throttles import ZipcodeLookupThrottle, AISummaryThrottle, VotesThrottle, LegislationThrottle
 
 from .models import Representative, AISummary, SyncStatus
 from .services.auto_sync import trigger_sync_if_stale
 from .serializers import RepresentativeListSerializer, RepresentativeDetailSerializer, AISummarySerializer, SyncStatusSerializer
-from .integrations.google_civic import fetch_reps_by_zipcode, geocode_zip
+from .integrations.zip_lookup import fetch_reps_by_zipcode, geocode_zip
 from .integrations.census import (
     fetch_congressional_districts, fetch_state_boundary, STATE_FIPS,
     load_local_congressional_districts,
 )
 from .services.ai import generate_bio, generate_voting_record_summary, generate_how_to_vote
+from .services.congress_api import fetch_recent_votes, fetch_sponsored_legislation, fetch_cosponsored_legislation
 
 logger = logging.getLogger(__name__)
 
@@ -224,6 +225,26 @@ class SyncStatusView(APIView):
             })
         serializer = SyncStatusSerializer(sync_status)
         return Response(serializer.data)
+
+
+class VotesView(APIView):
+    """GET /api/representatives/{bioguide_id}/votes/ — recent votes from Congress.gov."""
+    throttle_classes = [VotesThrottle]
+
+    def get(self, request, bioguide_id: str):
+        votes = fetch_recent_votes(bioguide_id)
+        return Response(votes)
+
+
+class LegislationView(APIView):
+    """GET /api/representatives/{bioguide_id}/legislation/ — sponsored and cosponsored bills."""
+    throttle_classes = [LegislationThrottle]
+
+    def get(self, request, bioguide_id: str):
+        return Response({
+            'sponsored': fetch_sponsored_legislation(bioguide_id),
+            'cosponsored': fetch_cosponsored_legislation(bioguide_id),
+        })
 
 
 class ZipLookupView(APIView):

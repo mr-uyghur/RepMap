@@ -30,7 +30,6 @@ npm run dev
 
 ### Backend (.env)
 - `DJANGO_SECRET_KEY` — Django secret key
-- `GOOGLE_CIVIC_API_KEY` — No longer used for ZIP code search (Google shut down that endpoint in April 2025). The key is kept in the config for potential future use but is not required.
 - `ANTHROPIC_API_KEY` — Anthropic API key for AI summaries
 - `DATABASE_URL` — PostgreSQL URL (defaults to SQLite if not set)
 - `REDIS_URL` — Redis URL (defaults to localhost:6379)

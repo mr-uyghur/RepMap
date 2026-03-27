@@ -40,10 +40,15 @@ class RepresentativeDetailSerializer(serializers.ModelSerializer):
     # string (DRF maps any TextField subclass to CharField by default).
     committee_assignments = serializers.ListField(child=serializers.CharField(), default=list)
     social_links = serializers.DictField(child=serializers.CharField(), default=dict)
+    # JSONTextField is a TextField subclass; DRF defaults to CharField which calls str() on the
+    # Python dict and produces an invalid single-quoted repr. Explicit DictField serializes it
+    # as a proper JSON object, matching the treatment of committee_assignments and social_links.
+    external_ids = serializers.DictField(default=dict)
     district_label = serializers.SerializerMethodField()
     office_address = serializers.CharField(source='office_room', read_only=True)
     congress_gov_url = serializers.SerializerMethodField()
     bioguide_url = serializers.SerializerMethodField()
+    bioguide_id = serializers.SerializerMethodField()
 
     def get_district_label(self, obj):
         # Build a frontend-friendly district label that handles at-large cases.
@@ -66,6 +71,9 @@ class RepresentativeDetailSerializer(serializers.ModelSerializer):
             return ''
         return f'https://bioguide.congress.gov/search/bio/{bioguide_id}'
 
+    def get_bioguide_id(self, obj):
+        return (obj.external_ids or {}).get('bioguide_id', '')
+
     class Meta:
         model = Representative
         fields = [
@@ -73,5 +81,5 @@ class RepresentativeDetailSerializer(serializers.ModelSerializer):
             'photo_url', 'website', 'phone', 'social_links',
             'term_start', 'term_end', 'office_room', 'committee_assignments',
             'latitude', 'longitude', 'external_ids', 'updated_at', 'summaries',
-            'district_label', 'office_address', 'congress_gov_url', 'bioguide_url',
+            'district_label', 'office_address', 'congress_gov_url', 'bioguide_url', 'bioguide_id',
         ]

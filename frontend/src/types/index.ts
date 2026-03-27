@@ -25,8 +25,24 @@ export interface Representative {
   district_label?: string
   congress_gov_url?: string
   bioguide_url?: string
+  bioguide_id?: string
   updated_at?: string
   summaries?: AISummary[]
+}
+
+export interface Bill {
+  bill_number: string
+  title: string
+  introduced_date: string
+  latest_action: string
+  latest_action_date: string
+  became_law: boolean
+  congress_url: string
+}
+
+export interface LegislationResponse {
+  sponsored: Bill[]
+  cosponsored: Bill[]
 }
 
 export interface AISummary {
