@@ -38,6 +38,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         data_dir = get_district_data_dir()
+        # Ensure the destination directory exists before we start writing files.
         data_dir.mkdir(parents=True, exist_ok=True)
         self.stdout.write(f'District data directory: {data_dir}\n')
 

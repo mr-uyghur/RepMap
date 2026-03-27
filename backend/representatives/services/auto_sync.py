@@ -32,6 +32,7 @@ def is_stale() -> bool:
     """Return True if representative data has never been synced or is older than the stale window."""
     from representatives.models import SyncStatus  # local import avoids circular refs at module load
 
+    # Missing status data means we should treat the dataset as stale.
     status = SyncStatus.objects.first()
     if not status or not status.last_synced_at:
         return True
@@ -76,6 +77,7 @@ def trigger_sync_if_stale() -> None:
             id=1, defaults={'is_syncing': True, 'last_error': ''}
         )
         logger.info('auto-sync: data is stale — launching background sync thread')
+        # Return control to the API request immediately while the sync runs in the background.
         threading.Thread(target=_run_sync, daemon=True, name='auto-sync').start()
     finally:
         _lock.release()
@@ -86,6 +88,7 @@ def _run_sync() -> None:
     from representatives.models import SyncStatus
 
     try:
+        # Reuse the management command so refresh logic stays centralized.
         management.call_command('sync_legislators', verbosity=0)
         # sync_legislators itself records last_synced_at + clears is_syncing on success.
         # This line is a safety net in case the command exits early without updating.

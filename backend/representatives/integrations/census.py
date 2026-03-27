@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Optional
 
 
+# Base ArcGIS endpoint for current congressional district geometry.
 TIGER_BASE = 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Legislative/MapServer'
 
 STATE_FIPS = {
@@ -40,6 +41,7 @@ def load_local_congressional_districts(state: str) -> Optional[dict]:
     path = get_district_data_dir() / f'{state.upper()}.json'
     if not path.exists():
         return None
+    # Prefer committed local GeoJSON so normal rendering does not depend on live Census calls.
     with open(path) as f:
         return json.load(f)
 
@@ -63,6 +65,7 @@ def fetch_congressional_districts(state: str) -> dict:
         'maxAllowableOffset': '0.01',
     }
 
+    # Return GeoJSON directly so the frontend can pass it straight into Mapbox.
     response = requests.get(url, params=params, timeout=30)
     response.raise_for_status()
     return response.json()

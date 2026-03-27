@@ -25,6 +25,7 @@ export default function ZipcodeSearch({ onFlyTo }: Props) {
     setError(null)
 
     try {
+      // The search box only recenters the map; it does not directly replace the rep dataset.
       const { lat, lng } = await lookupZip(zipcode.trim())
       onFlyTo(lat, lng)
     } catch (err) {

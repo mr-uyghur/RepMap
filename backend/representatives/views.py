@@ -10,9 +10,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from .throttles import ZipcodeLookupThrottle, AISummaryThrottle
 
-from .models import Representative, AISummary
+from .models import Representative, AISummary, SyncStatus
 from .services.auto_sync import trigger_sync_if_stale
-from .serializers import RepresentativeListSerializer, RepresentativeDetailSerializer, AISummarySerializer
+from .serializers import RepresentativeListSerializer, RepresentativeDetailSerializer, AISummarySerializer, SyncStatusSerializer
 from .integrations.google_civic import fetch_reps_by_zipcode, geocode_zip
 from .integrations.census import (
     fetch_congressional_districts, fetch_state_boundary, STATE_FIPS,
@@ -26,14 +26,17 @@ ZIPCODE_RE = re.compile(r'^\d{5}$')
 
 
 class RepresentativeViewSet(viewsets.ReadOnlyModelViewSet):
+    # Read-only endpoints for the map, detail panel, and generated summaries.
     queryset = Representative.objects.all()
 
     def get_serializer_class(self):
+        # Use the smaller serializer for list views and the richer serializer for detail views.
         if self.action == 'retrieve':
             return RepresentativeDetailSerializer
         return RepresentativeListSerializer
 
     def get_throttles(self):
+        # Throttle only the actions that are relatively expensive or easy to abuse.
         if self.action == 'list' and self.request.query_params.get('zipcode'):
             return [ZipcodeLookupThrottle()]
         if self.action == 'summary':
@@ -41,6 +44,7 @@ class RepresentativeViewSet(viewsets.ReadOnlyModelViewSet):
         return []
 
     def list(self, request):
+        # Opportunistically refresh stale data without blocking the response.
         trigger_sync_if_stale()
         zipcode = request.query_params.get('zipcode', '').strip()
 
@@ -56,6 +60,7 @@ class RepresentativeViewSet(viewsets.ReadOnlyModelViewSet):
 
     def _handle_zipcode_request(self, zipcode):
         try:
+            # Resolve one ZIP code into its House seat plus the state's senators.
             reps = fetch_reps_by_zipcode(zipcode)
         except Exception as e:
             logger.warning("ZIP lookup error for %s: %s", zipcode, e)
@@ -93,6 +98,7 @@ class RepresentativeViewSet(viewsets.ReadOnlyModelViewSet):
         ).first()
 
         if existing:
+            # Serve a recent cached summary instead of regenerating it.
             serializer = AISummarySerializer(existing)
             return Response(serializer.data)
 
@@ -134,6 +140,7 @@ def _validate_state(state_raw: str):
 
 
 class DistrictViewSet(viewsets.ViewSet):
+    # Geometry endpoints used by the frontend map layers.
     @action(detail=False, methods=['get'], url_path='congressional')
     def congressional(self, request):
         state = _validate_state(request.query_params.get('state', ''))
@@ -144,6 +151,7 @@ class DistrictViewSet(viewsets.ViewSet):
         try:
             cached = cache.get(cache_key)
             if cached:
+                # District GeoJSON is large enough that a cache hit is worth checking first.
                 return Response(cached)
         except Exception:
             logger.warning("Cache unavailable for %s, fetching directly", cache_key)
@@ -203,6 +211,21 @@ class DistrictViewSet(viewsets.ViewSet):
             return Response({'error': 'Failed to fetch boundary data.'}, status=500)
 
 
+class SyncStatusView(APIView):
+    """GET /api/sync-status/ — returns the current sync state of representative data."""
+
+    def get(self, request):
+        sync_status = SyncStatus.objects.first()
+        if sync_status is None:
+            return Response({
+                'last_synced_at': None,
+                'is_syncing': False,
+                'data_age_seconds': None,
+            })
+        serializer = SyncStatusSerializer(sync_status)
+        return Response(serializer.data)
+
+
 class ZipLookupView(APIView):
     """GET /api/zip-lookup/?zipcode=12345 — returns {lat, lng} for a ZIP code centroid."""
 
@@ -214,6 +237,7 @@ class ZipLookupView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         try:
+            # This endpoint only returns map coordinates; it does not fetch representatives.
             lat, lng = geocode_zip(zipcode)
         except Exception as e:
             logger.warning("ZIP geocode error for %s: %s", zipcode, e)

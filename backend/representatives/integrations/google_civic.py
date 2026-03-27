@@ -113,6 +113,7 @@ def geocode_zip(zipcode: str):
     cache_key = f'zip_latlong_{zipcode}'
     cached = cache.get(cache_key)
     if cached is not None:
+        # ZIP centroids change rarely, so cache hits avoid repeated network lookups.
         return cached['lat'], cached['lng']
 
     params = {
@@ -154,7 +155,8 @@ def fetch_reps_by_zipcode(zipcode: str):
     if not _ZIPCODE_RE.match(zipcode):
         raise ValueError("Invalid zipcode format")
 
-    # Cache only the geocoder result (state + district), not DB objects.
+    # Cache only the geocoder result (state + district), not DB objects, so later
+    # database updates are reflected immediately.
     cache_key = f'zip_district_{zipcode}'
     geo = cache.get(cache_key)
 
@@ -250,6 +252,7 @@ def _parse_civic_response(data: dict):
     for office in offices:
         roles = office.get('roles', [])
 
+        # Ignore offices outside the federal House/Senate data the app models.
         if 'legislatorupperbody' in [r.lower() for r in roles]:
             level = 'senate'
         elif 'legislatorlowerbody' in [r.lower() for r in roles]:
@@ -311,6 +314,7 @@ def _upsert_representative(official: dict, level: str, state: str, division_id: 
         district_number = None
         lookup = {'name': name, 'level': level, 'state': state}
 
+    # Use district-based identity for House seats so multiple reps in one state do not collide.
     rep, _ = Representative.objects.update_or_create(
         **lookup,
         defaults={

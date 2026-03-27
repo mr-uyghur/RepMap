@@ -6,6 +6,7 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Fail fast if the app boots without a configured Django secret.
 _secret_key = os.environ.get('DJANGO_SECRET_KEY', '')
 if not _secret_key:
     raise ValueError(
@@ -16,6 +17,7 @@ SECRET_KEY = _secret_key
 
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
+# Allow comma-separated host configuration from the environment.
 _allowed_hosts = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1')
 ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts.split(',') if h.strip()]
 
@@ -118,6 +120,7 @@ else:
     CORS_ALLOW_ALL_ORIGINS = False
     CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors_origins.split(',') if o.strip()]
 
+# Global DRF defaults for this small public read-only API.
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { fetchRepDetail } from '../../api/representatives'
 import { useMapStore } from '../../store/mapStore'
+import { useRepStore } from '../../store/repStore'
 import type { Representative } from '../../types'
 
 const PARTY_COLORS: Record<string, string> = {
@@ -90,9 +91,11 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
   const [rep, setRep] = useState<Representative | null>(null)
   const [loading, setLoading] = useState(true)
   const dm = useMapStore((s) => s.darkMode)
+  const isSyncing = useRepStore((s) => s.isSyncing)
 
   useEffect(() => {
     let cancelled = false
+    // Refetch panel data whenever the selected representative changes.
     setLoading(true)
     setRep(null)
     fetchRepDetail(repId)
@@ -131,6 +134,25 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
         overflowY: 'auto',
       }}
     >
+      {isSyncing && (
+        <>
+          <style>{`@keyframes repmap-pulse{0%,100%{opacity:1}50%{opacity:.35}}`}</style>
+          <div style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 1,
+            textAlign: 'center',
+            fontSize: '11px',
+            padding: '3px 0',
+            color: dm ? '#9ca3af' : '#6b7280',
+            background: dm ? '#1f2937' : 'white',
+            animation: 'repmap-pulse 1.8s ease-in-out infinite',
+            pointerEvents: 'none',
+          }}>
+            Data refreshing…
+          </div>
+        </>
+      )}
       <div style={{ borderTop: '5px solid ' + color, padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ flex: 1 }}>
           {loading ? (
@@ -175,6 +197,7 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
 
       {!loading && rep && (
         <div style={{ padding: '0 16px 24px', flex: 1 }}>
+          {/* The live panel currently shows stored profile/contact data only. */}
           <Field label="Phone" dm={dm}>
             {rep.phone
               ? <a href={'tel:' + rep.phone} style={{ color: linkColor }}>{rep.phone}</a>

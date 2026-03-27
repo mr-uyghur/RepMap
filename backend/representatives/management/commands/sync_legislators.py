@@ -237,7 +237,7 @@ class Command(BaseCommand):
         else:
             self.stdout.write('  Committee data unavailable; assignments will be empty.')
 
-        # Separate senators and house reps, grab each person's current term
+        # Separate legislators by chamber and keep only the latest/current term.
         senators = []
         house_reps = []
         for person in legislators:
@@ -251,7 +251,7 @@ class Command(BaseCommand):
             elif chamber == 'rep':
                 house_reps.append((person, current_term))
 
-        # Collect which states have house reps so we can batch Census calls
+        # Batch centroid requests by state so we do not hit Census once per representative.
         house_states = sorted({t.get('state') for _, t in house_reps if t.get('state')})
 
         self.stdout.write(f'Fetching district centroids for {len(house_states)} states...')
@@ -263,13 +263,22 @@ class Command(BaseCommand):
             district_centroids[state] = _fetch_district_centroids(state)
         self.stdout.write('')  # newline after \r progress
 
-        self.stdout.write('Clearing existing representatives...')
-        Representative.objects.all().delete()
+        # Pre-load existing records so we can update in place rather than
+        # delete-and-recreate — this prevents the empty-table window that causes
+        # the API to return [] with 200 OK while a sync is in progress.
+        self.stdout.write('Loading existing representatives...')
+        existing_by_bioguide: dict[str, Representative] = {}
+        for rep in Representative.objects.all():
+            bg = (rep.external_ids or {}).get('bioguide_id', '')
+            if bg:
+                existing_by_bioguide[bg] = rep
+        self.stdout.write(f'  Found {len(existing_by_bioguide)} existing records.')
 
         created = 0
+        updated = 0
         skipped = 0
 
-        # --- Senators ---
+        # Senators get state-level centroids because they represent the whole state.
         for person, term in senators:
             state = term.get('state', '')
             if state not in STATE_CENTROIDS:
@@ -292,7 +301,7 @@ class Command(BaseCommand):
             raw_address = term.get('address', '') or ''
             office_room = raw_address.split(';')[0].strip()
 
-            Representative.objects.create(
+            fields = dict(
                 name=full_name,
                 level='senate',
                 party=party,
@@ -310,9 +319,17 @@ class Command(BaseCommand):
                 longitude=lng,
                 external_ids=_build_external_ids(person_ids),
             )
-            created += 1
+            if bioguide_id and bioguide_id in existing_by_bioguide:
+                rep = existing_by_bioguide[bioguide_id]
+                for attr, val in fields.items():
+                    setattr(rep, attr, val)
+                rep.save()
+                updated += 1
+            else:
+                Representative.objects.create(**fields)
+                created += 1
 
-        # --- House reps ---
+        # House members prefer district centroids and fall back to state centroids.
         for person, term in house_reps:
             state = term.get('state', '')
             district = term.get('district', 0)  # 0 = at-large
@@ -337,7 +354,7 @@ class Command(BaseCommand):
             raw_address = term.get('address', '') or ''
             office_room = raw_address.split(';')[0].strip()
 
-            Representative.objects.create(
+            fields = dict(
                 name=full_name,
                 level='house',
                 party=party,
@@ -355,16 +372,25 @@ class Command(BaseCommand):
                 longitude=lng,
                 external_ids=_build_external_ids(person_ids),
             )
-            created += 1
+            if bioguide_id and bioguide_id in existing_by_bioguide:
+                rep = existing_by_bioguide[bioguide_id]
+                for attr, val in fields.items():
+                    setattr(rep, attr, val)
+                rep.save()
+                updated += 1
+            else:
+                Representative.objects.create(**fields)
+                created += 1
 
         with_committees = Representative.objects.exclude(committee_assignments='[]').count()
         self.stdout.write(
             self.style.SUCCESS(
-                f'Done. Created {created} legislators ({skipped} skipped). '
+                f'Done. Created {created}, updated {updated} legislators ({skipped} skipped). '
                 f'{with_committees} have non-empty committee assignments.'
             )
         )
 
+        # Mark the sync as successful so auto-refresh knows the data is current again.
         SyncStatus.objects.update_or_create(
             id=1,
             defaults={

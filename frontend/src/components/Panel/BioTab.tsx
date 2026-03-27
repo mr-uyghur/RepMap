@@ -12,6 +12,7 @@ export default function BioTab({ rep }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    // Fetch the generated bio whenever a different representative is selected.
     setLoading(true)
     setError(null)
     fetchRepSummary(rep.id, 'bio')
@@ -21,6 +22,7 @@ export default function BioTab({ rep }: Props) {
   }, [rep.id])
 
   const yearsInOffice = rep.term_start
+    // Simple derived stat based on the stored term start date.
     ? Math.floor(
         (new Date().getTime() - new Date(rep.term_start).getTime()) /
           (1000 * 60 * 60 * 24 * 365)

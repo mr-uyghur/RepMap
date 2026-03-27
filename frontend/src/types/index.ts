@@ -12,7 +12,7 @@ export interface Representative {
   photo_url: string
   latitude: number
   longitude: number
-  // Detail fields (only present in detail endpoint)
+  // Detail fields are only guaranteed on the representative detail endpoint.
   website?: string
   phone?: string
   social_links?: Record<string, string>

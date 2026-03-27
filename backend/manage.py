@@ -6,6 +6,7 @@ import sys
 
 def main():
     """Run administrative tasks."""
+    # Point Django at this project's settings before importing framework code.
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'repmap.settings')
     try:
         from django.core.management import execute_from_command_line
@@ -15,6 +16,7 @@ def main():
             "available on your PYTHONPATH environment variable? Did you "
             "forget to activate a virtual environment?"
         ) from exc
+    # Hand command parsing and execution off to Django.
     execute_from_command_line(sys.argv)
 
 

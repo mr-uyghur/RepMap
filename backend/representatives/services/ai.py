@@ -3,6 +3,7 @@ from django.conf import settings
 
 
 def _get_client():
+    # Initialize the Anthropic client lazily so missing credentials fail only on use.
     api_key = settings.ANTHROPIC_API_KEY
     if not api_key:
         raise ValueError("ANTHROPIC_API_KEY is not configured")
@@ -17,6 +18,7 @@ NEUTRALITY_DISCLAIMER = (
 def generate_bio(rep) -> str:
     """Generate a neutral biographical summary for a representative."""
     client = _get_client()
+    # Phrase the prompt differently for senators vs. House members.
     level_label = "US Senator" if rep.level == "senate" else "US House Representative"
 
     prompt = f"""Write a neutral, factual biographical summary for {rep.name}, a {level_label}
@@ -39,6 +41,7 @@ Cite public record sources where possible."""
         messages=[{"role": "user", "content": prompt}]
     )
 
+    # Anthropic returns structured content blocks; this app uses the first text block.
     content = message.content[0].text
     return content + NEUTRALITY_DISCLAIMER
 

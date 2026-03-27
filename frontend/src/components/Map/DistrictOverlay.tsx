@@ -66,15 +66,19 @@ const MAX_CONCURRENT = 2
 const subscribers = new Set<() => void>()
 
 function notifySubscribers() {
+  // Notify any listener that fresh district geometry was added to the cache.
   subscribers.forEach((fn) => fn())
 }
 
 export function subscribeToDistrictGeoJSON(subscriber: () => void) {
+  // Small pub/sub helper so map components can react to cache growth without
+  // threading callback props through the tree.
   subscribers.add(subscriber)
   return () => { subscribers.delete(subscriber) }
 }
 
 export function getCachedDistrictGeoJSON(state: string) {
+  // RepMap uses this to read already-fetched district shapes when positioning pins.
   return geoCache[state]
 }
 
@@ -89,6 +93,8 @@ function drainQueue() {
     const state = fetchQueue.shift()!
     if (geoCache[state]) { drainQueue(); return }
     inFlight.add(state)
+    // Fetch one state's district geometry, then fan out a notification so each
+    // consumer can rebuild whatever derived state it needs.
     fetchCongressionalDistricts(state)
       .then((data) => {
         geoCache[state] = data as FeatureCollection
@@ -110,6 +116,8 @@ function annotateStateFeatures(state: string, partyMap: Record<string, string>):
   if (!fc?.features) return []
   return (fc.features as any[]).map((feature: any) => {
     const distNum = parseInt(String(feature.properties?.CD119 ?? ''), 10)
+    // Attach app-specific properties directly to the GeoJSON so Mapbox styling
+    // and hover/click handlers can stay data-driven.
     const party = partyMap[`${state}-${distNum}`] ?? 'other'
     return { ...feature, properties: { ...feature.properties, party, state_abbr: state } }
   })
@@ -141,9 +149,12 @@ export default function DistrictOverlay({ bounds }: Props) {
     const processedStates = new Set<string>()
 
     const notify = () => {
+      // Only annotate states we have not already processed during this effect run.
       const newStates = Object.keys(geoCache).filter((s) => !processedStates.has(s))
       if (newStates.length === 0) return
 
+      // On the first pass after a party-map rebuild, replace stateFeatures in one
+      // shot; later notifications just merge in newly fetched states.
       const isReset = processedStates.size === 0
       newStates.forEach((s) => processedStates.add(s))
 
@@ -166,6 +177,8 @@ export default function DistrictOverlay({ bounds }: Props) {
     const centerLat = (bounds.north + bounds.south) / 2
     const centerLng = (bounds.east + bounds.west) / 2
 
+    // Queue nearby states first so district outlines appear around the current
+    // viewport before work is spent on farther-off buffered states.
     const needed = Object.entries(STATE_CENTROIDS)
       .filter(([, [lat, lng]]) =>
         lat >= bounds.south - BOUNDS_BUFFER &&
@@ -223,6 +236,8 @@ export default function DistrictOverlay({ bounds }: Props) {
             id={`district-fill-${state}`}
             type="fill"
             paint={{
+              // Keep fills subtle so they communicate party control without
+              // overpowering the underlying basemap or the rep markers.
               'fill-color': ['match', ['get', 'party'],
                 'democrat',   '#2563eb',
                 'republican', '#dc2626',
@@ -235,6 +250,8 @@ export default function DistrictOverlay({ bounds }: Props) {
             id={`district-line-${state}`}
             type="line"
             paint={{
+              // Stronger outlines preserve district separation and make hover/click
+              // interactions feel precise.
               'line-color': ['match', ['get', 'party'],
                 'democrat',   '#1d4ed8',
                 'republican', '#b91c1c',

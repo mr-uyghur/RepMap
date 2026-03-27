@@ -12,6 +12,7 @@ export default function VotingRecordTab({ rep }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    // Load the cached/generated voting summary for the selected representative.
     setLoading(true)
     setError(null)
     fetchRepSummary(rep.id, 'voting_record')

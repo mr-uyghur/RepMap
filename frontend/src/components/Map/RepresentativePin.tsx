@@ -34,6 +34,7 @@ export default function RepresentativePin({ rep, onClick, offset }: Props) {
       anchor="bottom"
       offset={offset}
       onClick={(e) => {
+        // Prevent the map click handler from also firing when a marker is clicked.
         e.originalEvent.stopPropagation()
         onClick(rep)
       }}

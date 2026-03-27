@@ -12,6 +12,7 @@ export default function HowToVoteTab({ rep }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    // Load state-level voting guidance associated with this representative's state.
     setLoading(true)
     setError(null)
     fetchRepSummary(rep.id, 'how_to_vote')

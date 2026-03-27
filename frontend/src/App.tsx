@@ -15,12 +15,14 @@ export default function App() {
 
   const handleRepSelect = useCallback(
     (rep: Representative) => {
+      // The side panel is keyed by representative ID only.
       setSelectedRepId(rep.id)
     },
     [setSelectedRepId]
   )
 
   const handleFlyTo = useCallback((lat: number, lng: number) => {
+    // ZIP search re-centers and zooms the map to a district-level view.
     mapRef.current?.flyTo({
       center: [lng, lat],
       zoom: 9,
@@ -30,6 +32,7 @@ export default function App() {
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden' }}>
+      {/* The map drives the experience; search and panel are layered over it. */}
       <RepMap mapRef={mapRef} onRepSelect={handleRepSelect} />
       <ZipcodeSearch onFlyTo={handleFlyTo} />
 

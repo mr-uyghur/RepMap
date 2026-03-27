@@ -129,6 +129,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
   const lastHoverUpdateRef = useRef(0)
 
   useEffect(() => {
+    // Load the full representative dataset once when the map mounts.
     setLoading(true)
     fetchAllReps()
       .then(setReps)
@@ -137,12 +138,15 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => subscribeToDistrictGeoJSON(() => {
+    // When new district geometry arrives, refresh hover/click layer IDs and
+    // recompute any pin placements that depend on district shapes.
     setDistrictGeoVersion((version) => version + 1)
     setFillLayerIds(getLoadedStateCodes().map((s) => `district-fill-${s}`))
   }), [])
 
   const handleMoveEnd = useCallback(
     (e: ViewStateChangeEvent) => {
+      // Persist the latest camera state so other UI can react to it.
       const { longitude, latitude, zoom: newZoom } = e.viewState
       setCenter([longitude, latitude])
       setZoom(newZoom)
@@ -198,6 +202,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     for (const rep of reps) {
       if (rep.level !== 'house' || rep.district_number == null) continue
 
+      // House pins prefer an interior point from the district polygon over a coarse centroid.
       const featureCollection = getCachedDistrictGeoJSON(rep.state) as {
         features?: Array<{ properties?: Record<string, string | number | null>; geometry?: FeatureGeometry }>
       } | undefined
@@ -269,6 +274,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
         onClick={handleMapClick}
       >
         <NavigationControl position="bottom-left" />
+        {/* DistrictOverlay lazily fetches only the district GeoJSON near the viewport. */}
         <DistrictOverlay bounds={bounds} />
 
         {/* Highlight the selected House rep's congressional district.

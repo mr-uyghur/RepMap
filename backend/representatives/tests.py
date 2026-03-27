@@ -20,6 +20,7 @@ from representatives.services.auto_sync import is_stale, trigger_sync_if_stale
 
 class ZipLookupEndpointTests(TestCase):
     def setUp(self):
+        # DRF test client lets these tests exercise the real API views and responses.
         self.client = APIClient()
 
     def test_valid_zip_returns_lat_lng(self):
@@ -356,6 +357,7 @@ class TriggerSyncTests(TestCase):
 
     @override_settings(AUTO_SYNC_ENABLED=True, AUTO_SYNC_STALE_HOURS=24)
     def test_stale_data_spawns_thread(self):
+        # Patch Thread so the test verifies intent without starting a real background worker.
         SyncStatus.objects.create(id=1, last_synced_at=timezone.now() - timedelta(hours=25))
         with patch('representatives.services.auto_sync.threading.Thread') as mock_thread:
             mock_thread.return_value.start = lambda: None

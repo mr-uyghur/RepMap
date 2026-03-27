@@ -1,14 +1,30 @@
+from django.utils import timezone
 from rest_framework import serializers
-from .models import Representative, AISummary
+from .models import Representative, AISummary, SyncStatus
+
+
+class SyncStatusSerializer(serializers.ModelSerializer):
+    data_age_seconds = serializers.SerializerMethodField()
+
+    def get_data_age_seconds(self, obj):
+        if obj.last_synced_at is None:
+            return None
+        return int((timezone.now() - obj.last_synced_at).total_seconds())
+
+    class Meta:
+        model = SyncStatus
+        fields = ['last_synced_at', 'is_syncing', 'data_age_seconds']
 
 
 class AISummarySerializer(serializers.ModelSerializer):
+    # Minimal serializer for returning stored summary text and metadata.
     class Meta:
         model = AISummary
         fields = ['content_type', 'content', 'generated_at', 'model_version']
 
 
 class RepresentativeListSerializer(serializers.ModelSerializer):
+    # Compact serializer for the map's initial representative payload.
     class Meta:
         model = Representative
         fields = [
@@ -18,6 +34,7 @@ class RepresentativeListSerializer(serializers.ModelSerializer):
 
 
 class RepresentativeDetailSerializer(serializers.ModelSerializer):
+    # Full serializer for the side panel/detail view.
     summaries = AISummarySerializer(many=True, read_only=True)
     # Explicit ListField so DRF serializes JSONListField as a JSON array, not a plain
     # string (DRF maps any TextField subclass to CharField by default).
@@ -29,6 +46,7 @@ class RepresentativeDetailSerializer(serializers.ModelSerializer):
     bioguide_url = serializers.SerializerMethodField()
 
     def get_district_label(self, obj):
+        # Build a frontend-friendly district label that handles at-large cases.
         if obj.level == 'senate':
             return obj.state
         if obj.district_number is None:
@@ -36,6 +54,7 @@ class RepresentativeDetailSerializer(serializers.ModelSerializer):
         return f'{obj.state} - District {obj.district_number}'
 
     def get_congress_gov_url(self, obj):
+        # Derive profile links from stored IDs instead of storing redundant URLs.
         bioguide_id = (obj.external_ids or {}).get('bioguide_id')
         if not bioguide_id:
             return ''
