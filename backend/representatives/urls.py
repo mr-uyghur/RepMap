@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import RepresentativeViewSet, DistrictViewSet, ZipLookupView, SyncStatusView, VotesView, LegislationView
+from .views import RepresentativeViewSet, DistrictViewSet, ZipLookupView, SyncStatusView, VotesView, LegislationView, HealthView
 
 router = DefaultRouter()
 # Register the app's read-only APIs with DRF's router.
@@ -16,6 +16,8 @@ urlpatterns = [
     path('sync-status/', SyncStatusView.as_view()),
     # Lightweight ZIP centroid lookup used by the map search box.
     path('zip-lookup/', ZipLookupView.as_view()),
+    # Health check for load balancers and container orchestrators.
+    path('health/', HealthView.as_view()),
     # Include router-generated endpoints for representatives and district geometry.
     path('', include(router.urls)),
 ]

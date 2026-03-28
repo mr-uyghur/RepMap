@@ -24,6 +24,7 @@ from .services.congress_api import fetch_recent_votes, fetch_sponsored_legislati
 logger = logging.getLogger(__name__)
 
 ZIPCODE_RE = re.compile(r'^\d{5}$')
+BIOGUIDE_RE = re.compile(r'^[A-Z]\d{6}$')
 
 
 class RepresentativeViewSet(viewsets.ReadOnlyModelViewSet):
@@ -232,6 +233,8 @@ class VotesView(APIView):
     throttle_classes = [VotesThrottle]
 
     def get(self, request, bioguide_id: str):
+        if not BIOGUIDE_RE.match(bioguide_id):
+            return Response({'error': 'Invalid bioguide_id format.'}, status=status.HTTP_400_BAD_REQUEST)
         votes = fetch_recent_votes(bioguide_id)
         return Response(votes)
 
@@ -241,10 +244,25 @@ class LegislationView(APIView):
     throttle_classes = [LegislationThrottle]
 
     def get(self, request, bioguide_id: str):
+        if not BIOGUIDE_RE.match(bioguide_id):
+            return Response({'error': 'Invalid bioguide_id format.'}, status=status.HTTP_400_BAD_REQUEST)
         return Response({
             'sponsored': fetch_sponsored_legislation(bioguide_id),
             'cosponsored': fetch_cosponsored_legislation(bioguide_id),
         })
+
+
+class HealthView(APIView):
+    """GET /api/health/ — liveness and DB connectivity check for load balancers."""
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request):
+        try:
+            Representative.objects.exists()
+        except Exception:
+            return Response({'status': 'error', 'db': 'error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'status': 'ok', 'db': 'ok'})
 
 
 class ZipLookupView(APIView):
