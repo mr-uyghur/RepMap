@@ -4,6 +4,7 @@ import type { Bill, LegislationResponse } from '../../types'
 
 interface Props {
   bioguide_id: string
+  darkMode: boolean
 }
 
 function formatIntroDate(dateStr: string): string {
@@ -13,7 +14,7 @@ function formatIntroDate(dateStr: string): string {
   return 'Introduced ' + d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
 }
 
-function BillCard({ bill }: { bill: Bill }) {
+function BillCard({ bill, dm }: { bill: Bill; dm: boolean }) {
   const titleStyle: React.CSSProperties = {
     display: '-webkit-box',
     WebkitLineClamp: 2,
@@ -28,9 +29,9 @@ function BillCard({ bill }: { bill: Bill }) {
   return (
     <div style={{
       padding: '10px 12px',
-      background: '#f9fafb',
+      background: dm ? '#374151' : '#f9fafb',
       borderRadius: '6px',
-      border: '1px solid #e5e7eb',
+      border: `1px solid ${dm ? '#4b5563' : '#e5e7eb'}`,
       marginBottom: '8px',
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
@@ -43,17 +44,17 @@ function BillCard({ bill }: { bill: Bill }) {
               href={bill.congress_url}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ ...titleStyle, color: '#2563eb', textDecoration: 'none' }}
+              style={{ ...titleStyle, color: dm ? '#60a5fa' : '#2563eb', textDecoration: 'none' }}
             >
               {bill.title}
             </a>
           ) : (
-            <p style={{ ...titleStyle, color: '#111827' }}>
+            <p style={{ ...titleStyle, color: dm ? '#f9fafb' : '#111827' }}>
               {bill.title}
             </p>
           )}
           {bill.introduced_date && (
-            <p style={{ margin: '0 0 3px', fontSize: '11px', color: '#6b7280' }}>
+            <p style={{ margin: '0 0 3px', fontSize: '11px', color: dm ? '#9ca3af' : '#6b7280' }}>
               {formatIntroDate(bill.introduced_date)}
             </p>
           )}
@@ -61,7 +62,7 @@ function BillCard({ bill }: { bill: Bill }) {
             <p style={{
               margin: 0,
               fontSize: '11px',
-              color: '#9ca3af',
+              color: dm ? '#6b7280' : '#9ca3af',
               overflow: 'hidden',
               whiteSpace: 'nowrap',
               textOverflow: 'ellipsis',
@@ -75,9 +76,9 @@ function BillCard({ bill }: { bill: Bill }) {
             flexShrink: 0,
             fontSize: '11px',
             fontWeight: '600',
-            color: '#166534',
-            background: '#f0fdf4',
-            border: '1px solid #bbf7d0',
+            color: dm ? '#86efac' : '#166534',
+            background: dm ? '#14532d' : '#f0fdf4',
+            border: `1px solid ${dm ? '#166534' : '#bbf7d0'}`,
             borderRadius: '999px',
             padding: '2px 8px',
             whiteSpace: 'nowrap',
@@ -90,13 +91,13 @@ function BillCard({ bill }: { bill: Bill }) {
   )
 }
 
-function SectionHeader({ label }: { label: string }) {
+function SectionHeader({ label, dm }: { label: string; dm: boolean }) {
   return (
     <h3 style={{
       margin: '0 0 10px',
       fontSize: '13px',
       fontWeight: '700',
-      color: '#374151',
+      color: dm ? '#d1d5db' : '#374151',
       textTransform: 'uppercase',
       letterSpacing: '0.05em',
     }}>
@@ -105,10 +106,11 @@ function SectionHeader({ label }: { label: string }) {
   )
 }
 
-export default function LegislationTab({ bioguide_id }: Props) {
+export default function LegislationTab({ bioguide_id, darkMode }: Props) {
   const [data, setData] = useState<LegislationResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const dm = darkMode
 
   useEffect(() => {
     if (!bioguide_id) return
@@ -127,37 +129,37 @@ export default function LegislationTab({ bioguide_id }: Props) {
   return (
     <div style={{ padding: '16px 0' }}>
       {loading && (
-        <div style={{ padding: '20px', textAlign: 'center', color: '#9ca3af' }}>
+        <div style={{ padding: '20px', textAlign: 'center', color: dm ? '#6b7280' : '#9ca3af' }}>
           Loading legislation...
         </div>
       )}
 
       {error && (
-        <div style={{ padding: '12px', background: '#fef2f2', borderRadius: '6px', color: '#dc2626', fontSize: '14px' }}>
+        <div style={{ padding: '12px', background: dm ? '#450a0a' : '#fef2f2', borderRadius: '6px', color: dm ? '#f87171' : '#dc2626', fontSize: '14px' }}>
           {error}
         </div>
       )}
 
       {isEmpty && (
-        <div style={{ padding: '20px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
+        <div style={{ padding: '20px', textAlign: 'center', color: dm ? '#6b7280' : '#9ca3af', fontSize: '14px' }}>
           No legislation data available
         </div>
       )}
 
       {hasSponsored && (
         <div style={{ marginBottom: '20px' }}>
-          <SectionHeader label="Sponsored Bills" />
+          <SectionHeader label="Sponsored Bills" dm={dm} />
           {data!.sponsored.map((bill, i) => (
-            <BillCard key={bill.bill_number + i} bill={bill} />
+            <BillCard key={bill.bill_number + i} bill={bill} dm={dm} />
           ))}
         </div>
       )}
 
       {hasCosponsored && (
         <div>
-          <SectionHeader label="Cosponsored Bills" />
+          <SectionHeader label="Cosponsored Bills" dm={dm} />
           {data!.cosponsored.map((bill, i) => (
-            <BillCard key={bill.bill_number + i} bill={bill} />
+            <BillCard key={bill.bill_number + i} bill={bill} dm={dm} />
           ))}
         </div>
       )}

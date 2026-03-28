@@ -92,6 +92,7 @@ interface Props {
 export default function RepresentativePanel({ repId, onClose }: Props) {
   const [rep, setRep] = useState<Representative | null>(null)
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const dm = useMapStore((s) => s.darkMode)
   const isSyncing = useRepStore((s) => s.isSyncing)
 
@@ -100,9 +101,10 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
     // Refetch panel data whenever the selected representative changes.
     setLoading(true)
     setRep(null)
+    setFetchError(null)
     fetchRepDetail(repId)
       .then((data) => { if (!cancelled) setRep(data) })
-      .catch(console.error)
+      .catch(() => { if (!cancelled) setFetchError('Unable to load representative details. Please try again.') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [repId])
@@ -163,6 +165,8 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
               <div style={{ height: '20px', background: dm ? '#374151' : '#f3f4f6', borderRadius: '4px', width: '65%', marginBottom: '8px' }} />
               <div style={{ height: '14px', background: dm ? '#374151' : '#f3f4f6', borderRadius: '4px', width: '45%' }} />
             </>
+          ) : fetchError ? (
+            <p style={{ margin: 0, fontSize: '14px', color: dm ? '#f87171' : '#dc2626' }}>{fetchError}</p>
           ) : rep ? (
             <>
               <h2 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '700', color: dm ? '#f9fafb' : '#111827' }}>
@@ -286,7 +290,7 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
             </Field>
           )}
 
-          <LegislationTab bioguide_id={bioguideId} />
+          <LegislationTab bioguide_id={bioguideId} darkMode={dm} />
         </div>
       )}
     </div>

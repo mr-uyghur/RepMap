@@ -55,7 +55,7 @@ def fetch_recent_votes(bioguide_id: str) -> list:
         response = requests.get(url, params={'api_key': api_key, 'limit': 20}, timeout=10)
         response.raise_for_status()
         data = response.json()
-    except Exception as exc:
+    except (requests.RequestException, ValueError) as exc:
         logger.warning('Congress.gov votes fetch failed for %s: %s', bioguide_id, exc)
         return []
 
@@ -136,7 +136,7 @@ def fetch_sponsored_legislation(bioguide_id: str) -> list:
         resp = requests.get(url, params={'api_key': api_key, 'limit': 10, 'format': 'json'}, timeout=10)
         resp.raise_for_status()
         data = resp.json()
-    except Exception as exc:
+    except (requests.RequestException, ValueError) as exc:
         logger.warning('Congress.gov sponsored fetch failed for %s: %s', bioguide_id, exc)
         return []
 
@@ -173,7 +173,7 @@ def fetch_cosponsored_legislation(bioguide_id: str) -> list:
         resp = requests.get(url, params={'api_key': api_key, 'limit': 10, 'format': 'json'}, timeout=10)
         resp.raise_for_status()
         data = resp.json()
-    except Exception as exc:
+    except (requests.RequestException, ValueError) as exc:
         logger.warning('Congress.gov cosponsored fetch failed for %s: %s', bioguide_id, exc)
         return []
 

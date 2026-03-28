@@ -28,7 +28,7 @@ ZIPCODE_RE = re.compile(r'^\d{5}$')
 
 class RepresentativeViewSet(viewsets.ReadOnlyModelViewSet):
     # Read-only endpoints for the map, detail panel, and generated summaries.
-    queryset = Representative.objects.all()
+    queryset = Representative.objects.prefetch_related('summaries')
 
     def get_serializer_class(self):
         # Use the smaller serializer for list views and the richer serializer for detail views.
@@ -55,7 +55,7 @@ class RepresentativeViewSet(viewsets.ReadOnlyModelViewSet):
             return self._handle_zipcode_request(zipcode)
 
         # Default: return all reps
-        queryset = Representative.objects.all()
+        queryset = Representative.objects.prefetch_related('summaries')
         serializer = RepresentativeListSerializer(queryset, many=True)
         return Response(serializer.data)
 

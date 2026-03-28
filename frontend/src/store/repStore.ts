@@ -26,8 +26,8 @@ export const useRepStore = create<RepState & SyncState>((set) => ({
     try {
       const status = await getSyncStatus()
       set({ isSyncing: status.is_syncing, lastSyncedAt: status.last_synced_at })
-    } catch {
-      // Non-fatal — a failed poll should not disrupt the rest of the UI.
+    } catch (err) {
+      console.warn('[repStore] fetchSyncStatus failed:', err)
     }
   },
 }))

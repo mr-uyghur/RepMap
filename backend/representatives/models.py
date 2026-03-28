@@ -77,10 +77,10 @@ class Representative(models.Model):
     ]
 
     name = models.CharField(max_length=200)
-    level = models.CharField(max_length=10, choices=LEVEL_CHOICES)
+    level = models.CharField(max_length=10, choices=LEVEL_CHOICES, db_index=True)
     party = models.CharField(max_length=20, choices=PARTY_CHOICES)
-    state = models.CharField(max_length=2)
-    district_number = models.IntegerField(null=True, blank=True)
+    state = models.CharField(max_length=2, db_index=True)
+    district_number = models.IntegerField(null=True, blank=True, db_index=True)
     photo_url = models.URLField(blank=True)
     website = models.URLField(blank=True)
     phone = models.CharField(max_length=20, blank=True)

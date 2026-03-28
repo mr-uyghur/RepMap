@@ -138,6 +138,13 @@ REST_FRAMEWORK = {
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 CONGRESS_API_KEY = os.environ.get('CONGRESS_API_KEY', '')
 
+if not DEBUG and not CONGRESS_API_KEY:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured(
+        "CONGRESS_API_KEY environment variable is required when DEBUG=False. "
+        "Set it in your environment or .env file."
+    )
+
 # Auto-sync: automatically refresh representative data in the background when stale.
 # Set AUTO_SYNC_ENABLED=false to disable (e.g. during development when you want manual control).
 # AUTO_SYNC_STALE_HOURS controls how old the data must be before a refresh is triggered.
