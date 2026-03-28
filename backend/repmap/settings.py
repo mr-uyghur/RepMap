@@ -35,6 +35,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -111,6 +112,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_ALL_ORIGINS = False
@@ -177,3 +179,48 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# ---------------------------------------------------------------------------
+# Logging — console in dev; console + rotating file in prod.
+# The `representatives` logger is DEBUG locally so sync/fetch traces are visible.
+# ---------------------------------------------------------------------------
+_log_handlers = ['console'] if DEBUG else ['console', 'file']
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} {levelname} {name} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+            'level': 'WARNING',
+        },
+        **({
+            'file': {
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': str(BASE_DIR / 'logs' / 'repmap.log'),
+                'maxBytes': 10 * 1024 * 1024,  # 10 MB
+                'backupCount': 5,
+                'formatter': 'verbose',
+                'level': 'WARNING',
+            },
+        } if not DEBUG else {}),
+    },
+    'root': {
+        'handlers': _log_handlers,
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'representatives': {
+            'handlers': _log_handlers,
+            'level': 'DEBUG' if DEBUG else 'WARNING',
+            'propagate': False,
+        },
+    },
+}

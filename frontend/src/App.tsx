@@ -1,9 +1,10 @@
-import { Component, useRef, useCallback } from 'react'
+import { Component, useRef, useCallback, useEffect } from 'react'
 import type { MapRef } from 'react-map-gl'
 import RepMap from './components/Map/RepMap'
 import ZipcodeSearch from './components/Search/ZipcodeSearch'
 import RepresentativePanel from './components/Panel/RepresentativePanel'
 import { useMapStore } from './store/mapStore'
+import { initSyncPolling, teardownSyncPolling } from './store/repStore'
 import type { Representative } from './types'
 
 class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
@@ -31,6 +32,11 @@ export default function App() {
   const setSelectedRepId = useMapStore((s) => s.setSelectedRepId)
   const darkMode = useMapStore((s) => s.darkMode)
   const toggleDarkMode = useMapStore((s) => s.toggleDarkMode)
+
+  useEffect(() => {
+    initSyncPolling()
+    return teardownSyncPolling
+  }, [])
 
   const handleRepSelect = useCallback(
     (rep: Representative) => {

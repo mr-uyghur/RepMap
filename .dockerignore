@@ -1,0 +1,29 @@
+# Python
+backend/venv/
+backend/__pycache__/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+
+# Node
+frontend/node_modules/
+
+# Environment / secrets
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Logs
+logs/
+
+# Database
+backend/db.sqlite3
+
+# Static files (generated at deploy time)
+backend/staticfiles/
+
+# Git
+.git/
+.gitignore

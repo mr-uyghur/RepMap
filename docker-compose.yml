@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-repmap}
+      POSTGRES_USER: ${POSTGRES_USER:-repmap}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-repmap}
+    env_file:
+      - .env
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev
+    ports:
+      - "5173:5173"
+
+volumes:
+  postgres_data:

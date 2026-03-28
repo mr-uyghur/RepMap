@@ -4,13 +4,7 @@ import { useMapStore } from '../../store/mapStore'
 import { useRepStore } from '../../store/repStore'
 import type { Representative } from '../../types'
 import LegislationTab from './LegislationTab'
-
-const PARTY_COLORS: Record<string, string> = {
-  democrat: '#2563eb',
-  republican: '#dc2626',
-  independent: '#6b7280',
-  other: '#6b7280',
-}
+import { PARTY_COLORS } from '../../constants'
 
 const PARTY_LABELS: Record<string, string> = {
   democrat: 'Democrat',
@@ -56,21 +50,33 @@ function getOfficialProfileLinks(rep: Representative) {
   ]
 }
 
-function getSocialLink(platform: string, value: string) {
-  if (value.startsWith('http://') || value.startsWith('https://')) return value
-  const normalized = value.replace(/^@/, '')
-  switch (platform) {
-    case 'twitter':
-      return `https://x.com/${normalized}`
-    case 'facebook':
-      return `https://www.facebook.com/${normalized}`
-    case 'youtube':
-      return `https://www.youtube.com/${normalized}`
-    case 'instagram':
-      return `https://www.instagram.com/${normalized}`
-    default:
-      return ''
+function getSocialLink(platform: string, value: string): string | null {
+  let url: string
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    url = value
+  } else {
+    const normalized = value.replace(/^@/, '')
+    switch (platform) {
+      case 'twitter':
+        url = `https://x.com/${normalized}`
+        break
+      case 'facebook':
+        url = `https://www.facebook.com/${normalized}`
+        break
+      case 'youtube':
+        url = `https://www.youtube.com/${normalized}`
+        break
+      case 'instagram':
+        url = `https://www.instagram.com/${normalized}`
+        break
+      default:
+        return null
+    }
   }
+  // Reject anything that isn't http/https — catches javascript: and data: schemes
+  // that could arrive from a compromised or malicious API response.
+  if (!url.startsWith('http://') && !url.startsWith('https://')) return null
+  return url
 }
 
 function Field({ label, children, dm }: { label: string; children: React.ReactNode; dm: boolean }) {

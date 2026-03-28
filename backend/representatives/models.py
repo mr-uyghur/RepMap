@@ -1,70 +1,23 @@
-import json
 from django.db import models
 
 
+# ---------------------------------------------------------------------------
+# Legacy field stubs — kept only so historical migrations (0001, 0003) can
+# import these names without error. The Representative model no longer uses
+# them; all three JSON fields now use Django's built-in JSONField.
+# ---------------------------------------------------------------------------
+
 class JSONTextField(models.TextField):
-    """
-    Stores a dict/list as JSON text. Works on any SQLite build including
-    those compiled without the JSON1 extension.
-    """
-    def from_db_value(self, value, expression, connection):
-        # Convert stored JSON text back into Python data on reads.
-        if value is None:
-            return {}
-        try:
-            return json.loads(value)
-        except (TypeError, ValueError):
-            return {}
-
-    def to_python(self, value):
-        # Normalize values coming from forms, fixtures, or direct assignment.
-        if isinstance(value, (dict, list)):
-            return value
-        if value is None:
-            return {}
-        try:
-            return json.loads(value)
-        except (TypeError, ValueError):
-            return {}
-
-    def get_prep_value(self, value):
-        # Serialize Python data back to text before saving.
-        if value is None:
-            return '{}'
-        return json.dumps(value)
+    """Legacy stub — do not use in new code."""
 
 
 class JSONListField(models.TextField):
-    """
-    Stores a list as JSON text. Parallel to JSONTextField but defaults to []
-    instead of {} — suitable for list-valued fields like committee_assignments.
-    """
-    def from_db_value(self, value, expression, connection):
-        # Same idea as JSONTextField, but with [] as the safe default.
-        if value is None:
-            return []
-        try:
-            return json.loads(value)
-        except (TypeError, ValueError):
-            return []
+    """Legacy stub — do not use in new code."""
 
-    def to_python(self, value):
-        # Accept already-parsed lists and decode JSON strings when needed.
-        if isinstance(value, list):
-            return value
-        if value is None:
-            return []
-        try:
-            return json.loads(value)
-        except (TypeError, ValueError):
-            return []
 
-    def get_prep_value(self, value):
-        # Persist list-like data as JSON text.
-        if value is None:
-            return '[]'
-        return json.dumps(value)
-
+# ---------------------------------------------------------------------------
+# Models
+# ---------------------------------------------------------------------------
 
 class Representative(models.Model):
     # One current federal legislator shown in the app.
@@ -84,14 +37,14 @@ class Representative(models.Model):
     photo_url = models.URLField(blank=True)
     website = models.URLField(blank=True)
     phone = models.CharField(max_length=20, blank=True)
-    social_links = JSONTextField(default=dict)
+    social_links = models.JSONField(default=dict)
     term_start = models.DateField(null=True, blank=True)
     term_end = models.DateField(null=True, blank=True)
     office_room = models.CharField(max_length=200, blank=True)
-    committee_assignments = JSONListField(default=list)
+    committee_assignments = models.JSONField(default=list)
     latitude = models.FloatField()
     longitude = models.FloatField()
-    external_ids = JSONTextField(default=dict)
+    external_ids = models.JSONField(default=dict)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

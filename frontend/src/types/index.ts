@@ -72,3 +72,11 @@ export interface RepState {
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
 }
+
+// GeoJSON geometry primitives used for district polygon calculations.
+export type Ring = [number, number][]
+export type Polygon = Ring[]
+export type FeatureGeometry = {
+  type?: 'Polygon' | 'MultiPolygon'
+  coordinates?: Polygon[] | Polygon
+}

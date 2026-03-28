@@ -2,15 +2,7 @@ import { useEffect, useState } from 'react'
 import { Layer, Source } from 'react-map-gl'
 import { fetchCongressionalDistricts } from '../../api/representatives'
 import { getCachedDistrictGeoJSON } from './DistrictOverlay'
-
-interface GeoJSON {
-  type: string
-  features: Array<{
-    type: string
-    properties: Record<string, string | number | null>
-    geometry: object
-  }>
-}
+import type { FeatureCollection } from './DistrictOverlay'
 
 interface Props {
   state: string
@@ -19,7 +11,7 @@ interface Props {
 }
 
 export default function DistrictBoundary({ state, districtNumber, party }: Props) {
-  const [geojson, setGeojson] = useState<GeoJSON | null>(null)
+  const [geojson, setGeojson] = useState<FeatureCollection | null>(null)
 
   useEffect(() => {
     // This component is only rendered for house reps (checked in RepMap).
@@ -28,7 +20,7 @@ export default function DistrictBoundary({ state, districtNumber, party }: Props
       setGeojson(null)
       return
     }
-    const cached = getCachedDistrictGeoJSON(state) as GeoJSON | undefined
+    const cached = getCachedDistrictGeoJSON(state)
     if (cached) {
       setGeojson(cached)
       return
@@ -36,7 +28,7 @@ export default function DistrictBoundary({ state, districtNumber, party }: Props
 
     setGeojson(null)
     fetchCongressionalDistricts(state)
-      .then((data) => setGeojson(data as GeoJSON))
+      .then((data) => setGeojson(data as FeatureCollection))
       .catch(console.error)
   }, [state, districtNumber])
 
@@ -47,7 +39,7 @@ export default function DistrictBoundary({ state, districtNumber, party }: Props
 
   // Filter to just the rep's district.
   // 119th Congress TIGER data stores the district number zero-padded in CD119 (e.g. "33" or "03").
-  const filtered: GeoJSON = {
+  const filtered: FeatureCollection = {
     ...geojson,
     features: geojson.features.filter(
       (f) => parseInt(String(f.properties?.CD119 ?? ''), 10) === normalizedDistrict
@@ -61,7 +53,7 @@ export default function DistrictBoundary({ state, districtNumber, party }: Props
   const lineColor = party === 'republican' ? '#b91c1c' : party === 'democrat' ? '#1d4ed8' : '#4b5563'
 
   return (
-    <Source id="district-source" type="geojson" data={filtered as any}>
+    <Source id="district-source" type="geojson" data={filtered as FeatureCollection}>
       <Layer
         id="district-fill"
         source="district-source"

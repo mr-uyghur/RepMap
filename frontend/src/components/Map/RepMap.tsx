@@ -10,7 +10,7 @@ import RepresentativePin from './RepresentativePin'
 import DistrictBoundary from './DistrictBoundary'
 import DistrictOverlay, { getCachedDistrictGeoJSON, subscribeToDistrictGeoJSON, getLoadedStateCodes } from './DistrictOverlay'
 import type { ViewBounds } from './DistrictOverlay'
-import type { Representative } from '../../types'
+import type { Representative, FeatureGeometry, Ring, Polygon } from '../../types'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || ''
 
@@ -23,12 +23,6 @@ const GROUP_OFFSETS: Record<number, [number, number][]> = {
 }
 
 type Position = { latitude: number; longitude: number }
-type Ring = [number, number][]
-type Polygon = Ring[]
-type FeatureGeometry = {
-  type?: 'Polygon' | 'MultiPolygon'
-  coordinates?: Polygon[] | Polygon
-}
 
 function polygonArea(ring: Ring) {
   let area = 0

@@ -8,6 +8,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from .errors import error_response
 from .throttles import ZipcodeLookupThrottle, AISummaryThrottle, VotesThrottle, LegislationThrottle
 
 from .models import Representative, AISummary, SyncStatus
@@ -52,7 +53,7 @@ class RepresentativeViewSet(viewsets.ReadOnlyModelViewSet):
 
         if zipcode:
             if not ZIPCODE_RE.match(zipcode):
-                return Response({'error': 'Invalid zipcode format.'}, status=status.HTTP_400_BAD_REQUEST)
+                return error_response('Invalid zipcode format.')
             return self._handle_zipcode_request(zipcode)
 
         # Default: return all reps
@@ -66,14 +67,14 @@ class RepresentativeViewSet(viewsets.ReadOnlyModelViewSet):
             reps = fetch_reps_by_zipcode(zipcode)
         except Exception as e:
             logger.warning("ZIP lookup error for %s: %s", zipcode, e)
-            return Response(
-                {'error': 'Representative lookup is temporarily unavailable. Please try again later.'},
+            return error_response(
+                'Representative lookup is temporarily unavailable. Please try again later.',
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
         if not reps:
-            return Response(
-                {'error': 'No federal representatives found for that ZIP code.'},
+            return error_response(
+                'No federal representatives found for that ZIP code.',
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -86,10 +87,7 @@ class RepresentativeViewSet(viewsets.ReadOnlyModelViewSet):
         content_type = request.query_params.get('type', 'bio')
 
         if content_type not in ['bio', 'voting_record', 'how_to_vote']:
-            return Response(
-                {'error': 'Invalid type. Must be bio, voting_record, or how_to_vote'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return error_response('Invalid type. Must be bio, voting_record, or how_to_vote')
 
         # Check for cached summary (within 30 days)
         thirty_days_ago = timezone.now() - timedelta(days=30)
@@ -127,9 +125,9 @@ class RepresentativeViewSet(viewsets.ReadOnlyModelViewSet):
 
         except Exception:
             logger.exception("Failed to generate AI summary for rep %s type %s", rep.pk, content_type)
-            return Response(
-                {'error': 'Failed to generate summary. Please try again later.'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            return error_response(
+                'Failed to generate summary. Please try again later.',
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
@@ -147,7 +145,7 @@ class DistrictViewSet(viewsets.ViewSet):
     def congressional(self, request):
         state = _validate_state(request.query_params.get('state', ''))
         if not state:
-            return Response({'error': 'Valid 2-letter state abbreviation required.'}, status=400)
+            return error_response('Valid 2-letter state abbreviation required.')
 
         cache_key = f'district_geojson_v2_{state}'  # v2: simplified geometry (0.01° offset)
         try:
@@ -170,10 +168,9 @@ class DistrictViewSet(viewsets.ViewSet):
         # No local file — fall back to live Census only if explicitly enabled.
         if not settings.DISTRICT_LIVE_FALLBACK:
             logger.warning("District data missing for %s and live fallback is disabled", state)
-            return Response(
-                {'error': f'District data for {state} is not available. '
-                          f'Run: python manage.py build_district_data'},
-                status=503,
+            return error_response(
+                f'District data for {state} is not available. Run: python manage.py build_district_data',
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
         try:
@@ -185,13 +182,13 @@ class DistrictViewSet(viewsets.ViewSet):
             return Response(geojson)
         except Exception:
             logger.exception("Failed to fetch congressional districts for %s", state)
-            return Response({'error': 'Failed to fetch district data.'}, status=500)
+            return error_response('Failed to fetch district data.', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['get'], url_path='state-boundary')
     def state_boundary(self, request):
         state = _validate_state(request.query_params.get('state', ''))
         if not state:
-            return Response({'error': 'Valid 2-letter state abbreviation required.'}, status=400)
+            return error_response('Valid 2-letter state abbreviation required.')
 
         cache_key = f'state_boundary_{state}'
         try:
@@ -210,7 +207,7 @@ class DistrictViewSet(viewsets.ViewSet):
             return Response(geojson)
         except Exception:
             logger.exception("Failed to fetch state boundary for %s", state)
-            return Response({'error': 'Failed to fetch boundary data.'}, status=500)
+            return error_response('Failed to fetch boundary data.', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class SyncStatusView(APIView):
@@ -234,7 +231,7 @@ class VotesView(APIView):
 
     def get(self, request, bioguide_id: str):
         if not BIOGUIDE_RE.match(bioguide_id):
-            return Response({'error': 'Invalid bioguide_id format.'}, status=status.HTTP_400_BAD_REQUEST)
+            return error_response('Invalid bioguide_id format.')
         votes = fetch_recent_votes(bioguide_id)
         return Response(votes)
 
@@ -245,7 +242,7 @@ class LegislationView(APIView):
 
     def get(self, request, bioguide_id: str):
         if not BIOGUIDE_RE.match(bioguide_id):
-            return Response({'error': 'Invalid bioguide_id format.'}, status=status.HTTP_400_BAD_REQUEST)
+            return error_response('Invalid bioguide_id format.')
         return Response({
             'sponsored': fetch_sponsored_legislation(bioguide_id),
             'cosponsored': fetch_cosponsored_legislation(bioguide_id),
@@ -271,22 +268,16 @@ class ZipLookupView(APIView):
     def get(self, request):
         zipcode = request.query_params.get('zipcode', '').strip()
         if not ZIPCODE_RE.match(zipcode):
-            return Response(
-                {'error': 'Enter a valid 5-digit ZIP code.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return error_response('Enter a valid 5-digit ZIP code.')
         try:
             # This endpoint only returns map coordinates; it does not fetch representatives.
             lat, lng = geocode_zip(zipcode)
         except Exception as e:
             logger.warning("ZIP geocode error for %s: %s", zipcode, e)
-            return Response(
-                {'error': 'Could not look up that ZIP code. Please try again.'},
+            return error_response(
+                'Could not look up that ZIP code. Please try again.',
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
         if lat is None:
-            return Response(
-                {'error': 'ZIP code not found.'},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            return error_response('ZIP code not found.', status=status.HTTP_404_NOT_FOUND)
         return Response({'lat': lat, 'lng': lng})

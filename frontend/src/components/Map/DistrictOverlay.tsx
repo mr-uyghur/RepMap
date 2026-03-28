@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Layer, Source } from 'react-map-gl'
 import { fetchCongressionalDistricts } from '../../api/representatives'
 import { useRepStore } from '../../store/repStore'
@@ -37,6 +37,7 @@ const STATE_CENTROIDS: Record<string, [number, number]> = {
 // Buffer beyond viewport edges so adjacent states pre-load before the user
 // pans to them.
 const BOUNDS_BUFFER = 4 // degrees
+const MAX_CONCURRENT = 2
 
 export interface ViewBounds {
   north: number
@@ -45,21 +46,32 @@ export interface ViewBounds {
   west: number
 }
 
-export type FeatureCollection = { type: string; features: object[] }
+// GeoJSON feature with the properties shape this app writes and reads.
+interface GeoJSONProperties {
+  CD119?: string | number
+  party?: string
+  state_abbr?: string
+  [key: string]: unknown
+}
+
+interface GeoJSONFeature {
+  type: 'Feature'
+  geometry: object
+  properties: GeoJSONProperties
+}
+
+export type FeatureCollection = { type: string; features: GeoJSONFeature[] }
 
 interface Props {
   bounds: ViewBounds
 }
 
-// Module-level GeoJSON cache: state code → FeatureCollection.
-// Persists across remounts so each state is only fetched once per session.
-const geoCache: Record<string, FeatureCollection> = {}
+// ---------------------------------------------------------------------------
+// Module-level session cache — intentionally persists across remounts so each
+// state's district GeoJSON is only fetched once per page load.
+// ---------------------------------------------------------------------------
 
-// Module-level request throttle: max 2 concurrent district fetches so the
-// Django dev server always has capacity to handle panel/rep requests immediately.
-const inFlight = new Set<string>()
-const fetchQueue: string[] = []
-const MAX_CONCURRENT = 2
+const geoCache: Record<string, FeatureCollection> = {}
 
 // Subscribers are parameterless — each component instance rebuilds the merged
 // GeoJSON itself so it can inject the current party map.
@@ -88,33 +100,12 @@ export function getLoadedStateCodes(): string[] {
   return Object.keys(geoCache)
 }
 
-function drainQueue() {
-  while (inFlight.size < MAX_CONCURRENT && fetchQueue.length > 0) {
-    const state = fetchQueue.shift()!
-    if (geoCache[state]) { drainQueue(); return }
-    inFlight.add(state)
-    // Fetch one state's district geometry, then fan out a notification so each
-    // consumer can rebuild whatever derived state it needs.
-    fetchCongressionalDistricts(state)
-      .then((data) => {
-        geoCache[state] = data as FeatureCollection
-        inFlight.delete(state)
-        notifySubscribers()
-        drainQueue()
-      })
-      .catch(() => {
-        inFlight.delete(state)
-        drainQueue()
-      })
-  }
-}
-
 // Annotate a single state's raw features with party + state_abbr.
 // Called only for newly-arrived states rather than rebuilding everything.
-function annotateStateFeatures(state: string, partyMap: Record<string, string>): object[] {
+function annotateStateFeatures(state: string, partyMap: Record<string, string>): GeoJSONFeature[] {
   const fc = geoCache[state]
   if (!fc?.features) return []
-  return (fc.features as any[]).map((feature: any) => {
+  return fc.features.map((feature) => {
     const distNum = parseInt(String(feature.properties?.CD119 ?? ''), 10)
     // Attach app-specific properties directly to the GeoJSON so Mapbox styling
     // and hover/click handlers can stay data-driven.
@@ -125,6 +116,15 @@ function annotateStateFeatures(state: string, partyMap: Record<string, string>):
 
 export default function DistrictOverlay({ bounds }: Props) {
   const { allReps } = useRepStore()
+
+  // ---------------------------------------------------------------------------
+  // Per-instance fetch state — transient and should not outlive the component.
+  // inFlight tracks concurrent in-progress requests; fetchQueue holds states
+  // waiting for a fetch slot. Both are cleared on unmount so a remounting
+  // instance always starts from a clean operational state.
+  // ---------------------------------------------------------------------------
+  const inFlight = useRef<Set<string>>(new Set())
+  const fetchQueue = useRef<string[]>([])
 
   // Build a state+district → party lookup from all House reps.
   const partyMap = useMemo(() => {
@@ -141,7 +141,39 @@ export default function DistrictOverlay({ bounds }: Props) {
   // Per-state annotated features: state abbr → annotated feature array.
   // Each state gets its own Mapbox Source so adding a new state never causes
   // Mapbox to re-upload geometry for previously loaded states.
-  const [stateFeatures, setStateFeatures] = useState<Record<string, object[]>>({})
+  const [stateFeatures, setStateFeatures] = useState<Record<string, GeoJSONFeature[]>>({})
+
+  const drainQueue = useCallback(() => {
+    while (inFlight.current.size < MAX_CONCURRENT && fetchQueue.current.length > 0) {
+      const state = fetchQueue.current.shift()!
+      if (geoCache[state]) { drainQueue(); return }
+      inFlight.current.add(state)
+      // Fetch one state's district geometry, then fan out a notification so each
+      // consumer can rebuild whatever derived state it needs.
+      fetchCongressionalDistricts(state)
+        .then((data) => {
+          geoCache[state] = data as FeatureCollection
+          inFlight.current.delete(state)
+          notifySubscribers()
+          drainQueue()
+        })
+        .catch(() => {
+          inFlight.current.delete(state)
+          drainQueue()
+        })
+    }
+  }, [])
+
+  // Clear transient fetch state on unmount so a remounting instance starts clean.
+  // In-flight Promises may still resolve after this, but they write only to the
+  // module-level geoCache (intentional) and call notifySubscribers() against an
+  // already-empty subscriber set (harmless).
+  useEffect(() => {
+    return () => {
+      inFlight.current.clear()
+      fetchQueue.current = []
+    }
+  }, [])
 
   // When partyMap changes, reset and rebuild all cached states.
   // When a new state arrives, only annotate that state and merge it in.
@@ -158,7 +190,7 @@ export default function DistrictOverlay({ bounds }: Props) {
       const isReset = processedStates.size === 0
       newStates.forEach((s) => processedStates.add(s))
 
-      const updates: Record<string, object[]> = {}
+      const updates: Record<string, GeoJSONFeature[]> = {}
       newStates.forEach((state) => { updates[state] = annotateStateFeatures(state, partyMap) })
 
       if (isReset) {
@@ -191,15 +223,15 @@ export default function DistrictOverlay({ bounds }: Props) {
       ])
       .sort((a, b) => a[1] - b[1])
       .map(([state]) => state)
-      .filter((state) => !geoCache[state] && !inFlight.has(state))
+      .filter((state) => !geoCache[state] && !inFlight.current.has(state))
 
     if (needed.length === 0) return
 
     // Prepend so the state closest to the viewport centre is processed next,
     // before any states queued by an earlier pan.
-    fetchQueue.unshift(...needed)
+    fetchQueue.current.unshift(...needed)
     drainQueue()
-  }, [bounds])
+  }, [bounds, drainQueue])
 
   // Only mount Sources/Layers for states currently in the viewport + buffer.
   // States outside this set are unmounted from Mapbox (GPU freed) but remain in
@@ -230,7 +262,7 @@ export default function DistrictOverlay({ bounds }: Props) {
           key={state}
           id={`district-${state}`}
           type="geojson"
-          data={{ type: 'FeatureCollection', features } as any}
+          data={{ type: 'FeatureCollection', features } as FeatureCollection}
         >
           <Layer
             id={`district-fill-${state}`}

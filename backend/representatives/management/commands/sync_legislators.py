@@ -11,6 +11,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from representatives.models import Representative, SyncStatus
+from representatives.constants import STATE_FIPS
 
 LEGISLATORS_URL = (
     'https://raw.githubusercontent.com/unitedstates/congress-legislators/main/legislators-current.yaml'
@@ -54,20 +55,6 @@ STATE_CENTROIDS = {
     'WA': (47.3826, -120.4472), 'WV': (38.6409, -80.6227),
     'WI': (44.6243, -89.9941), 'WY': (42.9957, -107.5512),
     'DC': (38.9072, -77.0369),
-}
-
-STATE_FIPS = {
-    'AL': '01', 'AK': '02', 'AZ': '04', 'AR': '05', 'CA': '06',
-    'CO': '08', 'CT': '09', 'DE': '10', 'FL': '12', 'GA': '13',
-    'HI': '15', 'ID': '16', 'IL': '17', 'IN': '18', 'IA': '19',
-    'KS': '20', 'KY': '21', 'LA': '22', 'ME': '23', 'MD': '24',
-    'MA': '25', 'MI': '26', 'MN': '27', 'MS': '28', 'MO': '29',
-    'MT': '30', 'NE': '31', 'NV': '32', 'NH': '33', 'NJ': '34',
-    'NM': '35', 'NY': '36', 'NC': '37', 'ND': '38', 'OH': '39',
-    'OK': '40', 'OR': '41', 'PA': '42', 'RI': '44', 'SC': '45',
-    'SD': '46', 'TN': '47', 'TX': '48', 'UT': '49', 'VT': '50',
-    'VA': '51', 'WA': '53', 'WV': '54', 'WI': '55', 'WY': '56',
-    'DC': '11',
 }
 
 PARTY_MAP = {

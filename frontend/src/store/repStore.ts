@@ -32,9 +32,12 @@ export const useRepStore = create<RepState & SyncState>((set) => ({
   },
 }))
 
-// Fetch once immediately on app load, then every 30 seconds.
-useRepStore.getState().fetchSyncStatus()
-_syncInterval = setInterval(() => useRepStore.getState().fetchSyncStatus(), 30_000)
+export function initSyncPolling() {
+  // Fetch once immediately, then poll every 30 seconds.
+  // Call this from App.tsx on mount instead of running at module import time.
+  useRepStore.getState().fetchSyncStatus()
+  _syncInterval = setInterval(() => useRepStore.getState().fetchSyncStatus(), 30_000)
+}
 
 export function teardownSyncPolling() {
   if (_syncInterval !== null) {
