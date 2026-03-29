@@ -31,12 +31,14 @@ export default function ZipcodeSearch({ onFlyTo }: Props) {
     } catch (err) {
       if (axios.isAxiosError(err)) {
         if (!err.response) {
-          setError('Could not reach the server. Is the backend running?')
+          setError('Unable to reach the server. Check your connection.')
+        } else if (err.response.status === 404) {
+          setError('No representatives found for that ZIP code.')
         } else {
-          setError(err.response.data?.error ?? 'Could not locate that ZIP code.')
+          setError(err.response.data?.error ?? 'No representatives found for that ZIP code.')
         }
       } else {
-        setError('Could not locate that ZIP code.')
+        setError('No representatives found for that ZIP code.')
       }
     } finally {
       setSearching(false)
@@ -62,7 +64,9 @@ export default function ZipcodeSearch({ onFlyTo }: Props) {
         RepMap
       </h2>
       <form onSubmit={handleSearch} style={{ display: 'flex', gap: '8px' }}>
+        <label htmlFor="zip-input" className="sr-only">ZIP code</label>
         <input
+          id="zip-input"
           type="text"
           value={zipcode}
           onChange={(e) => setZipcode(e.target.value.replace(/\D/g, '').slice(0, 5))}
@@ -82,6 +86,7 @@ export default function ZipcodeSearch({ onFlyTo }: Props) {
         <button
           type="submit"
           disabled={searching}
+          aria-label="Search"
           style={{
             padding: '8px 14px',
             background: '#2563eb',
@@ -100,7 +105,7 @@ export default function ZipcodeSearch({ onFlyTo }: Props) {
       {error && (
         <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#f87171' }}>{error}</p>
       )}
-      <p style={{ margin: '8px 0 0', fontSize: '11px', color: '#9ca3af' }}>
+      <p style={{ margin: '8px 0 0', fontSize: '11px', color: '#4b5563' }}>
         Pan the map to explore representatives
       </p>
     </div>

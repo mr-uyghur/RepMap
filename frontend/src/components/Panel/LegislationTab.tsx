@@ -36,7 +36,7 @@ function BillCard({ bill, dm }: { bill: Bill; dm: boolean }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: '0 0 2px', fontSize: '11px', color: '#9ca3af', fontWeight: '600' }}>
+          <p className="leg-tab-bill-num">
             {bill.bill_number}
           </p>
           {bill.congress_url ? (
@@ -54,7 +54,7 @@ function BillCard({ bill, dm }: { bill: Bill; dm: boolean }) {
             </p>
           )}
           {bill.introduced_date && (
-            <p style={{ margin: '0 0 3px', fontSize: '11px', color: dm ? '#9ca3af' : '#6b7280' }}>
+            <p style={{ margin: '0 0 3px', fontSize: '11px', color: dm ? '#9ca3af' : '#4b5563' }}>
               {formatIntroDate(bill.introduced_date)}
             </p>
           )}
@@ -62,7 +62,7 @@ function BillCard({ bill, dm }: { bill: Bill; dm: boolean }) {
             <p style={{
               margin: 0,
               fontSize: '11px',
-              color: dm ? '#6b7280' : '#9ca3af',
+              color: dm ? '#9ca3af' : '#4b5563',
               overflow: 'hidden',
               whiteSpace: 'nowrap',
               textOverflow: 'ellipsis',
@@ -129,7 +129,7 @@ export default function LegislationTab({ bioguide_id, darkMode }: Props) {
   return (
     <div style={{ padding: '16px 0' }}>
       {loading && (
-        <div style={{ padding: '20px', textAlign: 'center', color: dm ? '#6b7280' : '#9ca3af' }}>
+        <div style={{ padding: '20px', textAlign: 'center', color: dm ? '#9ca3af' : '#4b5563' }}>
           Loading legislation...
         </div>
       )}
@@ -141,7 +141,7 @@ export default function LegislationTab({ bioguide_id, darkMode }: Props) {
       )}
 
       {isEmpty && (
-        <div style={{ padding: '20px', textAlign: 'center', color: dm ? '#6b7280' : '#9ca3af', fontSize: '14px' }}>
+        <div style={{ padding: '20px', textAlign: 'center', color: dm ? '#9ca3af' : '#4b5563', fontSize: '14px' }}>
           No legislation data available
         </div>
       )}

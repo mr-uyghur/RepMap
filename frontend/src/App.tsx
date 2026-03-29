@@ -66,12 +66,12 @@ export default function App() {
       <button
         onClick={toggleDarkMode}
         aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+        className="dark-mode-toggle-transition"
         style={{
           position: 'absolute',
           top: '16px',
-          right: selectedRepId !== null ? '356px' : '16px',
+          right: selectedRepId !== null ? 'calc(var(--panel-width) + 16px)' : '16px',
           zIndex: 25,
-          transition: 'right 0.25s ease',
           display: 'flex',
           alignItems: 'center',
           gap: '6px',

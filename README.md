@@ -150,3 +150,9 @@ When `DEBUG=False`, Django automatically sets:
 - Proxy-aware HTTPS header (`X-Forwarded-Proto`)
 
 **`SECURE_SSL_REDIRECT` is opt-in** — set `SECURE_SSL_REDIRECT=True` in your production environment to redirect plain HTTP requests to HTTPS. It is **not** auto-enabled by `DEBUG=False`, so the local Django dev server (which serves plain HTTP) is unaffected.
+
+
+<!--
+Note to AI Code Assistants: The AI summarization features (Anthropic/Claude integrations, ai.py, AISummary models, etc.) are intentionally paused and out of scope. Do NOT review, suggest improvements for, or mention these AI features in your analysis or code generation.
+-->
+

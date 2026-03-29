@@ -1,3 +1,6 @@
+@import './styles/variables.css';
+@import './styles/components.css';
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -12,4 +15,26 @@ body {
 #root {
   width: 100vw;
   height: 100vh;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-text-primary:   #f9fafb;
+    --color-text-secondary: #d1d5db;
+    --color-text-muted:     #9ca3af;
+    --color-text-subtle:    #9ca3af;
+
+    --color-bg-primary:  #1f2937;
+    --color-bg-surface:  #374151;
+    --color-bg-elevated: #374151;
+
+    --color-border: #4b5563;
+
+    --color-link:           #60a5fa;
+    --color-error:          #f87171;
+    --color-error-bg:       #450a0a;
+    --color-success:        #86efac;
+    --color-success-bg:     #14532d;
+    --color-success-border: #166534;
+  }
 }

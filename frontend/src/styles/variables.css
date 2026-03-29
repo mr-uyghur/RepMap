@@ -1,0 +1,31 @@
+:root {
+  /* Layout */
+  --panel-width: 340px;
+
+  /* Party / brand */
+  --color-democrat:    #2563eb;
+  --color-republican:  #dc2626;
+  --color-independent: #6b7280;
+
+  /* Text */
+  --color-text-primary:   #111827;
+  --color-text-secondary: #374151;
+  --color-text-muted:     #4b5563;
+  --color-text-subtle:    #9ca3af;
+
+  /* Backgrounds */
+  --color-bg-primary:  #ffffff;
+  --color-bg-surface:  #f9fafb;
+  --color-bg-elevated: #f3f4f6;
+
+  /* Border */
+  --color-border: #e5e7eb;
+
+  /* Semantic */
+  --color-link:             #2563eb;
+  --color-error:            #dc2626;
+  --color-error-bg:         #fef2f2;
+  --color-success:          #166534;
+  --color-success-bg:       #f0fdf4;
+  --color-success-border:   #bbf7d0;
+}

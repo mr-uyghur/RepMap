@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import axios from 'axios'
 import { fetchRepDetail } from '../../api/representatives'
 import { useMapStore } from '../../store/mapStore'
 import { useRepStore } from '../../store/repStore'
@@ -110,7 +111,15 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
     setFetchError(null)
     fetchRepDetail(repId)
       .then((data) => { if (!cancelled) setRep(data) })
-      .catch(() => { if (!cancelled) setFetchError('Unable to load representative details. Please try again.') })
+      .catch((err) => {
+        if (!cancelled) {
+          if (axios.isAxiosError(err) && !err.response) {
+            setFetchError('Unable to reach the server. Check your connection.')
+          } else {
+            setFetchError('Unable to load representative details. Please try again.')
+          }
+        }
+      })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [repId])
@@ -135,7 +144,7 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
         position: 'absolute',
         top: 0,
         right: 0,
-        width: '340px',
+        width: 'var(--panel-width)',
         height: '100%',
         background: dm ? '#1f2937' : 'white',
         boxShadow: '-4px 0 20px rgba(0,0,0,0.25)',
@@ -147,7 +156,7 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
     >
       {isSyncing && (
         <>
-          <style>{`@keyframes repmap-pulse{0%,100%{opacity:1}50%{opacity:.35}}`}</style>
+          <style>{`@media (prefers-reduced-motion: no-preference) { @keyframes repmap-pulse{0%,100%{opacity:1}50%{opacity:.35}} }`}</style>
           <div style={{
             position: 'sticky',
             top: 0,
@@ -155,7 +164,7 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
             textAlign: 'center',
             fontSize: '11px',
             padding: '3px 0',
-            color: dm ? '#9ca3af' : '#6b7280',
+            color: dm ? '#9ca3af' : '#4b5563',
             background: dm ? '#1f2937' : 'white',
             animation: 'repmap-pulse 1.8s ease-in-out infinite',
             pointerEvents: 'none',
@@ -182,7 +191,7 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
                 {getChamberLabel(rep)}{' \u2022 '}
                 <span style={{ color: color, fontWeight: '600' }}>{PARTY_LABELS[rep.party] ?? rep.party}</span>
               </p>
-              <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: '#4b5563' }}>
                 {getDistrictLabel(rep)}
               </p>
             </>
@@ -281,7 +290,7 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
                   const href = getSocialLink(platform, value)
                   return (
                     <span key={platform} style={{ fontSize: '13px' }}>
-                      <span style={{ textTransform: 'capitalize', color: '#6b7280' }}>{platform}:</span>{' '}
+                      <span style={{ textTransform: 'capitalize', color: '#4b5563' }}>{platform}:</span>{' '}
                       {href ? (
                         <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: linkColor, wordBreak: 'break-all' }}>
                           {value}

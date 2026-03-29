@@ -120,7 +120,9 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
   const [fillLayerIds, setFillLayerIds] = useState<string[]>([])
   const [hoverInfo, setHoverInfo] = useState<{ x: number; y: number; label: string } | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [zoomHintDismissed, setZoomHintDismissed] = useState(false)
   const lastHoverUpdateRef = useRef(0)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     // Load the full representative dataset once when the map mounts.
@@ -248,7 +250,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
   }, [zoom, reps])
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
       <Map
         ref={mapRef}
         mapboxAccessToken={MAPBOX_TOKEN}
@@ -303,11 +305,49 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
           {loadError}
         </div>
       )}
+      {zoom < 4 && !zoomHintDismissed && (
+        <div style={{
+          position: 'absolute',
+          bottom: '40px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.65)',
+          color: '#fff',
+          padding: '6px 14px',
+          borderRadius: '6px',
+          fontSize: '12px',
+          pointerEvents: 'auto',
+          whiteSpace: 'nowrap',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          zIndex: 10,
+        }}>
+          Zoom in to see your representatives
+          <button
+            onClick={() => setZoomHintDismissed(true)}
+            aria-label="Dismiss zoom hint"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'rgba(255,255,255,0.7)',
+              cursor: 'pointer',
+              fontSize: '16px',
+              lineHeight: 1,
+              padding: 0,
+            }}
+          >
+            {'\u00d7'}
+          </button>
+        </div>
+      )}
       {hoverInfo && (
         <div style={{
           position: 'absolute',
-          left: hoverInfo.x + 12,
-          top: hoverInfo.y - 10,
+          left: hoverInfo.x + 12 + 160 > (containerRef.current?.clientWidth ?? 9999)
+            ? hoverInfo.x - 164
+            : hoverInfo.x + 12,
+          top: Math.max(4, Math.min(hoverInfo.y - 10, (containerRef.current?.clientHeight ?? 9999) - 30)),
           background: 'rgba(0,0,0,0.75)',
           color: '#fff',
           padding: '4px 8px',

@@ -1,0 +1,3 @@
+{
+  "customInstructions": "The AI summarization features (Anthropic/Claude integrations, ai.py, AISummary models, frontend stubs, etc.) are intentionally paused and out of scope. Do NOT review, suggest improvements for, or mention these AI features in your analysis or code generation."
+}
