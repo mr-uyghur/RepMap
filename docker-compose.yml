@@ -1,35 +1,81 @@
 services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 16
+  # ---------------------------------------------------------------------------
   db:
     image: postgres:16-alpine
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-repmap}
       POSTGRES_USER: ${POSTGRES_USER:-repmap}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-repmap}
-    env_file:
-      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-repmap} -d ${POSTGRES_DB:-repmap}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - repmap_net
 
+  # ---------------------------------------------------------------------------
+  # Django backend — waits for a healthy DB, then migrates and starts runserver
+  # ---------------------------------------------------------------------------
   backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     env_file:
       - .env
+    environment:
+      # Build the DATABASE_URL from the Postgres service credentials so the
+      # backend resolves the "db" hostname inside the Docker network.
+      DATABASE_URL: postgres://${POSTGRES_USER:-repmap}:${POSTGRES_PASSWORD:-repmap}@db:5432/${POSTGRES_DB:-repmap}
+    volumes:
+      # Mount local source for hot-reloading; the Dockerfile-installed packages
+      # live in the image layer, not in this mount.
+      - ./backend:/app
     ports:
       - "8000:8000"
+    networks:
+      - repmap_net
 
+  # ---------------------------------------------------------------------------
+  # Vite / React frontend
+  # ---------------------------------------------------------------------------
   frontend:
-    image: node:20-alpine
-    working_dir: /app
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - backend
+    environment:
+      # Used by vite.config.ts proxy at the Node level (server-side, not browser).
+      API_TARGET: http://backend:8000
+      # Passed to the browser bundle — keep pointing at the host-exposed port
+      # so the browser can reach the API directly via the exposed port mapping.
+      VITE_API_BASE_URL: http://localhost:8000
+      VITE_MAPBOX_TOKEN: ${VITE_MAPBOX_TOKEN:-}
     volumes:
+      # Bind-mount source for live hot-reload.
       - ./frontend:/app
+      # Anonymous volume preserves node_modules installed during image build
+      # so the bind mount above does not shadow them.
       - /app/node_modules
-    command: npm run dev
     ports:
       - "5173:5173"
+    networks:
+      - repmap_net
+
+# ---------------------------------------------------------------------------
+# Shared bridge network for inter-service DNS (db, backend, frontend)
+# ---------------------------------------------------------------------------
+networks:
+  repmap_net:
+    driver: bridge
 
 volumes:
   postgres_data:

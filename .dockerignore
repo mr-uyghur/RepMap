@@ -1,6 +1,5 @@
 # Python
 backend/venv/
-backend/__pycache__/
 **/__pycache__/
 **/*.pyc
 **/*.pyo
@@ -8,6 +7,11 @@ backend/__pycache__/
 
 # Node
 frontend/node_modules/
+
+# Build artefacts
+frontend/dist/
+frontend/build/
+backend/staticfiles/
 
 # Environment / secrets
 .env
@@ -17,13 +21,17 @@ frontend/node_modules/
 
 # Logs
 logs/
+**/*.log
 
 # Database
 backend/db.sqlite3
 
-# Static files (generated at deploy time)
-backend/staticfiles/
-
 # Git
 .git/
 .gitignore
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
