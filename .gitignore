@@ -88,6 +88,26 @@ frontend/*.tsbuildinfo
 frontend/storybook-static/
 
 # ============================================================
+# Docker
+# ============================================================
+# Local compose overrides (personal port/volume tweaks — not shared)
+docker-compose.override.yml
+# Postgres data dir if someone bind-mounts instead of using a named volume
+postgres_data/
+# Internal Docker env file (created by Docker daemon inside containers)
+.dockerenv
+
+# ============================================================
+# TLS / certificates (never commit private keys)
+# ============================================================
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+
+# ============================================================
 # Logs (anywhere in the repo)
 # ============================================================
 logs/*.log
@@ -100,6 +120,13 @@ pnpm-debug.log*
 lerna-debug.log*
 pip-log.txt
 pip-delete-this-directory.txt
+
+# ============================================================
+# Docs (generated / local only)
+# ============================================================
+docs/
+Docs/
+DOCS/
 
 # ============================================================
 # Claude / claude-flow tooling
