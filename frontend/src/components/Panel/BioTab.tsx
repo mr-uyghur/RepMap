@@ -1,6 +1,5 @@
 import type { Representative } from '../../types'
 import { useMapStore } from '../../store/mapStore'
-import AISummaryTab from './AISummaryTab'
 
 const NA = 'Not available'
 
@@ -179,7 +178,6 @@ export default function BioTab({ rep }: Props) {
         )}
       </div>
 
-      <AISummaryTab repId={rep.id} type="bio" />
     </div>
   )
 }

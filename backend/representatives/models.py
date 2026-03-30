@@ -73,25 +73,3 @@ class SyncStatus(models.Model):
             return f'Last synced: {self.last_synced_at.isoformat()}'
         return 'Never synced'
 
-
-class AISummary(models.Model):
-    # Cached AI-generated content for a representative/detail tab.
-    CONTENT_TYPES = [
-        ('bio', 'Bio'),
-        ('voting_record', 'Voting Record'),
-        ('how_to_vote', 'How to Vote'),
-    ]
-    representative = models.ForeignKey(
-        Representative, related_name='summaries', on_delete=models.CASCADE
-    )
-    content_type = models.CharField(max_length=20, choices=CONTENT_TYPES)
-    content = models.TextField()
-    generated_at = models.DateTimeField(auto_now_add=True)
-    model_version = models.CharField(max_length=50, default='claude-opus-4-5')
-
-    class Meta:
-        # Prevent duplicate summaries for the same rep/content type.
-        unique_together = ['representative', 'content_type']
-
-    def __str__(self):
-        return f"{self.representative.name} - {self.content_type}"

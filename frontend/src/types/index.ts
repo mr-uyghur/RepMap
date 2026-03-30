@@ -1,6 +1,5 @@
 export type Level = 'house' | 'senate'
 export type Party = 'democrat' | 'republican' | 'independent' | 'other'
-export type SummaryType = 'bio' | 'voting_record' | 'how_to_vote'
 
 export interface Representative {
   id: number
@@ -27,7 +26,6 @@ export interface Representative {
   bioguide_url?: string
   bioguide_id?: string
   updated_at?: string
-  summaries?: AISummary[]
 }
 
 export interface Bill {
@@ -43,13 +41,6 @@ export interface Bill {
 export interface LegislationResponse {
   sponsored: Bill[]
   cosponsored: Bill[]
-}
-
-export interface AISummary {
-  content_type: SummaryType
-  content: string
-  generated_at: string
-  model_version: string
 }
 
 export interface MapState {

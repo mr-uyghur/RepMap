@@ -1,6 +1,6 @@
 from django.utils import timezone
 from rest_framework import serializers
-from .models import Representative, AISummary, SyncStatus
+from .models import Representative, SyncStatus
 
 
 class SyncStatusSerializer(serializers.ModelSerializer):
@@ -16,13 +16,6 @@ class SyncStatusSerializer(serializers.ModelSerializer):
         fields = ['last_synced_at', 'is_syncing', 'data_age_seconds']
 
 
-class AISummarySerializer(serializers.ModelSerializer):
-    # Minimal serializer for returning stored summary text and metadata.
-    class Meta:
-        model = AISummary
-        fields = ['content_type', 'content', 'generated_at', 'model_version']
-
-
 class RepresentativeListSerializer(serializers.ModelSerializer):
     # Compact serializer for the map's initial representative payload.
     class Meta:
@@ -35,7 +28,6 @@ class RepresentativeListSerializer(serializers.ModelSerializer):
 
 class RepresentativeDetailSerializer(serializers.ModelSerializer):
     # Full serializer for the side panel/detail view.
-    summaries = AISummarySerializer(many=True, read_only=True)
     # Explicit ListField so DRF serializes JSONListField as a JSON array, not a plain
     # string (DRF maps any TextField subclass to CharField by default).
     committee_assignments = serializers.ListField(child=serializers.CharField(), default=list)
@@ -80,6 +72,6 @@ class RepresentativeDetailSerializer(serializers.ModelSerializer):
             'id', 'name', 'level', 'party', 'state', 'district_number',
             'photo_url', 'website', 'phone', 'social_links',
             'term_start', 'term_end', 'office_room', 'committee_assignments',
-            'latitude', 'longitude', 'external_ids', 'updated_at', 'summaries',
+            'latitude', 'longitude', 'external_ids', 'updated_at',
             'district_label', 'office_address', 'congress_gov_url', 'bioguide_url', 'bioguide_id',
         ]

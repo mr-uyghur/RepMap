@@ -30,7 +30,6 @@ npm run dev
 
 ### Backend (.env)
 - `DJANGO_SECRET_KEY` — Django secret key
-- `ANTHROPIC_API_KEY` — Anthropic API key for AI summaries
 - `DATABASE_URL` — PostgreSQL URL (defaults to SQLite if not set)
 - `REDIS_URL` — Redis URL (defaults to localhost:6379)
 - `AUTO_SYNC_ENABLED` — Enable automatic background data refresh (default: `true`)
@@ -48,7 +47,6 @@ npm run dev
 - Zoom-based view switching: House reps (zoom > 7) vs Senators (zoom 4–7)
 - Zipcode search to fly to your representatives
 - Congressional district boundaries from Census TIGER API
-- AI-generated bios, voting records, and voting information via Claude
 - Google Civic API integration for live representative data
 
 ## Architecture
@@ -56,7 +54,7 @@ npm run dev
 - Backend: Django + Django REST Framework
 - Frontend: React + TypeScript + Vite + react-map-gl
 - State: Zustand stores
-- Cache: Redis (24h for Civic API, 7d for Census GeoJSON, 30d for AI summaries)
+- Cache: Redis (24h for Civic API, 7d for Census GeoJSON)
 
 ## Security & Secrets
 
@@ -74,12 +72,11 @@ Set the output as `DJANGO_SECRET_KEY` in `backend/.env`.
 
 ### API Rate Limiting
 
-Two endpoints are throttled per IP address (anonymous requests):
+One endpoint is throttled per IP address (anonymous requests):
 
 | Endpoint | Limit |
 |---|---|
 | `GET /api/representatives/?zipcode=<zip>` | 30 requests / hour |
-| `GET /api/representatives/<id>/summary/` | 10 requests / hour |
 
 Exceeding the limit returns `429 Too Many Requests` with a `Retry-After` header. All other read endpoints are unthrottled.
 

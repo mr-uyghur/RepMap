@@ -1,5 +1,5 @@
 import client from './client'
-import type { Representative, AISummary, SummaryType, LegislationResponse } from '../types'
+import type { Representative, LegislationResponse } from '../types'
 
 export async function lookupZip(zipcode: string): Promise<{ lat: number; lng: number }> {
   // Translate a ZIP code into map coordinates for fly-to behavior.
@@ -24,14 +24,6 @@ export async function fetchAllReps(): Promise<Representative[]> {
 export async function fetchRepDetail(id: number): Promise<Representative> {
   // Rich detail payload for the side panel.
   const { data } = await client.get(`/api/v1/representatives/${id}/`)
-  return data
-}
-
-export async function fetchRepSummary(id: number, type: SummaryType): Promise<AISummary> {
-  // Request or retrieve a cached AI summary for one representative.
-  const { data } = await client.get(`/api/v1/representatives/${id}/summary/`, {
-    params: { type },
-  })
   return data
 }
 

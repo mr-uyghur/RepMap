@@ -2,24 +2,21 @@ import re
 import logging
 from django.conf import settings
 from django.core.cache import cache
-from django.utils import timezone
-from datetime import timedelta
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .errors import error_response
-from .throttles import ZipcodeLookupThrottle, AISummaryThrottle, VotesThrottle, LegislationThrottle
+from .throttles import ZipcodeLookupThrottle, VotesThrottle, LegislationThrottle
 
-from .models import Representative, AISummary, SyncStatus
+from .models import Representative, SyncStatus
 from .services.auto_sync import trigger_sync_if_stale
-from .serializers import RepresentativeListSerializer, RepresentativeDetailSerializer, AISummarySerializer, SyncStatusSerializer
+from .serializers import RepresentativeListSerializer, RepresentativeDetailSerializer, SyncStatusSerializer
 from .integrations.zip_lookup import fetch_reps_by_zipcode, geocode_zip
 from .integrations.census import (
     fetch_congressional_districts, fetch_state_boundary, STATE_FIPS,
     load_local_congressional_districts,
 )
-from .services.ai import generate_bio, generate_voting_record_summary, generate_how_to_vote
 from .services.congress_api import fetch_recent_votes, fetch_sponsored_legislation, fetch_cosponsored_legislation
 
 logger = logging.getLogger(__name__)
@@ -29,8 +26,8 @@ BIOGUIDE_RE = re.compile(r'^[A-Z]\d{6}$')
 
 
 class RepresentativeViewSet(viewsets.ReadOnlyModelViewSet):
-    # Read-only endpoints for the map, detail panel, and generated summaries.
-    queryset = Representative.objects.prefetch_related('summaries')
+    # Read-only endpoints for the map and detail panel.
+    queryset = Representative.objects.all()
 
     def get_serializer_class(self):
         # Use the smaller serializer for list views and the richer serializer for detail views.
@@ -42,8 +39,6 @@ class RepresentativeViewSet(viewsets.ReadOnlyModelViewSet):
         # Throttle only the actions that are relatively expensive or easy to abuse.
         if self.action == 'list' and self.request.query_params.get('zipcode'):
             return [ZipcodeLookupThrottle()]
-        if self.action == 'summary':
-            return [AISummaryThrottle()]
         return []
 
     def list(self, request):
@@ -57,7 +52,7 @@ class RepresentativeViewSet(viewsets.ReadOnlyModelViewSet):
             return self._handle_zipcode_request(zipcode)
 
         # Default: return all reps
-        queryset = Representative.objects.prefetch_related('summaries')
+        queryset = Representative.objects.all()
         serializer = RepresentativeListSerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -80,55 +75,6 @@ class RepresentativeViewSet(viewsets.ReadOnlyModelViewSet):
 
         serializer = RepresentativeListSerializer(reps, many=True)
         return Response(serializer.data)
-
-    @action(detail=True, methods=['get'])
-    def summary(self, request, pk=None):
-        rep = self.get_object()
-        content_type = request.query_params.get('type', 'bio')
-
-        if content_type not in ['bio', 'voting_record', 'how_to_vote']:
-            return error_response('Invalid type. Must be bio, voting_record, or how_to_vote')
-
-        # Check for cached summary (within 30 days)
-        thirty_days_ago = timezone.now() - timedelta(days=30)
-        existing = AISummary.objects.filter(
-            representative=rep,
-            content_type=content_type,
-            generated_at__gte=thirty_days_ago
-        ).first()
-
-        if existing:
-            # Serve a recent cached summary instead of regenerating it.
-            serializer = AISummarySerializer(existing)
-            return Response(serializer.data)
-
-        # Generate new summary
-        try:
-            if content_type == 'bio':
-                content = generate_bio(rep)
-            elif content_type == 'voting_record':
-                content = generate_voting_record_summary(rep)
-            else:
-                content = generate_how_to_vote(rep)
-
-            # Save or update summary
-            summary, _ = AISummary.objects.update_or_create(
-                representative=rep,
-                content_type=content_type,
-                defaults={
-                    'content': content,
-                    'model_version': 'claude-sonnet-4-6',
-                }
-            )
-            serializer = AISummarySerializer(summary)
-            return Response(serializer.data)
-
-        except Exception:
-            logger.exception("Failed to generate AI summary for rep %s type %s", rep.pk, content_type)
-            return error_response(
-                'Failed to generate summary. Please try again later.',
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
 
 
 def _validate_state(state_raw: str):

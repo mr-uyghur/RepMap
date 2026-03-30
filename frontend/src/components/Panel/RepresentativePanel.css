@@ -9,14 +9,6 @@
     animation: repmap-pulse 1.8s ease-in-out infinite;
   }
 
-  @keyframes skeleton-pulse {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.5; }
-  }
-
-  .ai-summary-skeleton {
-    animation: skeleton-pulse 1.5s ease-in-out infinite;
-  }
 }
 
 /* ── Panel Shell ──────────────────────────────────────────────────────────── */
@@ -238,51 +230,24 @@
   color: var(--color-text-muted);
 }
 
-/* ── AI Summary Tab ───────────────────────────────────────────────────────── */
-.ai-summary-tab {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--color-border);
+/* ── How to Vote Tab ──────────────────────────────────────────────────────── */
+.htv-tab-content { padding-top: 16px; }
+
+.htv-tab-title {
+  margin: 0 0 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
 }
 
-.ai-summary-loading {
+.htv-resources-desc {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.htv-links {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.ai-summary-skeleton {
-  height: 14px;
-  background: var(--color-bg-elevated);
-  border-radius: var(--radius-sm);
-}
-
-.ai-summary-skeleton--short { width: 60%; }
-
-.ai-summary-error {
-  font-size: 13px;
-  color: var(--color-error);
-  padding: 8px 0;
-  margin: 0;
-}
-
-.ai-summary-text {
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--color-text-secondary);
-  white-space: pre-wrap;
-  margin: 0;
-}
-
-/* ── AI Disclaimer ────────────────────────────────────────────────────────── */
-.ai-disclaimer {
-  margin-top: 16px;
-  padding: 10px 12px;
-  background: var(--color-bg-elevated);
-  border-left: 3px solid var(--color-text-subtle);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  font-size: 11px;
-  color: var(--color-text-muted);
-  line-height: 1.5;
-  font-style: italic;
 }
