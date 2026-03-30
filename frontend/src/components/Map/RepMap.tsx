@@ -298,9 +298,12 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
       {loadError && (
         <div style={{
           position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
-          background: '#7f1d1d', color: '#fecaca', padding: '10px 16px',
-          borderRadius: 6, zIndex: 20, fontSize: 13, maxWidth: 420, textAlign: 'center',
+          background: 'var(--color-error-bg)', color: 'var(--color-error)',
+          padding: '10px 16px',
+          border: '1px solid var(--color-error)',
+          borderRadius: 'var(--radius-md)', zIndex: 20, fontSize: 13, maxWidth: 420, textAlign: 'center',
           pointerEvents: 'none',
+          backdropFilter: 'blur(8px)',
         }}>
           {loadError}
         </div>
@@ -311,10 +314,13 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
           bottom: '40px',
           left: '50%',
           transform: 'translateX(-50%)',
-          background: 'rgba(0,0,0,0.65)',
-          color: '#fff',
+          background: 'var(--color-bg-glass)',
+          backdropFilter: 'blur(12px) saturate(1.4)',
+          WebkitBackdropFilter: 'blur(12px) saturate(1.4)',
+          border: '1px solid var(--color-bg-glass-border)',
+          color: 'var(--color-text-secondary)',
           padding: '6px 14px',
-          borderRadius: '6px',
+          borderRadius: 'var(--radius-md)',
           fontSize: '12px',
           pointerEvents: 'auto',
           whiteSpace: 'nowrap',
@@ -322,6 +328,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
           alignItems: 'center',
           gap: '10px',
           zIndex: 10,
+          boxShadow: 'var(--shadow-md)',
         }}>
           Zoom in to see your representatives
           <button
@@ -330,7 +337,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
             style={{
               background: 'none',
               border: 'none',
-              color: 'rgba(255,255,255,0.7)',
+              color: 'var(--color-text-muted)',
               cursor: 'pointer',
               fontSize: '16px',
               lineHeight: 1,
@@ -348,13 +355,17 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
             ? hoverInfo.x - 164
             : hoverInfo.x + 12,
           top: Math.max(4, Math.min(hoverInfo.y - 10, (containerRef.current?.clientHeight ?? 9999) - 30)),
-          background: 'rgba(0,0,0,0.75)',
-          color: '#fff',
-          padding: '4px 8px',
-          borderRadius: 4,
+          background: 'var(--color-bg-glass)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          border: '1px solid var(--color-bg-glass-border)',
+          color: 'var(--color-text-primary)',
+          padding: '4px 10px',
+          borderRadius: 'var(--radius-sm)',
           fontSize: 13,
           pointerEvents: 'none',
           whiteSpace: 'nowrap',
+          boxShadow: 'var(--shadow-sm)',
         }}>
           {hoverInfo.label}
         </div>

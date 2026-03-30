@@ -7,7 +7,7 @@
   padding: 8px 16px;
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
-  border: 2px solid var(--color-link);
+  border: 2px solid var(--color-accent);
   border-radius: var(--radius-md);
   font-size: 14px;
   font-weight: 600;
@@ -21,29 +21,35 @@
 
 /* ── Focus Rings (WCAG 2.1 AA 2.4.7) ─────────────────────────────────────── */
 *:focus-visible {
-  outline: 2px solid var(--color-link);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
 /* ── Typography ──────────────────────────────────────────────────────────── */
 h1 {
+  font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 700;
   line-height: 1.2;
+  letter-spacing: -0.02em;
   color: var(--color-text-primary);
 }
 
 h2 {
+  font-family: var(--font-display);
   font-size: 1.125rem;
   font-weight: 700;
   line-height: 1.3;
+  letter-spacing: -0.015em;
   color: var(--color-text-primary);
 }
 
 h3 {
+  font-family: var(--font-display);
   font-size: 0.9375rem;
   font-weight: 600;
   line-height: 1.4;
+  letter-spacing: -0.01em;
   color: var(--color-text-primary);
 }
 
@@ -60,7 +66,6 @@ h3 {
   position: relative;
   flex: 1;
   overflow: hidden;
-  /* Prevents flex child from overflowing its container */
   min-height: 0;
 }
 
@@ -80,86 +85,6 @@ h3 {
 }
 
 .mapboxgl-marker:focus-within > * {
-  outline: 2px solid var(--color-link);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
-}
-
-/* ── Card Base ────────────────────────────────────────────────────────────── */
-.card {
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-}
-
-/* ── Search Bar ───────────────────────────────────────────────────────────── */
-.searchbar {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.searchbar-input {
-  flex: 1;
-  height: 36px;
-  padding: 0 12px;
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: 14px;
-  background: var(--color-bg-primary);
-  color: var(--color-text-primary);
-  outline: none;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-.searchbar-input::placeholder {
-  color: var(--color-text-subtle);
-}
-
-.searchbar-input:focus {
-  border-color: var(--color-link);
-}
-
-.searchbar-btn {
-  height: 36px;
-  padding: 0 14px;
-  background: var(--color-link);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: opacity var(--transition-fast);
-}
-
-.searchbar-btn:hover {
-  opacity: 0.9;
-}
-
-.searchbar-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.searchbar-error {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  font-size: 12px;
-  color: var(--color-error);
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  z-index: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  box-shadow: var(--shadow-sm);
 }

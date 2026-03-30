@@ -14,6 +14,95 @@
   .dark-mode-toggle-transition { transition: right 0.25s ease; }
 }
 
+/* ── Card Base ────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--color-bg-glass);
+  border: 1px solid var(--color-bg-glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* ── Search Bar ───────────────────────────────────────────────────────────── */
+.searchbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.searchbar-input {
+  flex: 1;
+  height: 36px;
+  padding: 0 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 14px;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.searchbar-input::placeholder {
+  color: var(--color-text-subtle);
+}
+
+.searchbar-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-glow);
+}
+
+.searchbar-btn {
+  height: 36px;
+  padding: 0 14px;
+  background: var(--color-accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.searchbar-btn:hover {
+  opacity: 0.9;
+  box-shadow: 0 0 12px var(--color-accent-glow);
+}
+
+.searchbar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.searchbar-error {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  font-size: 12px;
+  color: var(--color-error);
+  background: var(--color-bg-glass);
+  border: 1px solid var(--color-bg-glass-border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  z-index: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
 /* ── BioTab ─────────────────────────────────────────────────────────────── */
 
 .bio-tab-content { padding: 16px 0; }
@@ -42,7 +131,7 @@
 .bio-tab-error {
   padding: 12px;
   background: var(--color-error-bg);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--color-error);
   font-size: 14px;
 }
@@ -67,7 +156,7 @@
 .htv-tab-error {
   padding: 12px;
   background: var(--color-error-bg);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--color-error);
   font-size: 14px;
 }
@@ -81,7 +170,7 @@
 .htv-tab-info {
   margin-top: 16px; padding: 12px;
   background: var(--color-success-bg);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-success-border);
 }
 
