@@ -100,3 +100,11 @@ pnpm-debug.log*
 lerna-debug.log*
 pip-log.txt
 pip-delete-this-directory.txt
+
+# ============================================================
+# Claude / claude-flow tooling
+# ============================================================
+.claude/
+.claude-flow/
+.mcp.json
+CLAUDE.md

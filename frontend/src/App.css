@@ -1,1 +1,165 @@
-/* App-specific styles go here */
+/* ── Skip Navigation ──────────────────────────────────────────────────────── */
+.skip-link {
+  position: absolute;
+  top: -48px;
+  left: 12px;
+  z-index: 100;
+  padding: 8px 16px;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 2px solid var(--color-link);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top var(--transition-fast);
+}
+
+.skip-link:focus {
+  top: 8px;
+}
+
+/* ── Focus Rings (WCAG 2.1 AA 2.4.7) ─────────────────────────────────────── */
+*:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
+}
+
+/* ── Typography ──────────────────────────────────────────────────────────── */
+h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text-primary);
+}
+
+h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+}
+
+h3 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-text-primary);
+}
+
+/* ── Layout Shell ─────────────────────────────────────────────────────────── */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.app-map-area {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  /* Prevents flex child from overflowing its container */
+  min-height: 0;
+}
+
+/* ── Map Interaction States ───────────────────────────────────────────────── */
+.mapboxgl-marker {
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mapboxgl-marker > * {
+    transition: transform var(--transition-fast);
+  }
+
+  .mapboxgl-marker:hover > * {
+    transform: scale(1.15);
+  }
+}
+
+.mapboxgl-marker:focus-within > * {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
+}
+
+/* ── Card Base ────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Search Bar ───────────────────────────────────────────────────────────── */
+.searchbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.searchbar-input {
+  flex: 1;
+  height: 36px;
+  padding: 0 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.searchbar-input::placeholder {
+  color: var(--color-text-subtle);
+}
+
+.searchbar-input:focus {
+  border-color: var(--color-link);
+}
+
+.searchbar-btn {
+  height: 36px;
+  padding: 0 14px;
+  background: var(--color-link);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.searchbar-btn:hover {
+  opacity: 0.9;
+}
+
+.searchbar-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.searchbar-error {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  font-size: 12px;
+  color: var(--color-error);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  z-index: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: var(--shadow-sm);
+}
