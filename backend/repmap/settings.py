@@ -37,6 +37,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'repmap.middleware.ContentSecurityPolicyMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -129,11 +130,17 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
+    # Apply AnonRateThrottle globally so every endpoint has a baseline rate
+    # limit. Views that define throttle_classes explicitly (e.g. VotesView)
+    # override this; views that call super().get_throttles() inherit it.
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+    ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 100,
     'DEFAULT_THROTTLE_RATES': {
-        'zipcode_lookup': '30/hour',
-        'ai_summary': '10/hour',
+        'anon': '10000/day',           # baseline for bulk list / general endpoints
+        'zipcode_lookup': '20/hour',
         'votes_lookup': '30/hour',
         'legislation_lookup': '20/hour',
     },
@@ -141,6 +148,22 @@ REST_FRAMEWORK = {
 
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 CONGRESS_API_KEY = os.environ.get('CONGRESS_API_KEY', '')
+
+# ---------------------------------------------------------------------------
+# Security headers
+# ---------------------------------------------------------------------------
+# Deny all framing — eliminates clickjacking risk.
+X_FRAME_OPTIONS = 'DENY'
+
+# Never send the Referer header to cross-origin destinations.
+SECURE_REFERRER_POLICY = 'same-origin'
+
+# ---------------------------------------------------------------------------
+# Mapbox token — served to the frontend via /api/v1/config/ so the token is
+# never embedded in the JS bundle.  Set MAPBOX_TOKEN in the environment; the
+# VITE_MAPBOX_TOKEN fallback keeps single-.env Docker setups working.
+# ---------------------------------------------------------------------------
+MAPBOX_TOKEN = os.environ.get('MAPBOX_TOKEN') or os.environ.get('VITE_MAPBOX_TOKEN', '')
 
 if not DEBUG and not CONGRESS_API_KEY:
     from django.core.exceptions import ImproperlyConfigured

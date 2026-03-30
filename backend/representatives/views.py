@@ -5,6 +5,7 @@ from django.core.cache import cache
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 from .errors import error_response
 from .throttles import ZipcodeLookupThrottle, VotesThrottle, LegislationThrottle
@@ -36,10 +37,13 @@ class RepresentativeViewSet(viewsets.ReadOnlyModelViewSet):
         return RepresentativeListSerializer
 
     def get_throttles(self):
-        # Throttle only the actions that are relatively expensive or easy to abuse.
-        if self.action == 'list' and self.request.query_params.get('zipcode'):
-            return [ZipcodeLookupThrottle()]
-        return []
+        if self.action == 'list':
+            # ZIP-scoped lookups hit the external Civic API — tighter limit.
+            if self.request.query_params.get('zipcode'):
+                return [ZipcodeLookupThrottle()]
+            # Bulk list is the scraping surface — apply the global anon rate.
+            return [AnonRateThrottle()]
+        return super().get_throttles()
 
     def list(self, request):
         # Opportunistically refresh stale data without blocking the response.
@@ -199,6 +203,7 @@ class HealthView(APIView):
     """GET /api/health/ — liveness and DB connectivity check for load balancers."""
     authentication_classes = []
     permission_classes = []
+    throttle_classes = []  # load balancers must never be rate-limited
 
     def get(self, request):
         try:
@@ -227,3 +232,16 @@ class ZipLookupView(APIView):
         if lat is None:
             return error_response('ZIP code not found.', status=status.HTTP_404_NOT_FOUND)
         return Response({'lat': lat, 'lng': lng})
+
+
+class ConfigView(APIView):
+    """GET /api/v1/config/ — public runtime config for the frontend.
+
+    Returns the Mapbox token from the server environment so it is never
+    embedded in the JS bundle.  The token is read-only and carries no user
+    data, so no authentication is required.  The global AnonRateThrottle
+    (100/day) applies; a legitimate frontend calls this once per session.
+    """
+
+    def get(self, request):
+        return Response({'mapbox_token': settings.MAPBOX_TOKEN})

@@ -6,13 +6,12 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 import { useMapStore } from '../../store/mapStore'
 import { useRepStore } from '../../store/repStore'
 import { fetchAllReps } from '../../api/representatives'
+import { fetchAppConfig } from '../../api/config'
 import RepresentativePin from './RepresentativePin'
 import DistrictBoundary from './DistrictBoundary'
 import DistrictOverlay, { getCachedDistrictGeoJSON, subscribeToDistrictGeoJSON, getLoadedStateCodes } from './DistrictOverlay'
 import type { ViewBounds } from './DistrictOverlay'
 import type { Representative, FeatureGeometry, Ring, Polygon } from '../../types'
-
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || ''
 
 // Pixel offsets for groups of co-located pins (same lat/lng).
 // At-large states can have 2 senators + 1 house rep at the same centroid.
@@ -114,6 +113,7 @@ interface Props {
 export default function RepMap({ mapRef, onRepSelect }: Props) {
   const { zoom, center, selectedRepId, darkMode, setZoom, setCenter } = useMapStore()
   const { reps, allReps, setReps, setLoading } = useRepStore()
+  const [mapboxToken, setMapboxToken] = useState<string>('')
   const [loadError, setLoadError] = useState<string | null>(null)
   const [bounds, setBounds] = useState<ViewBounds>(DEFAULT_BOUNDS)
   const [districtGeoVersion, setDistrictGeoVersion] = useState(0)
@@ -123,6 +123,13 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
   const [zoomHintDismissed, setZoomHintDismissed] = useState(false)
   const lastHoverUpdateRef = useRef(0)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    // Fetch the Mapbox token from the backend config endpoint on mount.
+    fetchAppConfig()
+      .then((cfg) => setMapboxToken(cfg.mapbox_token))
+      .catch(() => setLoadError('Could not load map configuration. Is the backend running?'))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     // Load the full representative dataset once when the map mounts.
@@ -249,11 +256,31 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     return reps
   }, [zoom, reps])
 
+  // Don't render the Map until the token arrives — an empty token causes
+  // Mapbox GL to throw an authentication error in the console.
+  if (!mapboxToken) {
+    return (
+      <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
+        {loadError && (
+          <div style={{
+            position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
+            background: 'var(--color-error-bg)', color: 'var(--color-error)',
+            padding: '10px 16px', border: '1px solid var(--color-error)',
+            borderRadius: 'var(--radius-md)', zIndex: 20, fontSize: 13, maxWidth: 420,
+            textAlign: 'center', pointerEvents: 'none',
+          }}>
+            {loadError}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
       <Map
         ref={mapRef}
-        mapboxAccessToken={MAPBOX_TOKEN}
+        mapboxAccessToken={mapboxToken}
         initialViewState={{
           longitude: center[0],
           latitude: center[1],
