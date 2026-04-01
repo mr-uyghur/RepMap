@@ -204,11 +204,11 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # ---------------------------------------------------------------------------
-# Logging — console in dev; console + rotating file in prod.
-# The `representatives` logger is DEBUG locally so sync/fetch traces are visible.
+# Logging — console only (stdout/stderr).
+# Render and similar PaaS platforms use ephemeral filesystems, so rotating
+# file handlers are intentionally omitted. All log output goes to stdout
+# where the platform's log aggregator captures it.
 # ---------------------------------------------------------------------------
-_log_handlers = ['console'] if DEBUG else ['console', 'file']
-
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -224,24 +224,14 @@ LOGGING = {
             'formatter': 'verbose',
             'level': 'WARNING',
         },
-        **({
-            'file': {
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': str(BASE_DIR / 'logs' / 'repmap.log'),
-                'maxBytes': 10 * 1024 * 1024,  # 10 MB
-                'backupCount': 5,
-                'formatter': 'verbose',
-                'level': 'WARNING',
-            },
-        } if not DEBUG else {}),
     },
     'root': {
-        'handlers': _log_handlers,
+        'handlers': ['console'],
         'level': 'WARNING',
     },
     'loggers': {
         'representatives': {
-            'handlers': _log_handlers,
+            'handlers': ['console'],
             'level': 'DEBUG' if DEBUG else 'WARNING',
             'propagate': False,
         },
