@@ -115,10 +115,6 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-
-# Serve the built React app directly from the root URL via WhiteNoise.
-# frontend/dist/ is populated during the Railway build step.
-WHITENOISE_ROOT = BASE_DIR.parent / 'frontend' / 'dist'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_ALL_ORIGINS = False

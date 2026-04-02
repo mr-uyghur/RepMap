@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "cd .. && npm --prefix frontend install && npm --prefix frontend run build && cd backend && pip install -r requirements/prod.txt && python manage.py collectstatic --noinput"
+buildCommand = "pip install -r requirements/prod.txt && python manage.py collectstatic --noinput"
 
 [deploy]
 startCommand = "python manage.py migrate --noinput && gunicorn repmap.wsgi:application --bind 0.0.0.0:$PORT --workers 2"
