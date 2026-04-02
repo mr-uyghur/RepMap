@@ -32,10 +32,11 @@ COPY --from=builder /venv /venv
 # Copy backend source
 COPY backend/ .
 
-RUN chown -R appuser:appgroup /app
+RUN chown -R appuser:appgroup /app && \
+    chmod +x /app/entrypoint.sh
 
 USER appuser
 
 EXPOSE 8000
 
-CMD ["gunicorn", "repmap.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2"]
+CMD ["/app/entrypoint.sh"]
