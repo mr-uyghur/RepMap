@@ -113,6 +113,7 @@ postgres_data/
 logs/*.log
 !logs/.gitkeep
 *.log
+logs.*.json
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

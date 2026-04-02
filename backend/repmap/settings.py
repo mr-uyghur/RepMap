@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import logging
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -166,10 +167,9 @@ SECURE_REFERRER_POLICY = 'same-origin'
 MAPBOX_TOKEN = os.environ.get('MAPBOX_TOKEN') or os.environ.get('VITE_MAPBOX_TOKEN', '')
 
 if not DEBUG and not CONGRESS_API_KEY:
-    from django.core.exceptions import ImproperlyConfigured
-    raise ImproperlyConfigured(
-        "CONGRESS_API_KEY environment variable is required when DEBUG=False. "
-        "Set it in your environment or .env file."
+    logging.warning(
+        "CONGRESS_API_KEY is not set. Legislation and votes tabs will be unavailable "
+        "until the key is configured in the environment."
     )
 
 # Auto-sync: automatically refresh representative data in the background when stale.
