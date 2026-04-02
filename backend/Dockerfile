@@ -14,7 +14,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install Python dependencies before copying source so this layer is cached
 COPY requirements/ requirements/
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements/dev.txt
+    pip install --no-cache-dir -r requirements/prod.txt
+
+# Copy application source
+COPY . .
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
