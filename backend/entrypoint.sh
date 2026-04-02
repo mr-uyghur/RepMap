@@ -32,5 +32,5 @@ python manage.py loaddata representatives/fixtures/initial_reps.json 2>/dev/null
 # ---------------------------------------------------------------------------
 # Hand off to the Django development server
 # ---------------------------------------------------------------------------
-echo "[entrypoint] Starting gunicorn on 0.0.0.0:8000..."
-exec gunicorn repmap.wsgi:application --bind 0.0.0.0:8000 --workers 2
+echo "[entrypoint] Starting gunicorn on 0.0.0.0:${PORT:-8000}..."
+exec gunicorn repmap.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 2
