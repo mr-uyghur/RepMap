@@ -51,12 +51,29 @@ export default function App() {
   }, [darkMode])
 
   const handleRepSelect = useCallback(
-    (rep: Representative) => { setSelectedRepId(rep.id) },
+    (rep: Representative) => {
+      setSelectedRepId(rep.id)
+      // 2.5D cinematic camera drop onto the selected representative's location.
+      mapRef.current?.flyTo({
+        center: [rep.longitude, rep.latitude],
+        zoom: 9.5,
+        pitch: 45,
+        bearing: -10,
+        duration: 2000,
+        essential: true,
+        easing: (t: number) => t * (2 - t),
+      })
+    },
     [setSelectedRepId]
   )
 
   const handleFlyTo = useCallback((lat: number, lng: number) => {
-    mapRef.current?.flyTo({ center: [lng, lat], zoom: 9, duration: 2000 })
+    mapRef.current?.flyTo({
+      center: [lng, lat],
+      zoom: 9,
+      duration: 2400,
+      easing: (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+    })
   }, [])
 
   return (

@@ -28,6 +28,7 @@ export interface ViewBounds {
 
 interface Props {
   onLoaded?: () => void
+  dimmed?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -74,7 +75,7 @@ function populateGeoCache(features: GeoJSONFeature[]) {
   }
 }
 
-export default function DistrictOverlay({ onLoaded }: Props) {
+export default function DistrictOverlay({ onLoaded, dimmed = false }: Props) {
   const { allReps } = useRepStore()
   const [rawLoaded, setRawLoaded] = useState(false)
   const [annotated, setAnnotated] = useState<FeatureCollection | null>(null)
@@ -145,7 +146,7 @@ export default function DistrictOverlay({ onLoaded }: Props) {
             'republican', '#dc2626',
             /* other */   '#9ca3af',
           ],
-          'fill-opacity': 0.15,
+          'fill-opacity': dimmed ? 0 : 0.15,
         }}
       />
       <Layer
@@ -158,7 +159,7 @@ export default function DistrictOverlay({ onLoaded }: Props) {
             /* other */   '#6b7280',
           ],
           'line-width': 3,
-          'line-opacity': 1,
+          'line-opacity': dimmed ? 0 : 1,
         }}
       />
     </Source>

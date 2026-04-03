@@ -74,16 +74,8 @@ h3 {
   cursor: pointer;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .mapboxgl-marker > * {
-    transition: transform var(--transition-fast);
-  }
-
-  .mapboxgl-marker:hover > * {
-    transform: scale(1.15);
-  }
-}
-
+/* Note: hover scale is handled per-pin in RepresentativePin.tsx via JS state
+   to allow spring easing; the CSS shorthand is intentionally removed. */
 .mapboxgl-marker:focus-within > * {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;

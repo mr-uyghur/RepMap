@@ -107,7 +107,7 @@ interface Props {
 }
 
 export default function RepMap({ mapRef, onRepSelect }: Props) {
-  const { zoom, center, selectedRepId, darkMode, setZoom, setCenter } = useMapStore()
+  const { zoom, center, selectedRepId, darkMode, setZoom, setCenter, setSelectedRepId } = useMapStore()
   const { reps, allReps, loading: repsLoading, setReps, setLoading } = useRepStore()
   const [mapboxToken, setMapboxToken] = useState<string>('')
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -116,6 +116,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
   const [hoverInfo, setHoverInfo] = useState<{ x: number; y: number; label: string } | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [zoomHintDismissed, setZoomHintDismissed] = useState(false)
+  const [isFlying, setIsFlying] = useState(false)
   const [districtsLoaded, setDistrictsLoaded] = useState(false)
   const [loadingPhase, setLoadingPhase] = useState<'loading' | 'fading' | 'done'>('loading')
   const lastHoverUpdateRef = useRef(0)
@@ -162,6 +163,38 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     return () => clearTimeout(t)
   }, [districtsLoaded, repsLoading])
 
+  // Reset to flat 2D camera when the panel is closed (selectedRepId → null).
+  // Guarded by current pitch/bearing so we don't fire an unnecessary flyTo
+  // if the camera is already level (e.g. on initial load or manual pan-back).
+  useEffect(() => {
+    if (selectedRepId !== null) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const map = (mapRef as React.RefObject<any>).current?.getMap?.()
+    if (!map) return
+    if (map.getPitch() === 0 && Math.abs(map.getBearing()) < 0.5) return
+    map.flyTo({ pitch: 0, bearing: 0, duration: 1200, essential: true })
+  }, [selectedRepId, mapRef])
+
+  const handleMapLoad = useCallback(() => {
+    // Apply Mapbox atmospheric fog for depth and cinematic feel.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const map = (mapRef as React.RefObject<any>).current?.getMap?.()
+    if (!map) return
+    map.setFog(darkMode ? {
+      'color':         'rgb(12, 20, 40)',
+      'high-color':    'rgb(8, 12, 28)',
+      'horizon-blend': 0.03,
+      'space-color':   'rgb(4, 6, 14)',
+      'star-intensity': 0.85,
+    } : {
+      'color':         'rgb(210, 225, 245)',
+      'high-color':    'rgb(60, 110, 200)',
+      'horizon-blend': 0.04,
+      'space-color':   'rgb(8, 8, 22)',
+      'star-intensity': 0.5,
+    })
+  }, [darkMode])
+
   const handleMoveEnd = useCallback(
     (e: ViewStateChangeEvent) => {
       // Persist the latest camera state so other UI can react to it.
@@ -197,7 +230,11 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
   const handleMapClick = useCallback(
     (e: Parameters<NonNullable<React.ComponentProps<typeof Map>['onClick']>>[0]) => {
       const feature = e.features?.[0]
-      if (!feature?.properties) return
+      if (!feature?.properties) {
+        // Empty area click — dismiss the panel (triggers 2D reversion via the useEffect above).
+        setSelectedRepId(null)
+        return
+      }
       const stateAbbr = feature.properties.state_abbr as string
       const cd = parseInt(String(feature.properties.CD119 ?? ''), 10)
       if (!stateAbbr) return
@@ -207,8 +244,17 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
       )
       if (rep) onRepSelect(rep)
     },
-    [allReps, onRepSelect]
+    [allReps, onRepSelect, setSelectedRepId]
   )
+
+  // Dims district layers during flyTo for a smoother 3D camera animation.
+  const handleRepClick = useCallback((rep: Representative) => {
+    setIsFlying(true)
+    onRepSelect(rep)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const map = (mapRef as React.RefObject<any>).current?.getMap?.()
+    if (map) map.once('moveend', () => setIsFlying(false))
+  }, [onRepSelect, mapRef])
 
   const pinPositions = useMemo(() => {
     const positions: Record<number, Position> = {}
@@ -299,6 +345,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
         }}
         style={{ width: '100%', height: '100%' }}
         mapStyle={darkMode ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11'}
+        onLoad={handleMapLoad}
         onMoveEnd={handleMoveEnd}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
@@ -308,8 +355,9 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
         onClick={handleMapClick}
       >
         <NavigationControl position="bottom-left" />
-        {/* DistrictOverlay fetches the pre-built national GeoJSON in a single request. */}
-        <DistrictOverlay onLoaded={handleDistrictsLoaded} />
+        {/* DistrictOverlay fetches the pre-built national GeoJSON in a single request.
+            dimmed=true during flyTo removes GPU layer cost for a butter-smooth camera. */}
+        <DistrictOverlay onLoaded={handleDistrictsLoaded} dimmed={isFlying} />
 
         {/* Highlight the selected House rep's congressional district.
             Senators have no district_number, so DistrictBoundary renders nothing. */}
@@ -328,7 +376,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
               ...rep,
               ...(pinPositions[rep.id] ?? {}),
             }}
-            onClick={onRepSelect}
+            onClick={handleRepClick}
             offset={pinOffsets[rep.id]}
           />
         ))}
@@ -389,56 +437,119 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
       {hoverInfo && (
         <div style={{
           position: 'absolute',
-          left: hoverInfo.x + 12 + 160 > (containerRef.current?.clientWidth ?? 9999)
-            ? hoverInfo.x - 164
-            : hoverInfo.x + 12,
-          top: Math.max(4, Math.min(hoverInfo.y - 10, (containerRef.current?.clientHeight ?? 9999) - 30)),
+          left: hoverInfo.x + 14 + 180 > (containerRef.current?.clientWidth ?? 9999)
+            ? hoverInfo.x - 184
+            : hoverInfo.x + 14,
+          top: Math.max(4, Math.min(hoverInfo.y - 14, (containerRef.current?.clientHeight ?? 9999) - 36)),
           background: 'var(--color-bg-glass)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          border: '1px solid var(--color-bg-glass-border)',
+          backdropFilter: 'blur(16px) saturate(1.8)',
+          WebkitBackdropFilter: 'blur(16px) saturate(1.8)',
+          border: '1px solid var(--color-border-subtle)',
           color: 'var(--color-text-primary)',
-          padding: '4px 10px',
-          borderRadius: 'var(--radius-sm)',
-          fontSize: 13,
+          padding: '6px 12px',
+          borderRadius: 'var(--radius-md)',
+          fontSize: 12,
+          fontWeight: '500',
+          letterSpacing: '0.01em',
           pointerEvents: 'none',
           whiteSpace: 'nowrap',
-          boxShadow: 'var(--shadow-sm)',
+          boxShadow: 'var(--shadow-premium)',
         }}>
           {hoverInfo.label}
         </div>
       )}
       {loadingPhase !== 'done' && (
         <>
-          <style>{`@keyframes repmap-pulse{0%,100%{opacity:1}50%{opacity:0.45}}`}</style>
+          <style>{`
+            @keyframes rm-logo-breathe {
+              0%, 100% { opacity: 1;   filter: brightness(1); }
+              50%       { opacity: 0.7; filter: brightness(1.35); }
+            }
+            @keyframes rm-bar-fill {
+              0%   { width: 0%;   opacity: 1; }
+              80%  { width: 88%;  opacity: 1; }
+              100% { width: 88%;  opacity: 0.4; }
+            }
+            @keyframes rm-dot {
+              0%, 80%, 100% { transform: scale(0.55); opacity: 0.3; }
+              40%            { transform: scale(1);    opacity: 1; }
+            }
+          `}</style>
           <div style={{
             position: 'absolute',
             inset: 0,
-            background: '#0f172a',
+            background: 'linear-gradient(150deg, #080d18 0%, #0f172a 55%, #111827 100%)',
             zIndex: 50,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 16,
+            gap: 0,
             opacity: loadingPhase === 'fading' ? 0 : 1,
-            transition: 'opacity 0.4s ease',
+            transition: 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
             pointerEvents: loadingPhase === 'fading' ? 'none' : 'auto',
           }}>
+            {/* Logo */}
             <div style={{
-              fontSize: 32,
-              fontWeight: 700,
-              letterSpacing: '-0.5px',
-              background: 'linear-gradient(90deg, #2563eb 0%, #dc2626 100%)',
+              fontSize: 38,
+              fontWeight: 800,
+              letterSpacing: '-1.5px',
+              fontFamily: 'var(--font-display)',
+              background: 'linear-gradient(92deg, #3b82f6 0%, #7c3aed 45%, #ef4444 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
-              animation: 'repmap-pulse 1.5s ease-in-out infinite',
+              animation: 'rm-logo-breathe 2.2s ease-in-out infinite',
+              marginBottom: '10px',
             }}>
               RepMap
             </div>
-            <div style={{ color: '#94a3b8', fontSize: 13, letterSpacing: '0.02em' }}>
-              Assembling Congressional Districts...
+
+            {/* Subtitle */}
+            <div style={{
+              fontSize: 10,
+              color: '#334155',
+              letterSpacing: '0.28em',
+              textTransform: 'uppercase',
+              fontFamily: 'var(--font-body)',
+              fontWeight: 600,
+              marginBottom: '32px',
+            }}>
+              Congressional Districts
+            </div>
+
+            {/* Animated loading bar */}
+            <div style={{
+              width: 180,
+              height: 2,
+              background: 'rgba(255,255,255,0.04)',
+              borderRadius: '1px',
+              overflow: 'hidden',
+              marginBottom: '20px',
+            }}>
+              <div style={{
+                height: '100%',
+                background: 'linear-gradient(90deg, #3b82f6, #7c3aed, #ef4444)',
+                borderRadius: '1px',
+                animation: 'rm-bar-fill 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+              }} />
+            </div>
+
+            {/* Three-dot indicator */}
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '10px' }}>
+              {[0, 1, 2].map((i) => (
+                <div key={i} style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: '50%',
+                  background: '#475569',
+                  animation: `rm-dot 1.2s ease-in-out ${i * 0.2}s infinite`,
+                }} />
+              ))}
+            </div>
+
+            <div style={{ color: '#475569', fontSize: 12, letterSpacing: '0.04em', fontFamily: 'var(--font-body)' }}>
+              Assembling Congressional Districts
             </div>
           </div>
         </>

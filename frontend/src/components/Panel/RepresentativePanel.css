@@ -1,20 +1,18 @@
-/* ── Shimmer animation (skeleton loader) ───────────────────────────────────── */
+/* ── Keyframes ──────────────────────────────────────────────────────────────── */
 @keyframes repmap-shimmer {
   0%   { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  100% { background-position:  200% center; }
 }
 
-/* ── Panel slide-in & pulse animations ─────────────────────────────────────── */
+@keyframes pulse-aura {
+  0%, 100% { transform: scale(1);    opacity: 0.45; }
+  50%       { transform: scale(1.18); opacity: 0.15; }
+}
+
 @media (prefers-reduced-motion: no-preference) {
-  @keyframes panel-slide-in {
-    from {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
+  @keyframes panel-float-in {
+    from { transform: translateY(20px) scale(0.97); opacity: 0; }
+    to   { transform: translateY(0)    scale(1);    opacity: 1; }
   }
 
   @keyframes repmap-pulse {
@@ -22,31 +20,58 @@
     50%       { opacity: 0.35; }
   }
 
+  @keyframes card-slide-up {
+    from { transform: translateY(12px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
   .panel {
-    animation: panel-slide-in var(--transition-spring) both;
+    animation: panel-float-in 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   .panel-sync-banner {
     animation: repmap-pulse 1.8s ease-in-out infinite;
   }
+
+  /* Staggered grid + sub-card entry */
+  .bio-field:nth-child(1),
+  .bio-action-card:nth-child(1) { animation: card-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) 0ms   both; }
+  .bio-field:nth-child(2),
+  .bio-action-card:nth-child(2) { animation: card-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) 55ms  both; }
+  .bio-field:nth-child(3),
+  .bio-action-card:nth-child(3) { animation: card-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) 110ms both; }
+  .bio-field:nth-child(4),
+  .bio-action-card:nth-child(4) { animation: card-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) 165ms both; }
+  .bio-field:nth-child(5),
+  .bio-action-card:nth-child(5) { animation: card-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) 220ms both; }
+  .bio-field:nth-child(6),
+  .bio-action-card:nth-child(6) { animation: card-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) 275ms both; }
+  .bio-field:nth-child(n+7),
+  .bio-action-card:nth-child(n+7) { animation: card-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) 320ms both; }
 }
 
-/* ── Panel Shell ──────────────────────────────────────────────────────────── */
+/* ── Panel Shell — Floating Island ────────────────────────────────────────── */
 .panel {
   position: absolute;
-  top: 0;
-  right: 0;
-  width: var(--panel-width);
-  height: 100%;
-  background: var(--color-bg-glass);
-  backdrop-filter: blur(20px) saturate(1.6);
-  -webkit-backdrop-filter: blur(20px) saturate(1.6);
-  border-left: 1px solid var(--color-bg-glass-border);
-  box-shadow: -4px 0 40px rgba(0, 0, 0, 0.3);
+  right: 24px;
+  top: 16px;
+  bottom: 24px;
+  width: 420px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.50),
+              0  8px 16px -4px rgba(0, 0, 0, 0.20);
   display: flex;
   flex-direction: column;
   z-index: 20;
   overflow: hidden;
+}
+
+:root.dark .panel {
+  background: rgba(8, 14, 26, 0.80);
 }
 
 /* ── Mobile Bottom-Sheet ──────────────────────────────────────────────────── */
@@ -57,11 +82,11 @@
     left: 0;
     right: 0;
     width: 100%;
-    height: 65vh;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    height: 68vh;
+    border-radius: 20px 20px 0 0;
     border-left: none;
-    border-top: 1px solid var(--color-bg-glass-border);
-    box-shadow: 0 -4px 40px rgba(0, 0, 0, 0.35);
+    border-top: 1px solid var(--color-border-subtle);
+    box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.4);
   }
 }
 
@@ -82,29 +107,56 @@
 
 /* ── Header ───────────────────────────────────────────────────────────────── */
 .panel-header {
-  padding: 14px 14px 14px 16px;
+  padding: 16px 16px 14px 18px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--color-bg-glass-border);
+  border-bottom: 1px solid var(--color-border-subtle);
+  border-radius: 24px 24px 0 0;
   /* Party color top accent applied via inline style border-top */
+}
+
+/* ── Photo Aura (party pulse) ─────────────────────────────────────────────── */
+.panel-photo-aura {
+  position: relative;
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+}
+
+.panel-photo-aura::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--party-color, var(--color-accent)) 0%, transparent 68%);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .panel-photo-aura::before {
+    animation: pulse-aura 2.8s ease-in-out infinite;
+  }
 }
 
 /* ── Header Photo ─────────────────────────────────────────────────────────── */
 .panel-header-photo {
-  width: 54px;
-  height: 54px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
   border: 2.5px solid;           /* color set via inline style (party color) */
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.28);
+  position: relative;
+  z-index: 1;
 }
 
 .panel-header-photo-skeleton {
-  width: 54px;
-  height: 54px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   flex-shrink: 0;
   background: var(--color-bg-elevated);
@@ -134,7 +186,7 @@
   font-family: var(--font-display);
   font-size: 17px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   color: var(--color-text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -143,38 +195,52 @@
 
 .panel-chamber {
   margin: 0 0 2px;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--color-accent);
 }
 
 .panel-district {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--color-text-muted);
 }
 
+/* Party badge pill */
+.panel-party-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+  margin-top: 4px;
+}
+
 .panel-close-btn {
-  background: none;
-  border: none;
+  background: rgba(100, 116, 139, 0.08);
+  border: 1px solid var(--color-border-subtle);
   cursor: pointer;
   color: var(--color-text-subtle);
-  padding: 6px;
+  padding: 7px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-md);
-  transition: background var(--transition-fast), color var(--transition-fast);
+  border-radius: 50%;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
   align-self: flex-start;
-  margin-top: 2px;
 }
 
 .panel-close-btn:hover {
-  background: var(--color-bg-elevated);
+  background: rgba(100, 116, 139, 0.18);
   color: var(--color-text-primary);
+  transform: scale(1.1);
 }
 
 /* ── Skeleton Loading ─────────────────────────────────────────────────────── */
@@ -192,10 +258,10 @@
 }
 
 .panel-skeleton {
-  height: 16px;
+  height: 14px;
   background: var(--color-bg-elevated);
   border-radius: var(--radius-sm);
-  margin-bottom: 8px;
+  margin-bottom: 7px;
 }
 
 .panel-skeleton--wide   { width: 65%; }
@@ -208,69 +274,86 @@
   color: var(--color-error);
 }
 
-/* ── Tab Strip ────────────────────────────────────────────────────────────── */
+/* ── Segmented Control Tab Strip ──────────────────────────────────────────── */
 .panel-tabs {
+  position: relative;
   display: flex;
-  gap: 4px;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--color-bg-glass-border);
-  background: rgba(0, 0, 0, 0.04);
+  padding: 4px;
+  margin: 10px 14px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius-md);
+  border-bottom: none;
   flex-shrink: 0;
 }
 
 :root.dark .panel-tabs {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.panel-tab-pill {
+  position: absolute;
+  top: 4px;
+  height: calc(100% - 8px);
+  background: var(--color-bg-glass);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: calc(var(--radius-md) - 2px);
+  box-shadow: var(--shadow-sm);
+  transition: left var(--transition-spring), width var(--transition-spring);
+  pointer-events: none;
+  z-index: 0;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .panel-tab {
+  position: relative;
+  z-index: 1;
   flex: 1;
   padding: 7px 6px;
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.02em;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: calc(var(--radius-md) - 2px);
   background: none;
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: color var(--transition-fast), background var(--transition-fast);
+  transition: color var(--transition-fast);
 }
 
-.panel-tab:hover {
-  color: var(--color-text-secondary);
-  background: var(--color-bg-elevated);
-}
+.panel-tab:hover { color: var(--color-text-secondary); }
 
-.panel-tab--active {
-  color: var(--color-accent);
-  background: var(--color-accent-glow);
+.panel-tab--active { color: var(--color-accent); }
+
+.panel-tabs-divider {
+  height: 1px;
+  background: var(--color-border-subtle);
+  margin: 0 0 2px;
+  flex-shrink: 0;
 }
 
 /* ── Tab Body ─────────────────────────────────────────────────────────────── */
 .panel-body {
   flex: 1;
   overflow-y: auto;
-  padding: 0 16px 32px;
+  padding: 0 14px 28px;
   min-height: 0;
 }
 
-/* Subtle scrollbar styling */
 .panel-body::-webkit-scrollbar { width: 4px; }
 .panel-body::-webkit-scrollbar-track { background: transparent; }
 .panel-body::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+  background: rgba(var(--color-accent-rgb), 0.3);
   border-radius: 2px;
 }
 
-/* ── Bio Tab Photo ────────────────────────────────────────────────────────── */
-.bio-tab-photo {
-  margin: 14px 0 0;
-}
+/* ── Bio Tab Photo (large, in body) ───────────────────────────────────────── */
+.bio-tab-photo { margin: 14px 0 0; }
 
 .bio-tab-photo-img {
-  width: 96px;
-  height: 96px;
+  width: 88px;
+  height: 88px;
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid;
@@ -278,41 +361,191 @@
   box-shadow: var(--shadow-md);
 }
 
-/* ── Bio Tab Fields ───────────────────────────────────────────────────────── */
-.bio-tab-fields {
+/* ── Bio Action Grid ──────────────────────────────────────────────────────── */
+.bio-action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
   margin-top: 14px;
+  margin-bottom: 10px;
+}
+
+/* Light mode: raise --color-text-subtle inside bio-fields so labels and term-progress
+   year spans (which use var(--color-text-subtle) inline) meet WCAG AA contrast
+   against the #dce5f5 elevated card background. */
+:root:not(.dark) .bio-field {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.14);
+  --color-text-subtle: #475569;
+}
+
+:root:not(.dark) .bio-committee-pill {
+  background: #f1f5f9;
+  border-color: rgba(15, 23, 42, 0.14);
+  color: #334155;
+}
+
+/* Light mode: opaque white card + dark border for legibility against the map */
+:root:not(.dark) .bio-action-card {
+  background: rgba(255, 255, 255, 0.70);
+  border-color: rgba(15, 23, 42, 0.15);
+}
+
+:root:not(.dark) .bio-action-value,
+:root:not(.dark) .bio-action-value--mono,
+:root:not(.dark) .bio-field-value {
+  color: #0f172a;
+}
+
+.bio-action-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  font-family: var(--font-body);
+  text-align: left;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+              border-color 0.22s ease,
+              box-shadow 0.22s ease;
+}
+
+:root.dark .bio-action-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(148, 163, 184, 0.10);
+}
+
+.bio-action-card:hover {
+  transform: scale(1.03);
+  border-color: var(--party-color, var(--color-accent));
+  box-shadow: 0 0 0 1px var(--party-color, var(--color-accent)),
+              0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+.bio-action-icon {
+  color: var(--color-text-subtle);
+  display: flex;
+  align-items: center;
+}
+
+.bio-action-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-subtle);
+  margin: 0 0 2px;
+}
+
+.bio-action-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bio-action-value--mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--color-text-primary);
+}
+
+/* ── Bio Sub-Card Fields ──────────────────────────────────────────────────── */
+.bio-tab-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
 }
 
 .bio-field {
-  margin-bottom: 14px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--color-bg-glass-border);
+  padding: 11px 13px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+              box-shadow 0.22s ease;
 }
 
-.bio-field:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-  padding-bottom: 0;
+@media (prefers-reduced-motion: no-preference) {
+  .bio-field:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
 }
 
 .bio-field-label {
-  margin: 0 0 2px;
+  margin: 0 0 3px;
   font-size: 10px;
   font-weight: 600;
   color: var(--color-text-subtle);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
 }
 
 .bio-field-value {
-  font-size: 14px;
+  font-size: 13.5px;
   color: var(--color-text-primary);
+  line-height: 1.5;
+  overflow-wrap: break-word;
 }
 
+/* ── Term Progress Bar ────────────────────────────────────────────────────── */
+.bio-term-bar-track {
+  height: 5px;
+  background: var(--color-border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 8px 0 5px;
+}
+
+.bio-term-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Committee Pills ──────────────────────────────────────────────────────── */
+.bio-committee-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.bio-committee-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--color-bg-glass);
+  border: 1px solid rgba(100, 116, 139, 0.28);
+  color: var(--color-text-secondary);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  white-space: normal;
+  line-height: 1.4;
+}
+
+/* ── Action buttons in bio fields ─────────────────────────────────────────── */
 .bio-tab-btn {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 16px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   border: 1.5px solid var(--color-accent);
   background: none;
   cursor: pointer;
@@ -322,13 +555,15 @@
   text-decoration: none;
   line-height: 1.4;
   color: var(--color-accent);
-  transition: background var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+  transition: background 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+              box-shadow 0.22s ease,
+              transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .bio-tab-btn:hover {
   background: var(--color-accent-glow);
-  box-shadow: 0 0 12px var(--color-accent-glow);
-  transform: translateY(-1px);
+  box-shadow: 0 0 14px var(--color-accent-glow);
+  transform: translateY(-1px) scale(1.02);
 }
 
 .bio-tab-links {
@@ -339,7 +574,6 @@
 
 .bio-tab-links a { word-break: break-all; }
 
-.bio-tab-committees,
 .bio-tab-social {
   display: flex;
   flex-direction: column;

@@ -58,13 +58,25 @@ export default function DistrictBoundary({ state, districtNumber, party }: Props
         id="district-fill"
         source="district-source"
         type="fill"
-        paint={{ 'fill-color': fillColor, 'fill-opacity': 0.2 }}
+        paint={{ 'fill-color': fillColor, 'fill-opacity': 0.18 }}
+      />
+      {/* Wide blurred layer creates a soft glow effect behind the crisp border */}
+      <Layer
+        id="district-glow"
+        source="district-source"
+        type="line"
+        paint={{
+          'line-color': lineColor,
+          'line-width': 10,
+          'line-opacity': 0.22,
+          'line-blur': 8,
+        }}
       />
       <Layer
         id="district-line"
         source="district-source"
         type="line"
-        paint={{ 'line-color': lineColor, 'line-width': 2, 'line-opacity': 0.8 }}
+        paint={{ 'line-color': lineColor, 'line-width': 2.5, 'line-opacity': 0.9 }}
       />
     </Source>
   )

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import { fetchRepDetail } from '../../api/representatives'
 import { useMapStore } from '../../store/mapStore'
@@ -29,9 +29,9 @@ const PARTY_LABELS: Record<string, string> = {
 }
 
 const TABS: { key: TabKey; label: string }[] = [
-  { key: 'biography',     label: 'Biography'     },
-  { key: 'voting_record', label: 'Voting Record'  },
-  { key: 'how_to_vote',   label: 'How to Vote'    },
+  { key: 'biography',     label: 'Biography'    },
+  { key: 'voting_record', label: 'Voting Record' },
+  { key: 'how_to_vote',   label: 'How to Vote'  },
 ]
 
 function getDistrictLabel(rep: Representative) {
@@ -58,9 +58,23 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
   const dm = useMapStore((s) => s.darkMode)
   const isSyncing = useRepStore((s) => s.isSyncing)
 
+  // Segmented control pill position
+  const tabStripRef = useRef<HTMLDivElement>(null)
+  const [pillStyle, setPillStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 })
+
+  useEffect(() => {
+    const strip = tabStripRef.current
+    if (!strip) return
+    // Measure on next paint so the DOM is ready
+    const raf = requestAnimationFrame(() => {
+      const btn = strip.querySelector<HTMLButtonElement>('[aria-selected="true"]')
+      if (btn) setPillStyle({ left: btn.offsetLeft, width: btn.offsetWidth })
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [activeTab])
+
   useEffect(() => {
     let cancelled = false
-    // Refetch panel data whenever the selected representative changes.
     setLoading(true)
     setRep(null)
     setFetchError(null)
@@ -92,19 +106,24 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
         </div>
       )}
 
-      <div className="panel-header" style={{ borderTop: `4px solid ${color}` }}>
-        {rep?.photo_url && (
-          <img
-            src={rep.photo_url}
-            alt=""
-            className="panel-header-photo"
-            style={{ borderColor: color }}
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-          />
-        )}
-        {!rep && loading && (
-          <div className="panel-header-photo-skeleton" />
-        )}
+      <div className="panel-header" style={{ borderTop: `3px solid ${color}` }}>
+        <div
+          className="panel-photo-aura"
+          style={{ '--party-color': color } as React.CSSProperties}
+        >
+          {rep?.photo_url && (
+            <img
+              src={rep.photo_url}
+              alt=""
+              className="panel-header-photo"
+              style={{ borderColor: color }}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+            />
+          )}
+          {!rep && loading && (
+            <div className="panel-header-photo-skeleton" />
+          )}
+        </div>
 
         <div className="panel-identity">
           {loading ? (
@@ -117,13 +136,16 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
           ) : rep ? (
             <>
               <h2 className="panel-name">{rep.name}</h2>
-              <p className="panel-chamber">
-                {getChamberLabel(rep)}{' \u2022 '}
-                <span style={{ color, fontWeight: '600' }}>
+              <p className="panel-chamber">{getChamberLabel(rep)}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <span
+                  className="panel-party-badge"
+                  style={{ background: color }}
+                >
                   {PARTY_LABELS[rep.party] ?? rep.party}
                 </span>
-              </p>
-              <p className="panel-district">{getDistrictLabel(rep)}</p>
+                <p className="panel-district" style={{ margin: 0 }}>{getDistrictLabel(rep)}</p>
+              </div>
             </>
           ) : null}
         </div>
@@ -139,11 +161,19 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
 
       {rep && (
         <>
+          {/* Segmented control with sliding pill */}
           <nav
+            ref={tabStripRef}
             className="panel-tabs"
             role="tablist"
             aria-label="Representative information"
           >
+            {/* Sliding pill — positioned absolutely behind the active tab */}
+            <div
+              className="panel-tab-pill"
+              style={{ left: pillStyle.left, width: pillStyle.width }}
+              aria-hidden="true"
+            />
             {TABS.map(({ key, label }) => (
               <button
                 key={key}
@@ -157,6 +187,7 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
               </button>
             ))}
           </nav>
+          <div className="panel-tabs-divider" />
 
           <div
             id={`panel-tabpanel-${activeTab}`}

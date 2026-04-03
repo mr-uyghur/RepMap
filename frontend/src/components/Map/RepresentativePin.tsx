@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { Marker } from 'react-map-gl'
 import type { Representative } from '../../types'
 import { PARTY_COLORS } from '../../constants'
 
 const SENATOR_RING = '#ec4899' // pink-500
+const SPRING = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1)'
 
 interface Props {
   rep: Representative
@@ -12,14 +14,17 @@ interface Props {
 }
 
 export default function RepresentativePin({ rep, onClick, offset }: Props) {
+  const [hovered, setHovered] = useState(false)
   const color = PARTY_COLORS[rep.party] || '#6b7280'
   const isSenator = rep.level === 'senate'
 
-  // Senators: pink outer ring + party-color inner border
-  // House reps: party-color border only
-  const boxShadow = isSenator
-    ? `0 0 0 3px ${SENATOR_RING}, 0 2px 8px rgba(0,0,0,0.3)`
-    : '0 2px 8px rgba(0,0,0,0.3)'
+  const baseShadow = isSenator
+    ? `0 0 0 3px ${SENATOR_RING}, 0 2px 8px rgba(0,0,0,0.30)`
+    : '0 2px 8px rgba(0,0,0,0.30)'
+
+  const hoverShadow = isSenator
+    ? `0 0 0 3px ${SENATOR_RING}, 0 6px 20px rgba(0,0,0,0.55)`
+    : '0 6px 20px rgba(0,0,0,0.55)'
 
   return (
     <Marker
@@ -28,7 +33,6 @@ export default function RepresentativePin({ rep, onClick, offset }: Props) {
       anchor="bottom"
       offset={offset}
       onClick={(e) => {
-        // Prevent the map click handler from also firing when a marker is clicked.
         e.originalEvent.stopPropagation()
         onClick(rep)
       }}
@@ -41,6 +45,8 @@ export default function RepresentativePin({ rep, onClick, offset }: Props) {
           alignItems: 'center',
           gap: '4px',
         }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
       >
         <div
           style={{
@@ -50,7 +56,9 @@ export default function RepresentativePin({ rep, onClick, offset }: Props) {
             border: `3px solid ${color}`,
             overflow: 'hidden',
             backgroundColor: '#f3f4f6',
-            boxShadow,
+            boxShadow: hovered ? hoverShadow : baseShadow,
+            transform: hovered ? 'scale(1.2)' : 'scale(1)',
+            transition: SPRING,
           }}
         >
           {rep.photo_url ? (
@@ -91,7 +99,7 @@ export default function RepresentativePin({ rep, onClick, offset }: Props) {
             fontSize: '11px',
             fontWeight: '600',
             color: 'var(--color-text-primary)',
-            border: '1px solid var(--color-border)',
+            border: '1px solid var(--color-border-subtle)',
             boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
             maxWidth: '100px',
             textAlign: 'center',
@@ -99,6 +107,8 @@ export default function RepresentativePin({ rep, onClick, offset }: Props) {
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
+            transform: hovered ? 'scale(1.08)' : 'scale(1)',
+            transition: SPRING,
           }}
         >
           {rep.name.split(' ').slice(-1)[0]}
