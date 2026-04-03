@@ -9,8 +9,7 @@ import { fetchAllReps } from '../../api/representatives'
 import { fetchAppConfig } from '../../api/config'
 import RepresentativePin from './RepresentativePin'
 import DistrictBoundary from './DistrictBoundary'
-import DistrictOverlay, { getCachedDistrictGeoJSON, subscribeToDistrictGeoJSON, getLoadedStateCodes } from './DistrictOverlay'
-import type { ViewBounds } from './DistrictOverlay'
+import DistrictOverlay, { getCachedDistrictGeoJSON, subscribeToDistrictGeoJSON } from './DistrictOverlay'
 import type { Representative, FeatureGeometry, Ring, Polygon } from '../../types'
 
 // Pixel offsets for groups of co-located pins (same lat/lng).
@@ -102,9 +101,6 @@ function getDistrictAnchor(geometry: FeatureGeometry | undefined): Position | nu
   return largestRing ? pointOnSurface(largestRing) : null
 }
 
-// Default bounds covering the continental US — replaced on first map move.
-const DEFAULT_BOUNDS: ViewBounds = { north: 50, south: 24, east: -65, west: -125 }
-
 interface Props {
   mapRef: React.RefObject<MapRef>
   onRepSelect: (rep: Representative) => void
@@ -112,16 +108,18 @@ interface Props {
 
 export default function RepMap({ mapRef, onRepSelect }: Props) {
   const { zoom, center, selectedRepId, darkMode, setZoom, setCenter } = useMapStore()
-  const { reps, allReps, setReps, setLoading } = useRepStore()
+  const { reps, allReps, loading: repsLoading, setReps, setLoading } = useRepStore()
   const [mapboxToken, setMapboxToken] = useState<string>('')
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [bounds, setBounds] = useState<ViewBounds>(DEFAULT_BOUNDS)
   const [districtGeoVersion, setDistrictGeoVersion] = useState(0)
   const [fillLayerIds, setFillLayerIds] = useState<string[]>([])
   const [hoverInfo, setHoverInfo] = useState<{ x: number; y: number; label: string } | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [zoomHintDismissed, setZoomHintDismissed] = useState(false)
+  const [districtsLoaded, setDistrictsLoaded] = useState(false)
+  const [loadingPhase, setLoadingPhase] = useState<'loading' | 'fading' | 'done'>('loading')
   const lastHoverUpdateRef = useRef(0)
+  const loadStartRef = useRef(Date.now())
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -141,11 +139,28 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => subscribeToDistrictGeoJSON(() => {
-    // When new district geometry arrives, refresh hover/click layer IDs and
-    // recompute any pin placements that depend on district shapes.
+    // When national district geometry arrives, enable the single fill layer
+    // for hover/click interactions and trigger a pin position recalculation.
     setDistrictGeoVersion((version) => version + 1)
-    setFillLayerIds(getLoadedStateCodes().map((s) => `district-fill-${s}`))
+    setFillLayerIds(['national-districts-fill'])
   }), [])
+
+  const handleDistrictsLoaded = useCallback(() => {
+    setDistrictsLoaded(true)
+  }, [])
+
+  // Fade out the loading screen once both datasets are ready, with a minimum
+  // display time so the animation has time to render on fast connections.
+  useEffect(() => {
+    if (!districtsLoaded || repsLoading) return
+    const elapsed = Date.now() - loadStartRef.current
+    const delay = Math.max(0, 1200 - elapsed)
+    const t = setTimeout(() => {
+      setLoadingPhase('fading')
+      setTimeout(() => setLoadingPhase('done'), 400)
+    }, delay)
+    return () => clearTimeout(t)
+  }, [districtsLoaded, repsLoading])
 
   const handleMoveEnd = useCallback(
     (e: ViewStateChangeEvent) => {
@@ -153,12 +168,8 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
       const { longitude, latitude, zoom: newZoom } = e.viewState
       setCenter([longitude, latitude])
       setZoom(newZoom)
-      const b = mapRef.current?.getBounds()
-      if (b) {
-        setBounds({ north: b.getNorth(), south: b.getSouth(), east: b.getEast(), west: b.getWest() })
-      }
     },
-    [setCenter, setZoom, mapRef]
+    [setCenter, setZoom]
   )
 
   const handleDragStart = useCallback(() => {
@@ -297,8 +308,8 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
         onClick={handleMapClick}
       >
         <NavigationControl position="bottom-left" />
-        {/* DistrictOverlay lazily fetches only the district GeoJSON near the viewport. */}
-        <DistrictOverlay bounds={bounds} />
+        {/* DistrictOverlay fetches the pre-built national GeoJSON in a single request. */}
+        <DistrictOverlay onLoaded={handleDistrictsLoaded} />
 
         {/* Highlight the selected House rep's congressional district.
             Senators have no district_number, so DistrictBoundary renders nothing. */}
@@ -396,6 +407,41 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
         }}>
           {hoverInfo.label}
         </div>
+      )}
+      {loadingPhase !== 'done' && (
+        <>
+          <style>{`@keyframes repmap-pulse{0%,100%{opacity:1}50%{opacity:0.45}}`}</style>
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: '#0f172a',
+            zIndex: 50,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 16,
+            opacity: loadingPhase === 'fading' ? 0 : 1,
+            transition: 'opacity 0.4s ease',
+            pointerEvents: loadingPhase === 'fading' ? 'none' : 'auto',
+          }}>
+            <div style={{
+              fontSize: 32,
+              fontWeight: 700,
+              letterSpacing: '-0.5px',
+              background: 'linear-gradient(90deg, #2563eb 0%, #dc2626 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              animation: 'repmap-pulse 1.5s ease-in-out infinite',
+            }}>
+              RepMap
+            </div>
+            <div style={{ color: '#94a3b8', fontSize: 13, letterSpacing: '0.02em' }}>
+              Assembling Congressional Districts...
+            </div>
+          </div>
+        </>
       )}
     </div>
   )
