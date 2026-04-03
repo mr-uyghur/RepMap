@@ -12,6 +12,28 @@ import DistrictBoundary from './DistrictBoundary'
 import DistrictOverlay, { getCachedDistrictGeoJSON, subscribeToDistrictGeoJSON } from './DistrictOverlay'
 import type { Representative, FeatureGeometry, Ring, Polygon } from '../../types'
 
+// Fog/atmosphere settings for dark and light themes — defined at module level
+// so the object references are stable and never cause spurious effect re-runs.
+// Stable reference — avoids react-map-gl calling setProjection on every render.
+const GLOBE_PROJECTION = { name: 'globe' } as const
+
+const fogSettings = {
+  dark: {
+    'color':          'rgb(12, 20, 40)',
+    'high-color':     'rgb(8, 12, 28)',
+    'horizon-blend':  0.03,
+    'space-color':    'rgb(4, 6, 14)',
+    'star-intensity': 0.85,
+  },
+  light: {
+    'color':          'rgb(210, 225, 245)',
+    'high-color':     'rgb(60, 110, 200)',
+    'horizon-blend':  0.04,
+    'space-color':    'rgb(8, 8, 22)',
+    'star-intensity': 0.5,
+  },
+} as const
+
 // Pixel offsets for groups of co-located pins (same lat/lng).
 // At-large states can have 2 senators + 1 house rep at the same centroid.
 const GROUP_OFFSETS: Record<number, [number, number][]> = {
@@ -122,6 +144,8 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
   const lastHoverUpdateRef = useRef(0)
   const loadStartRef = useRef(Date.now())
   const containerRef = useRef<HTMLDivElement>(null)
+  // Tracks last known pitch/bearing so they can be restored after a style reload.
+  const cameraSaveRef = useRef<{ pitch: number; bearing: number }>({ pitch: 0, bearing: 0 })
 
   useEffect(() => {
     // Fetch the Mapbox token from the backend config endpoint on mount.
@@ -175,25 +199,33 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     map.flyTo({ pitch: 0, bearing: 0, duration: 1200, essential: true })
   }, [selectedRepId, mapRef])
 
-  const handleMapLoad = useCallback(() => {
-    // Apply Mapbox atmospheric fog for depth and cinematic feel.
+  // Idempotent: re-applies fog and camera angle. Called on initial load and on
+  // every style.load event so theme switches restore all atmospheric polish.
+  const restorePolish = useCallback(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const map = (mapRef as React.RefObject<any>).current?.getMap?.()
     if (!map) return
-    map.setFog(darkMode ? {
-      'color':         'rgb(12, 20, 40)',
-      'high-color':    'rgb(8, 12, 28)',
-      'horizon-blend': 0.03,
-      'space-color':   'rgb(4, 6, 14)',
-      'star-intensity': 0.85,
-    } : {
-      'color':         'rgb(210, 225, 245)',
-      'high-color':    'rgb(60, 110, 200)',
-      'horizon-blend': 0.04,
-      'space-color':   'rgb(8, 8, 22)',
-      'star-intensity': 0.5,
-    })
-  }, [darkMode])
+    map.setFog(darkMode ? fogSettings.dark : fogSettings.light)
+    // Restore 3D perspective if the user had it active before the style switch.
+    const { pitch, bearing } = cameraSaveRef.current
+    if (pitch > 0.5 || Math.abs(bearing) > 0.5) {
+      map.easeTo({ pitch, bearing, duration: 0 })
+    }
+  }, [darkMode, mapRef])
+
+  const handleMapLoad = useCallback(() => {
+    restorePolish()
+  }, [restorePolish])
+
+  // Re-attach the style.load listener whenever darkMode changes so the new
+  // restorePolish closure (with the correct fog theme) is registered.
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const map = (mapRef as React.RefObject<any>).current?.getMap?.()
+    if (!map) return
+    map.on('style.load', restorePolish)
+    return () => { map.off('style.load', restorePolish) }
+  }, [restorePolish, mapRef])
 
   const handleMoveEnd = useCallback(
     (e: ViewStateChangeEvent) => {
@@ -201,8 +233,14 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
       const { longitude, latitude, zoom: newZoom } = e.viewState
       setCenter([longitude, latitude])
       setZoom(newZoom)
+      // Keep cameraSaveRef current so restorePolish can recover pitch/bearing after a style switch.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const map = (mapRef as React.RefObject<any>).current?.getMap?.()
+      if (map) {
+        cameraSaveRef.current = { pitch: map.getPitch(), bearing: map.getBearing() }
+      }
     },
-    [setCenter, setZoom]
+    [setCenter, setZoom, mapRef]
   )
 
   const handleDragStart = useCallback(() => {
@@ -344,6 +382,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
           zoom,
         }}
         style={{ width: '100%', height: '100%' }}
+        projection={GLOBE_PROJECTION}
         mapStyle={darkMode ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11'}
         onLoad={handleMapLoad}
         onMoveEnd={handleMoveEnd}

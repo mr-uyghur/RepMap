@@ -92,8 +92,6 @@ export default function RepresentativePin({ rep, onClick, offset }: Props) {
         <div
           style={{
             background: 'var(--color-bg-glass)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
             padding: '2px 7px',
             borderRadius: '5px',
             fontSize: '11px',
