@@ -1,7 +1,7 @@
 :root {
   /* ── Layout ────────────────────────────────────────────────────────────── */
   --nav-height:  56px;
-  --panel-width: 360px;
+  --panel-width: 400px;
 
   /* ── Border Radius ─────────────────────────────────────────────────────── */
   --radius-sm: 4px;
@@ -16,8 +16,9 @@
   --shadow-glow: 0 0 0 1px var(--color-accent-glow);
 
   /* ── Transitions ───────────────────────────────────────────────────────── */
-  --transition-fast: 0.15s ease;
-  --transition-base: 0.25s ease;
+  --transition-fast:   0.15s ease;
+  --transition-base:   0.25s ease;
+  --transition-spring: 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 
   /* ── Typography ────────────────────────────────────────────────────────── */
   --font-display: 'Space Grotesk', 'Inter', -apple-system, sans-serif;

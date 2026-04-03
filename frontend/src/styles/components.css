@@ -59,28 +59,40 @@
 
 .searchbar-btn {
   height: 36px;
-  padding: 0 14px;
+  width: 36px;
+  padding: 0;
   background: var(--color-accent);
   color: white;
   border: none;
   border-radius: var(--radius-md);
-  font-family: var(--font-body);
-  font-size: 14px;
-  font-weight: 600;
   cursor: pointer;
-  white-space: nowrap;
   flex-shrink: 0;
-  transition: opacity var(--transition-fast), box-shadow var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .searchbar-btn:hover {
   opacity: 0.9;
   box-shadow: 0 0 12px var(--color-accent-glow);
+  transform: scale(1.05);
 }
 
 .searchbar-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes searchbar-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  .searchbar-spinner {
+    animation: searchbar-spin 0.7s linear infinite;
+  }
 }
 
 .searchbar-error {

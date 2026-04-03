@@ -1,5 +1,4 @@
 import type { Representative } from '../../types'
-import { useMapStore } from '../../store/mapStore'
 
 interface StateResource {
   name: string
@@ -65,9 +64,6 @@ interface Props {
 }
 
 export default function HowToVoteTab({ rep }: Props) {
-  const dm = useMapStore((s) => s.darkMode)
-  const linkColor = dm ? '#60a5fa' : '#2563eb'
-
   const resource = STATE_VOTING_RESOURCES[rep.state]
   const stateName = resource?.name ?? rep.state
 
@@ -82,7 +78,6 @@ export default function HowToVoteTab({ rep }: Props) {
             target="_blank"
             rel="noopener noreferrer"
             className="bio-tab-btn"
-            style={{ borderColor: linkColor, color: linkColor }}
           >
             {stateName} Elections Website
           </a>
@@ -92,7 +87,6 @@ export default function HowToVoteTab({ rep }: Props) {
           target="_blank"
           rel="noopener noreferrer"
           className="bio-tab-btn"
-          style={{ borderColor: linkColor, color: linkColor }}
         >
           vote.gov — Official U.S. Voter Info
         </a>
@@ -101,7 +95,6 @@ export default function HowToVoteTab({ rep }: Props) {
           target="_blank"
           rel="noopener noreferrer"
           className="bio-tab-btn"
-          style={{ borderColor: linkColor, color: linkColor }}
         >
           Vote.org — Registration &amp; Ballot Info
         </a>

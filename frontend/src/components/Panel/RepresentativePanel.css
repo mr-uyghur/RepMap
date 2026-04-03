@@ -4,11 +4,26 @@
   100% { background-position: 200% center; }
 }
 
-/* ── Pulse animation (sync banner) ────────────────────────────────────────── */
+/* ── Panel slide-in & pulse animations ─────────────────────────────────────── */
 @media (prefers-reduced-motion: no-preference) {
+  @keyframes panel-slide-in {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
   @keyframes repmap-pulse {
     0%, 100% { opacity: 1; }
     50%       { opacity: 0.35; }
+  }
+
+  .panel {
+    animation: panel-slide-in var(--transition-spring) both;
   }
 
   .panel-sync-banner {
@@ -67,15 +82,48 @@
 
 /* ── Header ───────────────────────────────────────────────────────────────── */
 .panel-header {
-  padding: 16px 16px 14px;
+  padding: 14px 14px 14px 16px;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  gap: 12px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--color-bg-glass-border);
   /* Party color top accent applied via inline style border-top */
 }
 
+/* ── Header Photo ─────────────────────────────────────────────────────────── */
+.panel-header-photo {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2.5px solid;           /* color set via inline style (party color) */
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+
+.panel-header-photo-skeleton {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--color-bg-elevated);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .panel-header-photo-skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--color-bg-elevated) 25%,
+      var(--color-bg-surface) 50%,
+      var(--color-bg-elevated) 75%
+    );
+    background-size: 200% 100%;
+    animation: repmap-shimmer 1.6s ease-in-out infinite;
+  }
+}
+
+/* ── Identity text ────────────────────────────────────────────────────────── */
 .panel-identity {
   flex: 1;
   min-width: 0;
@@ -111,16 +159,23 @@
 .panel-close-btn {
   background: none;
   border: none;
-  font-size: 20px;
-  line-height: 1;
   cursor: pointer;
   color: var(--color-text-subtle);
-  padding: 2px 0 0 8px;
+  padding: 6px;
   flex-shrink: 0;
-  transition: color var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast), color var(--transition-fast);
+  align-self: flex-start;
+  margin-top: 2px;
 }
 
-.panel-close-btn:hover { color: var(--color-text-primary); }
+.panel-close-btn:hover {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
 
 /* ── Skeleton Loading ─────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: no-preference) {
@@ -156,6 +211,8 @@
 /* ── Tab Strip ────────────────────────────────────────────────────────────── */
 .panel-tabs {
   display: flex;
+  gap: 4px;
+  padding: 6px 12px;
   border-bottom: 1px solid var(--color-bg-glass-border);
   background: rgba(0, 0, 0, 0.04);
   flex-shrink: 0;
@@ -167,24 +224,27 @@
 
 .panel-tab {
   flex: 1;
-  padding: 10px 4px;
+  padding: 7px 6px;
   font-family: var(--font-body);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
   border: none;
-  border-bottom: 2px solid transparent;
+  border-radius: var(--radius-md);
   background: none;
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: color var(--transition-fast), border-color var(--transition-fast);
+  transition: color var(--transition-fast), background var(--transition-fast);
 }
 
-.panel-tab:hover { color: var(--color-text-secondary); }
+.panel-tab:hover {
+  color: var(--color-text-secondary);
+  background: var(--color-bg-elevated);
+}
 
 .panel-tab--active {
   color: var(--color-accent);
-  border-bottom-color: var(--color-accent);
+  background: var(--color-accent-glow);
 }
 
 /* ── Tab Body ─────────────────────────────────────────────────────────────── */
@@ -209,8 +269,8 @@
 }
 
 .bio-tab-photo-img {
-  width: 88px;
-  height: 88px;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid;
@@ -224,7 +284,15 @@
 }
 
 .bio-field {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-bg-glass-border);
+}
+
+.bio-field:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 .bio-field-label {
@@ -243,23 +311,24 @@
 
 .bio-tab-btn {
   display: inline-block;
-  padding: 5px 14px;
+  padding: 6px 16px;
   border-radius: 999px;
   border: 1.5px solid var(--color-accent);
   background: none;
   cursor: pointer;
   font-family: var(--font-body);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   text-decoration: none;
   line-height: 1.4;
   color: var(--color-accent);
-  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+  transition: background var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .bio-tab-btn:hover {
   background: var(--color-accent-glow);
-  box-shadow: 0 0 8px var(--color-accent-glow);
+  box-shadow: 0 0 12px var(--color-accent-glow);
+  transform: translateY(-1px);
 }
 
 .bio-tab-links {

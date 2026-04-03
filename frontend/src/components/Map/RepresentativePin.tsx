@@ -83,13 +83,16 @@ export default function RepresentativePin({ rep, onClick, offset }: Props) {
         </div>
         <div
           style={{
-            background: 'white',
-            padding: '2px 6px',
-            borderRadius: '4px',
+            background: 'var(--color-bg-glass)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            padding: '2px 7px',
+            borderRadius: '5px',
             fontSize: '11px',
             fontWeight: '600',
-            color: '#1f2937',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+            color: 'var(--color-text-primary)',
+            border: '1px solid var(--color-border)',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
             maxWidth: '100px',
             textAlign: 'center',
             lineHeight: '1.2',

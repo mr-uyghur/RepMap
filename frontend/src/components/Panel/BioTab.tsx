@@ -1,5 +1,4 @@
 import type { Representative } from '../../types'
-import { useMapStore } from '../../store/mapStore'
 
 const NA = 'Not available'
 
@@ -60,9 +59,6 @@ interface Props {
 }
 
 export default function BioTab({ rep }: Props) {
-  const dm = useMapStore((s) => s.darkMode)
-  const linkColor = dm ? '#60a5fa' : '#2563eb'
-
   const socialEntries = rep.social_links
     ? Object.entries(rep.social_links).filter(([, v]) => v)
     : []
@@ -80,7 +76,7 @@ export default function BioTab({ rep }: Props) {
             src={rep.photo_url}
             alt={rep.name}
             className="bio-tab-photo-img"
-            style={{ borderColor: linkColor }}
+            style={{ borderColor: 'var(--color-accent)' }}
             onError={function(e) { (e.target as HTMLImageElement).style.display = 'none' }}
           />
         </div>
@@ -89,11 +85,7 @@ export default function BioTab({ rep }: Props) {
       <div className="bio-tab-fields">
         {rep.phone && (
           <Field label="Phone">
-            <a
-              href={'tel:' + rep.phone}
-              className="bio-tab-btn"
-              style={{ borderColor: linkColor, color: linkColor }}
-            >
+            <a href={'tel:' + rep.phone} className="bio-tab-btn">
               Call
             </a>
           </Field>
@@ -106,7 +98,6 @@ export default function BioTab({ rep }: Props) {
               target="_blank"
               rel="noopener noreferrer"
               className="bio-tab-btn"
-              style={{ borderColor: linkColor, color: linkColor }}
             >
               Visit Website
             </a>
@@ -122,7 +113,7 @@ export default function BioTab({ rep }: Props) {
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ color: linkColor }}
+                  style={{ color: 'var(--color-link)' }}
                 >
                   {link.label}
                 </a>
@@ -163,7 +154,7 @@ export default function BioTab({ rep }: Props) {
                         href={href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ color: linkColor, wordBreak: 'break-all' }}
+                        style={{ color: 'var(--color-link)', wordBreak: 'break-all' }}
                       >
                         {value}
                       </a>
