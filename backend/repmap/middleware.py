@@ -16,7 +16,8 @@ Directive rationale:
                               and events.mapbox.com for tile fetches, telemetry,
                               and style lookups.
   img-src                   — data: and blob: for Mapbox GL canvas snapshots
-                              and inline icons; *.mapbox.com for raster tiles.
+                              and inline icons; *.mapbox.com for raster tiles;
+                              bioguide.congress.gov for official legislator photos.
   style-src 'unsafe-inline' — Mapbox GL injects inline <style> nodes; removing
                               'unsafe-inline' breaks the map until nonces are
                               plumbed through the React render.  Google Fonts
@@ -47,8 +48,8 @@ _CONNECT_SRC = (
     "https://events.mapbox.com"
 )
 
-# img-src: canvas exports, inline SVG, Mapbox raster tiles.
-_IMG_SRC = "'self' data: blob: https://*.mapbox.com"
+# img-src: canvas exports, inline SVG, Mapbox raster tiles, congressional photos.
+_IMG_SRC = "'self' data: blob: https://*.mapbox.com https://bioguide.congress.gov"
 
 # style-src: Mapbox GL injects inline styles; Google Fonts stylesheet.
 _STYLE_SRC = (
