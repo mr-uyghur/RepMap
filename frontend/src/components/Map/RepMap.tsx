@@ -342,14 +342,74 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     ? (allReps.find((r) => r.id === selectedRepId) ?? reps.find((r) => r.id === selectedRepId) ?? null)
     : null
 
+  // Zoom tier determines pin visual density: 0=hidden, 1=dots, 2=small avatars,
+  // 3=medium+labels, 4=full detail. Progressive disclosure keeps the map clean.
+  const zoomTier = useMemo((): 0 | 1 | 2 | 3 | 4 => {
+    if (zoom < 4) return 0
+    if (zoom < 5.5) return 1
+    if (zoom < 7) return 2
+    if (zoom < 9) return 3
+    return 4
+  }, [zoom])
+
   // Zoom-level pin filtering: fewer DOM Markers at lower zoom = faster repositioning
-  // during zoom animation. Matches the README-documented intended behavior.
+  // during zoom animation.
   // zoom < 4: no pins  |  zoom 4–7: senators only  |  zoom ≥ 7: all reps
   const pinsToShow = useMemo(() => {
-    if (zoom < 4) return []
-    if (zoom < 7) return reps.filter((rep) => rep.level === 'senate')
+    if (zoomTier === 0) return []
+    if (zoomTier <= 2) return reps.filter((rep) => rep.level === 'senate')
     return reps
-  }, [zoom, reps])
+  }, [zoomTier, reps])
+
+  // Label decluttering: project pin positions to screen pixels and hide labels
+  // whose bounding boxes overlap a higher-priority pin's label.
+  // Priority: selected > senator > house. Runs on every viewport change.
+  const labelVisibility = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const map = (mapRef as React.RefObject<any>).current?.getMap?.()
+    if (!map || zoomTier < 3) return {} as Record<number, boolean>
+
+    const visibility: Record<number, boolean> = {}
+
+    // Sort by priority so important labels claim screen space first.
+    const sorted = [...pinsToShow].sort((a, b) => {
+      if (a.id === selectedRepId) return -1
+      if (b.id === selectedRepId) return 1
+      if (a.level === 'senate' && b.level !== 'senate') return -1
+      if (b.level === 'senate' && a.level !== 'senate') return 1
+      return 0
+    })
+
+    const occupied: { l: number; t: number; r: number; b: number }[] = []
+    const LABEL_HALF_W = 40
+    const LABEL_H = 20
+    const PIN_GAP = zoomTier === 3 ? 22 : 26 // gap between pin bottom and label top
+
+    for (const rep of sorted) {
+      const pos = pinPositions[rep.id] ?? rep
+      try {
+        const pt = map.project([pos.longitude, pos.latitude])
+        const rect = {
+          l: pt.x - LABEL_HALF_W,
+          r: pt.x + LABEL_HALF_W,
+          t: pt.y + PIN_GAP,
+          b: pt.y + PIN_GAP + LABEL_H,
+        }
+
+        const overlaps = occupied.some(
+          (o) => rect.l < o.r && rect.r > o.l && rect.t < o.b && rect.b > o.t
+        )
+
+        visibility[rep.id] = !overlaps
+        if (!overlaps) occupied.push(rect)
+      } catch {
+        visibility[rep.id] = true
+      }
+    }
+
+    return visibility
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoom, center, pinsToShow, pinPositions, selectedRepId, zoomTier, mapRef])
 
   // Don't render the Map until the token arrives — an empty token causes
   // Mapbox GL to throw an authentication error in the console.
@@ -417,6 +477,9 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
             }}
             onClick={handleRepClick}
             offset={pinOffsets[rep.id]}
+            zoomTier={zoomTier as 1 | 2 | 3 | 4}
+            showLabel={labelVisibility[rep.id] ?? true}
+            isSelected={rep.id === selectedRepId}
           />
         ))}
       </Map>

@@ -56,7 +56,7 @@ function ActionCard({ icon, label, value, href, mono, partyColor }: ActionCardPr
 
   const inner = (
     <>
-      <span className="bio-action-icon">{icon}</span>
+      <span className="bio-action-icon" style={{ color: partyColor }}>{icon}</span>
       <div>
         <p className="bio-action-label">{label}</p>
         <p className={mono ? 'bio-action-value--mono' : 'bio-action-value'}>{value}</p>
