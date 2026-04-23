@@ -44,3 +44,14 @@ Four changes needed:
 2. Add `api/index.py` shim wrapping `repmap.wsgi.application` for `@vercel/python`
 3. Add `vercel.json` with routes for `/api/*` → the function
 4. Switch DB to Neon Postgres (SQLite won't persist on serverless ephemeral FS)
+
+---
+# Session Context — 2026-04-22
+
+## Migration Completed
+- Executed Recommendation A1 perfectly with 0 code changes.
+- **Backend:** Successfully deployed to Render Free Tier (`repmap-backend.onrender.com`).
+- **Database:** Migrated to Neon Postgres Serverless.
+- **Frontend:** Vercel redeployed with `VITE_API_BASE_URL` pointing strictly to Render.
+- **Data Sync:** Initial ProPublica database seed (`sync_legislators`) was accomplished locally via `.env` connection to Neon to bypass Render Free Tier's locked shell limitation.
+- **Keepalive:** UptimeRobot configured to ping Render `/api/health/` every 5 minutes to prevent the container from sleeping, avoiding 45-second cold starts.
