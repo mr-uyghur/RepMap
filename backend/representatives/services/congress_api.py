@@ -94,12 +94,40 @@ _TYPE_PREFIX = {
     'HJRES': 'H.J.Res.', 'SJRES': 'S.J.Res.',
     'HCONRES': 'H.Con.Res.', 'SCONRES': 'S.Con.Res.',
 }
+_BILL_TYPE_TO_SLUG = {
+    'HR':      'house-bill',
+    'S':       'senate-bill',
+    'HRES':    'house-resolution',
+    'SRES':    'senate-resolution',
+    'HJRES':   'house-joint-resolution',
+    'SJRES':   'senate-joint-resolution',
+    'HCONRES': 'house-concurrent-resolution',
+    'SCONRES': 'senate-concurrent-resolution',
+}
 _LEGISLATION_CACHE_TTL = 60 * 60 * 12  # 12 hours
 
 
 def _format_bill_number(bill_type: str, number: str) -> str:
     prefix = _TYPE_PREFIX.get(str(bill_type).upper(), bill_type)
     return f'{prefix} {number}' if number else prefix
+
+
+def _ordinal(n: int) -> str:
+    if 10 <= n % 100 <= 20:
+        suffix = 'th'
+    else:
+        suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')
+    return f'{n}{suffix}'
+
+
+def _public_bill_url(bill: dict) -> str | None:
+    congress = bill.get('congress')
+    bill_type = str(bill.get('type', '')).upper()
+    number = bill.get('number')
+    slug = _BILL_TYPE_TO_SLUG.get(bill_type)
+    if not (congress and slug and number):
+        return None
+    return f'https://www.congress.gov/bill/{_ordinal(int(congress))}-congress/{slug}/{number}'
 
 
 def _simplify_bill(bill: dict) -> dict:
@@ -112,7 +140,7 @@ def _simplify_bill(bill: dict) -> dict:
         'latest_action': action_text or None,
         'latest_action_date': action.get('actionDate', ''),
         'became_law': 'Became Public Law' in action_text,
-        'congress_url': bill.get('url') or None,
+        'congress_url': _public_bill_url(bill),
     }
 
 
@@ -121,7 +149,7 @@ def fetch_sponsored_legislation(bioguide_id: str) -> list:
 
     Results are cached for 12 hours. Returns an empty list on any failure — never raises.
     """
-    cache_key = f'congress_sponsored_{bioguide_id}'
+    cache_key = f'congress_sponsored_v2_{bioguide_id}'
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
@@ -158,7 +186,7 @@ def fetch_cosponsored_legislation(bioguide_id: str) -> list:
 
     Results are cached for 12 hours. Returns an empty list on any failure — never raises.
     """
-    cache_key = f'congress_cosponsored_{bioguide_id}'
+    cache_key = f'congress_cosponsored_v2_{bioguide_id}'
     cached = cache.get(cache_key)
     if cached is not None:
         return cached

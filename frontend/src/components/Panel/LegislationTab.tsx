@@ -110,7 +110,10 @@ export default function LegislationTab({ bioguide_id }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!bioguide_id) return
+    if (!bioguide_id) {
+      setError('No bioguide ID for this representative — legislation unavailable.')
+      return
+    }
     setLoading(true)
     setError(null)
     getRepLegislation(bioguide_id)

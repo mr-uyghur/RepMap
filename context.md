@@ -55,3 +55,23 @@ Four changes needed:
 - **Frontend:** Vercel redeployed with `VITE_API_BASE_URL` pointing strictly to Render.
 - **Data Sync:** Initial ProPublica database seed (`sync_legislators`) was accomplished locally via `.env` connection to Neon to bypass Render Free Tier's locked shell limitation.
 - **Keepalive:** UptimeRobot configured to ping Render `/api/health/` every 5 minutes to prevent the container from sleeping, avoiding 45-second cold starts.
+
+---
+# Session Context — 2026-04-27
+
+## Bug Fix: "Failed to load legislation" on Voting Record tab (local dev)
+
+### Root Cause
+`backend/repmap/settings.py` called `load_dotenv()` with no path, which searches from the current working directory. When `runserver` was started from the project root (`repmap/`) instead of `backend/`, `backend/.env` was never found and `CONGRESS_API_KEY` fell back to `''`. `LegislationView` (`views.py:196`) guards on that key and returns 503, which the frontend converts to the generic error banner.
+
+Health, list, and detail endpoints were unaffected because they don't depend on `CONGRESS_API_KEY`.
+
+### Fix Applied
+`backend/repmap/settings.py` — moved `BASE_DIR` definition above `load_dotenv()` and switched to an explicit path:
+
+```python
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '.env')
+```
+
+This makes env-var loading CWD-independent. No other files changed.

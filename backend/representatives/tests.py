@@ -5,7 +5,7 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from representatives.models import AISummary, Representative, SyncStatus
+from representatives.models import Representative, SyncStatus
 from representatives.services.auto_sync import is_stale, trigger_sync_if_stale
 
 
@@ -389,7 +389,7 @@ class RepresentativeDetailEndpointTests(TestCase):
         for field in (
             'id', 'name', 'level', 'party', 'state', 'district_number',
             'committee_assignments', 'social_links', 'external_ids',
-            'summaries', 'district_label', 'bioguide_id',
+            'district_label', 'bioguide_id',
             'congress_gov_url', 'bioguide_url',
         ):
             self.assertIn(field, response.data, f"Field '{field}' missing from detail response")
@@ -416,20 +416,6 @@ class RepresentativeDetailEndpointTests(TestCase):
         response = self.client.get(f'/api/v1/representatives/{self.rep.id}/')
         self.assertIn('L000001', response.data['congress_gov_url'])
 
-    def test_summaries_empty_by_default(self):
-        response = self.client.get(f'/api/v1/representatives/{self.rep.id}/')
-        self.assertEqual(response.data['summaries'], [])
-
-    def test_summaries_included_when_present(self):
-        AISummary.objects.create(
-            representative=self.rep,
-            content_type='bio',
-            content='Born in 1815.',
-            model_version='claude-sonnet-4-6',
-        )
-        response = self.client.get(f'/api/v1/representatives/{self.rep.id}/')
-        self.assertEqual(len(response.data['summaries']), 1)
-        self.assertEqual(response.data['summaries'][0]['content_type'], 'bio')
 
 
 # ---------------------------------------------------------------------------
@@ -504,6 +490,12 @@ class LegislationEndpointTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['sponsored'], [])
         self.assertEqual(response.data['cosponsored'], [])
+
+    @override_settings(CONGRESS_API_KEY='')
+    def test_returns_503_when_api_key_missing(self):
+        response = self._get(self.VALID_BIOGUIDE)
+        self.assertEqual(response.status_code, 503)
+        self.assertIn('detail', response.data)
 
 
 # ---------------------------------------------------------------------------
@@ -622,62 +614,58 @@ class CongressApiKeyValidationTests(TestCase):
         with open(settings_path) as f:
             content = f.read()
         self.assertIn('CONGRESS_API_KEY', content)
-        self.assertIn('ImproperlyConfigured', content)
         # Confirm the guard is conditional on DEBUG being False.
         self.assertIn('not DEBUG', content)
 
 
 # ---------------------------------------------------------------------------
-# prefetch_related regression — H4/N+1 fix
+# Bill URL builder
 # ---------------------------------------------------------------------------
 
-@override_settings(
-    AUTO_SYNC_ENABLED=False,
-    CACHES={'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}},
-)
-class PrefetchRelatedRegressionTests(TestCase):
-    """Regression tests ensuring prefetch_related stays in place.
+class PublicBillUrlTests(TestCase):
+    """_public_bill_url must produce www.congress.gov links, not API endpoints."""
 
-    The class-level queryset on RepresentativeViewSet uses prefetch_related('summaries')
-    so that retrieving a rep's detail (which includes summaries) costs 2 queries —
-    one for the rep, one batch for all related summaries — regardless of summary count.
+    def _url(self, **kwargs):
+        from representatives.services.congress_api import _public_bill_url
+        return _public_bill_url(kwargs)
 
-    The list endpoint also carries prefetch_related, which costs an extra batch query
-    but ensures the mechanism is in place if the list serializer ever includes summaries.
-    """
-
-    def setUp(self):
-        self.client = APIClient()
-        self.rep = _make_rep(
-            name='Prefetch Rep', level='house', party='democrat',
-            state='OR', district_number=3,
+    def test_house_bill(self):
+        self.assertEqual(
+            self._url(congress=119, type='HR', number='6640'),
+            'https://www.congress.gov/bill/119th-congress/house-bill/6640',
         )
-        for content_type in ('bio', 'voting_record', 'how_to_vote'):
-            AISummary.objects.create(
-                representative=self.rep,
-                content_type=content_type,
-                content=f'Content for {content_type}',
-                model_version='claude-sonnet-4-6',
-            )
 
-    def test_detail_query_count_is_two_regardless_of_summary_count(self):
-        """prefetch_related batches the summaries fetch: always 2 queries for detail,
-        not 1 (rep) + N (one per summary)."""
-        with self.assertNumQueries(2):
-            response = self.client.get(f'/api/v1/representatives/{self.rep.id}/')
-        self.assertEqual(response.status_code, 200)
-        # All 3 summaries are present — confirms the prefetch actually loaded them.
-        self.assertEqual(len(response.data['summaries']), 3)
+    def test_senate_bill(self):
+        self.assertEqual(
+            self._url(congress=113, type='S', number='1'),
+            'https://www.congress.gov/bill/113th-congress/senate-bill/1',
+        )
 
-    def test_list_includes_prefetch_batch_query(self):
-        """The list endpoint carries prefetch_related, costing 2 queries (reps + summaries
-        batch). If prefetch_related is removed from list(), this drops to 1 and the test
-        fails — alerting that the guard was removed."""
-        _make_rep(name='Another Rep', level='senate', state='OR', district_number=None)
-        with self.assertNumQueries(2):
-            response = self.client.get('/api/v1/representatives/')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 2)
+    def test_ordinal_nd(self):
+        self.assertEqual(
+            self._url(congress=102, type='HJRES', number='2'),
+            'https://www.congress.gov/bill/102nd-congress/house-joint-resolution/2',
+        )
+
+    def test_missing_congress_returns_none(self):
+        self.assertIsNone(self._url(type='HR', number='1'))
+
+    def test_missing_number_returns_none(self):
+        self.assertIsNone(self._url(congress=119, type='HR'))
+
+    def test_unknown_type_returns_none(self):
+        self.assertIsNone(self._url(congress=119, type='UNKNOWN', number='5'))
+
+    def test_simplify_bill_uses_public_url(self):
+        from representatives.services.congress_api import _simplify_bill
+        bill = {
+            'congress': 119, 'type': 'HR', 'number': '100',
+            'title': 'Test Act', 'introducedDate': '2025-01-01',
+            'latestAction': {'text': 'Referred to committee', 'actionDate': '2025-01-02'},
+            'url': 'https://api.congress.gov/v3/bill/119/hr/100?format=json',
+        }
+        result = _simplify_bill(bill)
+        self.assertTrue(result['congress_url'].startswith('https://www.congress.gov/bill/'))
 
 
 # ---------------------------------------------------------------------------

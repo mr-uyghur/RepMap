@@ -193,6 +193,11 @@ class LegislationView(APIView):
     def get(self, request, bioguide_id: str):
         if not BIOGUIDE_RE.match(bioguide_id):
             return error_response('Invalid bioguide_id format.')
+        if not settings.CONGRESS_API_KEY:
+            return Response(
+                {'detail': 'Legislation source unavailable — CONGRESS_API_KEY not configured.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
         return Response({
             'sponsored': fetch_sponsored_legislation(bioguide_id),
             'cosponsored': fetch_cosponsored_legislation(bioguide_id),

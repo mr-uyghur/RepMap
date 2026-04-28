@@ -3,9 +3,10 @@ import os
 import logging
 from dotenv import load_dotenv
 
-load_dotenv()
-
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Explicit path so env vars load correctly regardless of the CWD used to start the server.
+load_dotenv(BASE_DIR / '.env')
 
 # Fail fast if the app boots without a configured Django secret.
 _secret_key = os.environ.get('DJANGO_SECRET_KEY', '')
