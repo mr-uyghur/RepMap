@@ -43,6 +43,15 @@ export interface LegislationResponse {
   cosponsored: Bill[]
 }
 
+export interface ZipSearchResult {
+  zipcode: string
+  lat: number
+  lng: number
+  representatives: Representative[]
+  isApproximate?: boolean
+  note?: string
+}
+
 export interface MapState {
   zoom: number
   center: [number, number]

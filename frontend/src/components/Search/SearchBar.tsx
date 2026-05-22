@@ -1,4 +1,8 @@
 import { useState } from 'react'
+import axios from 'axios'
+import { fetchRepsByZipcode, lookupZip } from '../../api/representatives'
+import { resolveZipSearchFallback } from '../../utils/zipFallback'
+import type { Representative, ZipSearchResult } from '../../types'
 
 function SearchIcon() {
   return (
@@ -16,17 +20,26 @@ function SpinnerIcon() {
     </svg>
   )
 }
-import axios from 'axios'
-import { lookupZip } from '../../api/representatives'
-
 interface Props {
-  onFlyTo: (lat: number, lng: number) => void
+  allRepresentatives: Representative[]
+  onZipSearchComplete: (result: ZipSearchResult) => void
+  onZipSearchReset: () => void
 }
 
-export default function SearchBar({ onFlyTo }: Props) {
+export default function SearchBar({
+  allRepresentatives,
+  onZipSearchComplete,
+  onZipSearchReset,
+}: Props) {
   const [query, setQuery] = useState('')
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const handleQueryChange = (value: string) => {
+    setQuery(value)
+    setError(null)
+    if (!value.trim()) onZipSearchReset()
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,15 +48,50 @@ export default function SearchBar({ onFlyTo }: Props) {
 
     setError(null)
     setSearching(true)
+    onZipSearchReset()
 
     if (/^\d{5}$/.test(trimmed)) {
       try {
-        const { lat, lng } = await lookupZip(trimmed)
-        onFlyTo(lat, lng)
+        const [locationResult, repsResult] = await Promise.allSettled([
+          lookupZip(trimmed),
+          fetchRepsByZipcode(trimmed),
+        ])
+
+        const liveLocation =
+          locationResult.status === 'fulfilled' ? locationResult.value : null
+        const liveRepresentatives =
+          repsResult.status === 'fulfilled' ? repsResult.value : []
+        const fallback = resolveZipSearchFallback(trimmed, allRepresentatives)
+
+        const representatives = liveRepresentatives.length
+          ? liveRepresentatives
+          : fallback?.representatives ?? []
+        const defaultRep =
+          representatives.find((rep) => rep.level === 'house') ?? representatives[0]
+        const location = liveLocation ?? fallback ?? (defaultRep
+          ? { lat: defaultRep.latitude, lng: defaultRep.longitude }
+          : null)
+
+        if (!location || !representatives.length) {
+          throw repsResult.status === 'rejected'
+            ? repsResult.reason
+            : locationResult.status === 'rejected'
+              ? locationResult.reason
+              : new Error('ZIP code not found')
+        }
+
+        onZipSearchComplete({
+          zipcode: trimmed,
+          lat: location.lat,
+          lng: location.lng,
+          representatives,
+          isApproximate: !liveLocation || !liveRepresentatives.length || fallback?.isApproximate,
+          note: !liveLocation || !liveRepresentatives.length ? fallback?.note : undefined,
+        })
       } catch (err) {
         if (axios.isAxiosError(err)) {
           if (!err.response) {
-            setError('Unable to reach the server.')
+            setError('Unable to reach the server. Make sure Django is running on port 8000.')
           } else if (err.response.status === 404) {
             setError('ZIP code not found.')
           } else {
@@ -74,11 +122,13 @@ export default function SearchBar({ onFlyTo }: Props) {
         id="map-search"
         type="search"
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Enter ZIP code (e.g. 90210)"
+        onChange={(e) => handleQueryChange(e.target.value)}
+        placeholder="Enter ZIP code"
         className="searchbar-input"
         aria-describedby={error ? 'searchbar-error' : undefined}
         autoComplete="off"
+        inputMode="numeric"
+        maxLength={5}
       />
       <button
         type="submit"

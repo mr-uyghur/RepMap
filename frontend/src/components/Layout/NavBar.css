@@ -43,7 +43,39 @@
 /* ── Search slot ──────────────────────────────────────────────────────────── */
 .navbar-search {
   flex: 1;
-  max-width: 480px;
+  max-width: 560px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid rgba(30, 58, 95, 0.16);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--shadow-sm);
+}
+
+:root.dark .navbar-search {
+  border-color: rgba(148, 163, 184, 0.12);
+  background: rgba(15, 23, 42, 0.82);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.navbar-search-label {
+  color: #1e3a5f;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+:root.dark .navbar-search-label {
+  color: #cbd5e1;
+}
+
+.navbar-search .searchbar {
+  min-width: 0;
+  flex: 1;
 }
 
 /* ── Dark-mode toggle ─────────────────────────────────────────────────────── */
@@ -82,6 +114,14 @@
 
   .navbar-search {
     max-width: none;
+    padding: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .navbar-search-label {
+    display: none;
   }
 
   .navbar-theme-label {

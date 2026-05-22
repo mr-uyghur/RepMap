@@ -1,9 +1,12 @@
 import { useMapStore } from '../../store/mapStore'
 import SearchBar from '../Search/SearchBar'
+import type { Representative, ZipSearchResult } from '../../types'
 import './NavBar.css'
 
 interface Props {
-  onFlyTo: (lat: number, lng: number) => void
+  allRepresentatives: Representative[]
+  onZipSearchComplete: (result: ZipSearchResult) => void
+  onZipSearchReset: () => void
 }
 
 function SunIcon() {
@@ -23,7 +26,11 @@ function MoonIcon() {
   )
 }
 
-export default function NavBar({ onFlyTo }: Props) {
+export default function NavBar({
+  allRepresentatives,
+  onZipSearchComplete,
+  onZipSearchReset,
+}: Props) {
   const darkMode = useMapStore((s) => s.darkMode)
   const toggleDarkMode = useMapStore((s) => s.toggleDarkMode)
 
@@ -34,7 +41,12 @@ export default function NavBar({ onFlyTo }: Props) {
         RepMap
       </span>
       <div className="navbar-search">
-        <SearchBar onFlyTo={onFlyTo} />
+        <span className="navbar-search-label">Find your representatives</span>
+        <SearchBar
+          allRepresentatives={allRepresentatives}
+          onZipSearchComplete={onZipSearchComplete}
+          onZipSearchReset={onZipSearchReset}
+        />
       </div>
       <button
         onClick={toggleDarkMode}

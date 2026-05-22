@@ -23,6 +23,10 @@ logger = logging.getLogger(__name__)
 _BASE_URL = 'https://api.congress.gov/v3/member/{bioguide_id}/votes'
 _CACHE_TTL = 60 * 60 * 6  # 6 hours
 
+
+class CongressApiUnavailable(Exception):
+    """Raised when Congress.gov cannot return usable legislation data."""
+
 # Normalise chamber-specific position labels to a consistent vocabulary.
 _POSITION_MAP = {
     'aye': 'Yes',
@@ -52,7 +56,12 @@ def fetch_recent_votes(bioguide_id: str) -> list:
 
     url = _BASE_URL.format(bioguide_id=bioguide_id)
     try:
-        response = requests.get(url, params={'api_key': api_key, 'limit': 20}, timeout=10)
+        response = requests.get(
+            url,
+            params={'limit': 20},
+            headers={'x-api-key': api_key},
+            timeout=10,
+        )
         response.raise_for_status()
         data = response.json()
     except (requests.RequestException, ValueError) as exc:
@@ -161,20 +170,25 @@ def fetch_sponsored_legislation(bioguide_id: str) -> list:
 
     url = f'https://api.congress.gov/v3/member/{bioguide_id}/sponsored-legislation'
     try:
-        resp = requests.get(url, params={'api_key': api_key, 'limit': 10, 'format': 'json'}, timeout=10)
+        resp = requests.get(
+            url,
+            params={'limit': 10, 'format': 'json'},
+            headers={'x-api-key': api_key},
+            timeout=10,
+        )
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError) as exc:
         logger.warning('Congress.gov sponsored fetch failed for %s: %s', bioguide_id, exc)
-        return []
+        raise CongressApiUnavailable('Congress.gov sponsored legislation is unavailable') from exc
 
     try:
         raw = data['sponsoredLegislation']
         if not isinstance(raw, list):
             raise TypeError('sponsoredLegislation is not a list')
-    except (KeyError, TypeError):
+    except (KeyError, TypeError) as exc:
         logger.warning('Unexpected sponsored-legislation shape for %s', bioguide_id)
-        return []
+        raise CongressApiUnavailable('Unexpected Congress.gov sponsored legislation response') from exc
 
     result = [_simplify_bill(b) for b in raw[:10]]
     cache.set(cache_key, result, _LEGISLATION_CACHE_TTL)
@@ -198,20 +212,25 @@ def fetch_cosponsored_legislation(bioguide_id: str) -> list:
 
     url = f'https://api.congress.gov/v3/member/{bioguide_id}/cosponsored-legislation'
     try:
-        resp = requests.get(url, params={'api_key': api_key, 'limit': 10, 'format': 'json'}, timeout=10)
+        resp = requests.get(
+            url,
+            params={'limit': 10, 'format': 'json'},
+            headers={'x-api-key': api_key},
+            timeout=10,
+        )
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError) as exc:
         logger.warning('Congress.gov cosponsored fetch failed for %s: %s', bioguide_id, exc)
-        return []
+        raise CongressApiUnavailable('Congress.gov cosponsored legislation is unavailable') from exc
 
     try:
         raw = data['cosponsoredLegislation']
         if not isinstance(raw, list):
             raise TypeError('cosponsoredLegislation is not a list')
-    except (KeyError, TypeError):
+    except (KeyError, TypeError) as exc:
         logger.warning('Unexpected cosponsored-legislation shape for %s', bioguide_id)
-        return []
+        raise CongressApiUnavailable('Unexpected Congress.gov cosponsored legislation response') from exc
 
     result = [_simplify_bill(b) for b in raw[:10]]
     cache.set(cache_key, result, _LEGISLATION_CACHE_TTL)

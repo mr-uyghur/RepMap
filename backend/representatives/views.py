@@ -18,7 +18,12 @@ from .integrations.census import (
     fetch_congressional_districts, fetch_state_boundary, STATE_FIPS,
     load_local_congressional_districts,
 )
-from .services.congress_api import fetch_recent_votes, fetch_sponsored_legislation, fetch_cosponsored_legislation
+from .services.congress_api import (
+    CongressApiUnavailable,
+    fetch_recent_votes,
+    fetch_sponsored_legislation,
+    fetch_cosponsored_legislation,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -198,10 +203,16 @@ class LegislationView(APIView):
                 {'detail': 'Legislation source unavailable — CONGRESS_API_KEY not configured.'},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
-        return Response({
-            'sponsored': fetch_sponsored_legislation(bioguide_id),
-            'cosponsored': fetch_cosponsored_legislation(bioguide_id),
-        })
+        try:
+            return Response({
+                'sponsored': fetch_sponsored_legislation(bioguide_id),
+                'cosponsored': fetch_cosponsored_legislation(bioguide_id),
+            })
+        except CongressApiUnavailable:
+            return Response(
+                {'detail': 'Legislation source is temporarily unavailable. Please try again later.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
 
 class HealthView(APIView):

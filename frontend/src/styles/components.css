@@ -36,12 +36,12 @@
   flex: 1;
   height: 36px;
   padding: 0 12px;
-  border: 1.5px solid var(--color-border);
+  border: 1.5px solid #94a3b8;
   border-radius: var(--radius-md);
   font-family: var(--font-body);
   font-size: 14px;
-  background: var(--color-bg-elevated);
-  color: var(--color-text-primary);
+  background: #ffffff;
+  color: #0f172a;
   outline: none;
   -webkit-appearance: none;
   appearance: none;
@@ -49,7 +49,18 @@
 }
 
 .searchbar-input::placeholder {
-  color: var(--color-text-subtle);
+  color: #64748b;
+  opacity: 1;
+}
+
+:root.dark .searchbar-input {
+  border-color: rgba(148, 163, 184, 0.32);
+  background: #162235;
+  color: #e2e8f0;
+}
+
+:root.dark .searchbar-input::placeholder {
+  color: #94a3b8;
 }
 
 .searchbar-input:focus {

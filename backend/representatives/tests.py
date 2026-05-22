@@ -425,6 +425,7 @@ class RepresentativeDetailEndpointTests(TestCase):
 
 @override_settings(
     CACHES={'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}},
+    CONGRESS_API_KEY='test-key',
 )
 class LegislationEndpointTests(TestCase):
     VALID_BIOGUIDE = 'L000001'
@@ -490,6 +491,16 @@ class LegislationEndpointTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['sponsored'], [])
         self.assertEqual(response.data['cosponsored'], [])
+
+    def test_upstream_failure_returns_503_not_empty_lists(self):
+        from representatives.services.congress_api import CongressApiUnavailable
+        with patch(
+            'representatives.views.fetch_sponsored_legislation',
+            side_effect=CongressApiUnavailable('network blocked'),
+        ):
+            response = self._get(self.VALID_BIOGUIDE)
+        self.assertEqual(response.status_code, 503)
+        self.assertIn('detail', response.data)
 
     @override_settings(CONGRESS_API_KEY='')
     def test_returns_503_when_api_key_missing(self):

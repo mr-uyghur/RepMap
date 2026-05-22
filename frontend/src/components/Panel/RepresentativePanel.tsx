@@ -30,7 +30,7 @@ const PARTY_LABELS: Record<string, string> = {
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'biography',     label: 'Biography'    },
-  { key: 'voting_record', label: 'Voting Record' },
+  { key: 'voting_record', label: 'Legislation'  },
   { key: 'how_to_vote',   label: 'How to Vote'  },
 ]
 
@@ -198,6 +198,7 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
             {activeTab === 'voting_record' && (
               <LegislationTab
                 bioguide_id={rep.bioguide_id ?? ''}
+                congressUrl={rep.congress_gov_url}
                 darkMode={dm}
               />
             )}

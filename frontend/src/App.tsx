@@ -1,11 +1,12 @@
-import { Component, useRef, useCallback, useEffect } from 'react'
+import { Component, useRef, useCallback, useEffect, useState } from 'react'
 import type { MapRef } from 'react-map-gl'
 import RepMap from './components/Map/RepMap'
 import RepresentativePanel from './components/Panel/RepresentativePanel'
 import NavBar from './components/Layout/NavBar'
+import ZipSearchResults from './components/Search/ZipSearchResults'
 import { useMapStore } from './store/mapStore'
-import { initSyncPolling, teardownSyncPolling } from './store/repStore'
-import type { Representative } from './types'
+import { initSyncPolling, teardownSyncPolling, useRepStore } from './store/repStore'
+import type { Representative, ZipSearchResult } from './types'
 import './App.css'
 
 class ErrorBoundary extends Component<
@@ -36,9 +37,12 @@ class ErrorBoundary extends Component<
 
 export default function App() {
   const mapRef = useRef<MapRef>(null)
+  const [zipSearchResult, setZipSearchResult] = useState<ZipSearchResult | null>(null)
+  const [detailPanelOpen, setDetailPanelOpen] = useState(false)
   const selectedRepId = useMapStore((s) => s.selectedRepId)
   const setSelectedRepId = useMapStore((s) => s.setSelectedRepId)
   const darkMode = useMapStore((s) => s.darkMode)
+  const allRepresentatives = useRepStore((s) => s.allReps)
 
   useEffect(() => {
     initSyncPolling()
@@ -53,6 +57,7 @@ export default function App() {
   const handleRepSelect = useCallback(
     (rep: Representative) => {
       setSelectedRepId(rep.id)
+      setDetailPanelOpen(true)
       // 2.5D cinematic camera drop onto the selected representative's location.
       mapRef.current?.flyTo({
         center: [rep.longitude, rep.latitude],
@@ -76,16 +81,47 @@ export default function App() {
     })
   }, [])
 
+  const handleZipSearchComplete = useCallback(
+    (result: ZipSearchResult) => {
+      setZipSearchResult(result)
+      setDetailPanelOpen(false)
+      handleFlyTo(result.lat, result.lng)
+      const defaultRep =
+        result.representatives.find((rep) => rep.level === 'house') ??
+        result.representatives[0]
+      setSelectedRepId(defaultRep?.id ?? null)
+    },
+    [handleFlyTo, setSelectedRepId]
+  )
+
+  const handleZipSearchReset = useCallback(() => {
+    setZipSearchResult(null)
+    setDetailPanelOpen(false)
+    setSelectedRepId(null)
+  }, [setSelectedRepId])
+
   return (
     <ErrorBoundary>
       <div className="app-shell">
-        <NavBar onFlyTo={handleFlyTo} />
+        <NavBar
+          allRepresentatives={allRepresentatives}
+          onZipSearchComplete={handleZipSearchComplete}
+          onZipSearchReset={handleZipSearchReset}
+        />
         <main id="main-content" className="app-map-area">
           <RepMap mapRef={mapRef} onRepSelect={handleRepSelect} />
-          {selectedRepId !== null && (
+          {zipSearchResult && (
+            <ZipSearchResults
+              result={zipSearchResult}
+              selectedRepId={selectedRepId}
+              onSelectRep={handleRepSelect}
+              onClear={handleZipSearchReset}
+            />
+          )}
+          {selectedRepId !== null && detailPanelOpen && (
             <RepresentativePanel
               repId={selectedRepId}
-              onClose={() => setSelectedRepId(null)}
+              onClose={() => setDetailPanelOpen(false)}
             />
           )}
         </main>

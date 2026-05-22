@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { Marker } from 'react-map-gl'
 import type { Representative } from '../../types'
 import { PARTY_COLORS } from '../../constants'
@@ -39,6 +39,24 @@ export default function RepresentativePin({
   const color = PARTY_COLORS[rep.party] || '#6b7280'
   const isSenator = rep.level === 'senate'
   const config = TIER_CONFIG[zoomTier]
+  const districtLabel = isSenator
+    ? `${rep.state} senator`
+    : rep.district_number != null
+      ? `${rep.state} district ${rep.district_number}`
+      : `${rep.state} at-large district`
+  const accessibleLabel = `Select ${rep.name}, ${districtLabel}`
+
+  const handlePinClick = (e: MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation()
+    onClick(rep)
+  }
+
+  const handlePinKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    e.preventDefault()
+    e.stopPropagation()
+    onClick(rep)
+  }
 
   // Z-index hierarchy: selected > hovered > senator > house
   const zIndex = isSelected ? 20 : hovered ? 15 : isSenator ? 3 : 1
@@ -52,14 +70,16 @@ export default function RepresentativePin({
         anchor="center"
         offset={offset}
         style={{ zIndex, cursor: 'pointer' }}
-        onClick={(e) => {
-          e.originalEvent.stopPropagation()
-          onClick(rep)
-        }}
       >
         <div
+          role="button"
+          tabIndex={0}
+          aria-label={accessibleLabel}
+          aria-pressed={isSelected}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
+          onClick={handlePinClick}
+          onKeyDown={handlePinKeyDown}
           style={{
             position: 'relative',
             display: 'flex',
@@ -152,12 +172,12 @@ export default function RepresentativePin({
       anchor="bottom"
       offset={offset}
       style={{ zIndex, cursor: 'pointer' }}
-      onClick={(e) => {
-        e.originalEvent.stopPropagation()
-        onClick(rep)
-      }}
     >
       <div
+        role="button"
+        tabIndex={0}
+        aria-label={accessibleLabel}
+        aria-pressed={isSelected}
         style={{
           position: 'relative',
           cursor: 'pointer',
@@ -168,6 +188,8 @@ export default function RepresentativePin({
         }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
+        onClick={handlePinClick}
+        onKeyDown={handlePinKeyDown}
       >
         {/* Avatar circle */}
         <div

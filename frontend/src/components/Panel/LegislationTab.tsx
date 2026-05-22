@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import axios from 'axios'
 import { getRepLegislation } from '../../api/representatives'
 import type { Bill, LegislationResponse } from '../../types'
 
 interface Props {
   bioguide_id: string
+  congressUrl?: string
   darkMode?: boolean
 }
 
@@ -104,7 +106,7 @@ function SectionHeader({ label }: { label: string }) {
   )
 }
 
-export default function LegislationTab({ bioguide_id }: Props) {
+export default function LegislationTab({ bioguide_id, congressUrl }: Props) {
   const [data, setData] = useState<LegislationResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -118,7 +120,16 @@ export default function LegislationTab({ bioguide_id }: Props) {
     setError(null)
     getRepLegislation(bioguide_id)
       .then((response) => setData(response))
-      .catch(() => setError('Failed to load legislation. Please try again.'))
+      .catch((err) => {
+        if (axios.isAxiosError(err) && err.response?.data) {
+          const message = err.response.data.detail ?? err.response.data.error
+          if (message) {
+            setError(message)
+            return
+          }
+        }
+        setError('Failed to load legislation. Please try again.')
+      })
       .finally(() => setLoading(false))
   }, [bioguide_id])
 
@@ -147,8 +158,28 @@ export default function LegislationTab({ bioguide_id }: Props) {
       )}
 
       {isEmpty && (
-        <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '14px' }}>
-          No legislation data available
+        <div style={{
+          padding: '16px',
+          background: 'var(--color-bg-elevated)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-md)',
+          color: 'var(--color-text-secondary)',
+          fontSize: '14px',
+          lineHeight: 1.45,
+        }}>
+          <p style={{ margin: '0 0 10px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+            No recent sponsored or cosponsored bills were returned.
+          </p>
+          {congressUrl && (
+            <a
+              href={congressUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--color-link)', fontWeight: 700, textDecoration: 'none' }}
+            >
+              Open full Congress.gov profile
+            </a>
+          )}
         </div>
       )}
 
