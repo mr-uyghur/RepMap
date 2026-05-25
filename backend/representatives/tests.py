@@ -98,72 +98,55 @@ class ZipcodeEndpointTests(TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Census Geocoder integration
+# Local ZIP lookup integration
 # ---------------------------------------------------------------------------
 
-class CensusGeocoderTests(TestCase):
-    """Unit tests for _geocode_zip_to_district and fetch_reps_by_zipcode."""
+class LocalZipLookupTests(TestCase):
+    """Unit tests for the local ZIP lookup table (geocode_zip, fetch_reps_by_zipcode)."""
 
-    def _geocoder_response(self, state_fips, cd_fp):
-        """Build a minimal Census Geocoder JSON response."""
-        return {
-            'result': {
-                'addressMatches': [{
-                    'geographies': {
-                        'Congressional Districts': [{
-                            'STATEFP': state_fips,
-                            'CD119FP': cd_fp,
-                            'BASENAME': str(int(cd_fp)),
-                        }]
-                    }
-                }]
-            }
-        }
+    # Minimal fixture covering: normal district, at-large, DC delegate, unknown ZIP.
+    _FIXTURE = {
+        '95131': {'lat': 37.387, 'lng': -121.897, 'state': 'CA', 'district': 17},
+        '99501': {'lat': 61.219, 'lng': -149.857, 'state': 'AK', 'district': None},
+        '20001': {'lat': 38.910, 'lng': -77.017, 'state': 'DC', 'district': None},
+    }
 
-    def test_geocoder_returns_state_and_district(self):
-        from representatives.integrations.zip_lookup import _geocode_zip_to_district
-        with patch('representatives.integrations.zip_lookup.requests.get') as mock_get:
-            mock_get.return_value.json.return_value = self._geocoder_response('06', '17')
-            mock_get.return_value.raise_for_status = lambda: None
-            state, district = _geocode_zip_to_district('95131')
-        self.assertEqual(state, 'CA')
-        self.assertEqual(district, 17)
+    def _patch_table(self):
+        return patch(
+            'representatives.integrations.zip_lookup._load_zip_table',
+            return_value=self._FIXTURE,
+        )
 
-    def test_geocoder_at_large_returns_none_district(self):
-        from representatives.integrations.zip_lookup import _geocode_zip_to_district
-        with patch('representatives.integrations.zip_lookup.requests.get') as mock_get:
-            mock_get.return_value.json.return_value = self._geocoder_response('02', '00')
-            mock_get.return_value.raise_for_status = lambda: None
-            state, district = _geocode_zip_to_district('99501')
-        self.assertEqual(state, 'AK')
-        self.assertIsNone(district)
+    def test_geocode_zip_returns_lat_lng(self):
+        from representatives.integrations.zip_lookup import geocode_zip
+        with self._patch_table():
+            lat, lng = geocode_zip('95131')
+        self.assertAlmostEqual(lat, 37.387)
+        self.assertAlmostEqual(lng, -121.897)
 
-    def test_geocoder_no_match_returns_none_none(self):
-        from representatives.integrations.zip_lookup import _geocode_zip_to_district
-        with patch('representatives.integrations.zip_lookup.requests.get') as mock_get:
-            mock_get.return_value.json.return_value = {'result': {'addressMatches': []}}
-            mock_get.return_value.raise_for_status = lambda: None
-            state, district = _geocode_zip_to_district('00000')
-        self.assertIsNone(state)
-        self.assertIsNone(district)
+    def test_geocode_zip_unknown_returns_none_none(self):
+        from representatives.integrations.zip_lookup import geocode_zip
+        with self._patch_table():
+            lat, lng = geocode_zip('00000')
+        self.assertIsNone(lat)
+        self.assertIsNone(lng)
 
-    def test_geocoder_network_error_raises(self):
-        from representatives.integrations.zip_lookup import _geocode_zip_to_district
-        import requests as req
-        with patch('representatives.integrations.zip_lookup.requests.get',
-                   side_effect=req.RequestException('timeout')):
-            with self.assertRaises(Exception) as ctx:
-                _geocode_zip_to_district('10001')
-        self.assertIn('Census Geocoder error', str(ctx.exception))
+    def test_geocode_zip_at_large_returns_centroid(self):
+        from representatives.integrations.zip_lookup import geocode_zip
+        with self._patch_table():
+            lat, lng = geocode_zip('99501')
+        self.assertAlmostEqual(lat, 61.219)
+        self.assertAlmostEqual(lng, -149.857)
 
-    @override_settings(
-        AUTO_SYNC_ENABLED=False,
-        CACHES={'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}},
-    )
-    def test_fetch_reps_by_zipcode_returns_db_reps(self):
-        """fetch_reps_by_zipcode returns House rep + senators from DB after geocoding."""
+    def test_geocode_zip_invalid_format_raises(self):
+        from representatives.integrations.zip_lookup import geocode_zip
+        with self.assertRaises(ValueError):
+            geocode_zip('abcde')
+
+    @override_settings(AUTO_SYNC_ENABLED=False)
+    def test_fetch_reps_by_zipcode_returns_house_and_senators(self):
+        """fetch_reps_by_zipcode queries DB using state + district from local table."""
         from representatives.integrations.zip_lookup import fetch_reps_by_zipcode
-        from representatives.models import Representative
         Representative.objects.create(
             name='House Rep', level='house', party='democrat',
             state='CA', district_number=17, latitude=37.0, longitude=-121.0,
@@ -172,15 +155,19 @@ class CensusGeocoderTests(TestCase):
             name='Senator A', level='senate', party='democrat',
             state='CA', district_number=None, latitude=37.0, longitude=-119.0,
         )
-        with patch(
-            'representatives.integrations.zip_lookup._geocode_zip_to_district',
-            return_value=('CA', 17),
-        ):
+        with self._patch_table():
             reps = fetch_reps_by_zipcode('95131')
         self.assertEqual(len(reps), 2)
         levels = {r.level for r in reps}
         self.assertIn('house', levels)
         self.assertIn('senate', levels)
+
+    @override_settings(AUTO_SYNC_ENABLED=False)
+    def test_fetch_reps_unknown_zip_returns_empty(self):
+        from representatives.integrations.zip_lookup import fetch_reps_by_zipcode
+        with self._patch_table():
+            reps = fetch_reps_by_zipcode('00000')
+        self.assertEqual(reps, [])
 
 
 

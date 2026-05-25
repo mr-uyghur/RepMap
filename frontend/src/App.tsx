@@ -121,7 +121,10 @@ export default function App() {
           {selectedRepId !== null && detailPanelOpen && (
             <RepresentativePanel
               repId={selectedRepId}
-              onClose={() => setDetailPanelOpen(false)}
+              onClose={() => {
+                setDetailPanelOpen(false)
+                setSelectedRepId(null)
+              }}
             />
           )}
         </main>

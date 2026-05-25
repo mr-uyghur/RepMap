@@ -141,4 +141,5 @@ CLAUDE.md
 # AI Agents tooling
 # ============================================================
 .agents/
+.antigravitycli/
 skills-lock.json
