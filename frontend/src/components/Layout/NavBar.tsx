@@ -7,6 +7,7 @@ interface Props {
   allRepresentatives: Representative[]
   onZipSearchComplete: (result: ZipSearchResult) => void
   onZipSearchReset: () => void
+  onRepSelect: (rep: Representative) => void
 }
 
 function SunIcon() {
@@ -30,6 +31,7 @@ export default function NavBar({
   allRepresentatives,
   onZipSearchComplete,
   onZipSearchReset,
+  onRepSelect,
 }: Props) {
   const darkMode = useMapStore((s) => s.darkMode)
   const toggleDarkMode = useMapStore((s) => s.toggleDarkMode)
@@ -46,6 +48,7 @@ export default function NavBar({
           allRepresentatives={allRepresentatives}
           onZipSearchComplete={onZipSearchComplete}
           onZipSearchReset={onZipSearchReset}
+          onRepSelect={onRepSelect}
         />
       </div>
       <button

@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import axios from 'axios'
 import { fetchRepsByZipcode, lookupZip } from '../../api/representatives'
+import { searchReps } from '../../utils/repSearch'
 import { resolveZipSearchFallback } from '../../utils/zipFallback'
 import type { Representative, ZipSearchResult } from '../../types'
+import NameSearchDropdown from './NameSearchDropdown'
 
 function SearchIcon() {
   return (
@@ -24,27 +26,89 @@ interface Props {
   allRepresentatives: Representative[]
   onZipSearchComplete: (result: ZipSearchResult) => void
   onZipSearchReset: () => void
+  onRepSelect: (rep: Representative) => void
 }
 
 export default function SearchBar({
   allRepresentatives,
   onZipSearchComplete,
   onZipSearchReset,
+  onRepSelect,
 }: Props) {
   const [query, setQuery] = useState('')
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [dropdownResults, setDropdownResults] = useState<Representative[]>([])
+  const [activeIndex, setActiveIndex] = useState(-1)
+  const listboxId = useId()
+
+  const trimmedQuery = query.trim()
+  const isNameSearch = trimmedQuery.length > 0 && !/^\d+$/.test(trimmedQuery)
 
   const handleQueryChange = (value: string) => {
     setQuery(value)
     setError(null)
-    if (!value.trim()) onZipSearchReset()
+    setActiveIndex(-1)
+
+    const trimmedValue = value.trim()
+    if (!trimmedValue) {
+      setDropdownResults([])
+      onZipSearchReset()
+      return
+    }
+
+    setDropdownResults(
+      /^\d+$/.test(trimmedValue) ? [] : searchReps(trimmedValue, allRepresentatives),
+    )
+  }
+
+  const handleSelect = (rep: Representative) => {
+    onZipSearchReset()
+    onRepSelect(rep)
+    setQuery('')
+    setDropdownResults([])
+    setActiveIndex(-1)
+  }
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape') {
+      setDropdownResults([])
+      setActiveIndex(-1)
+      return
+    }
+
+    if (!isNameSearch || dropdownResults.length === 0) return
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      setActiveIndex((current) => (current + 1) % dropdownResults.length)
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      setActiveIndex((current) =>
+        current <= 0 ? dropdownResults.length - 1 : current - 1,
+      )
+    } else if (event.key === 'Enter' && activeIndex >= 0) {
+      event.preventDefault()
+      handleSelect(dropdownResults[activeIndex])
+    }
+  }
+
+  const handleBlur = () => {
+    setDropdownResults([])
+    setActiveIndex(-1)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const trimmed = query.trim()
     if (!trimmed) return
+
+    if (isNameSearch) {
+      if (activeIndex >= 0 && dropdownResults[activeIndex]) {
+        handleSelect(dropdownResults[activeIndex])
+      }
+      return
+    }
 
     setError(null)
     setSearching(true)
@@ -108,41 +172,64 @@ export default function SearchBar({
     setSearching(false)
   }
 
+  const showDropdown = isNameSearch && dropdownResults.length > 0
+
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="searchbar"
-      role="search"
-      aria-label="Navigate the map by ZIP code"
-    >
-      <label htmlFor="map-search" className="sr-only">
-        Search by ZIP code
-      </label>
-      <input
-        id="map-search"
-        type="search"
-        value={query}
-        onChange={(e) => handleQueryChange(e.target.value)}
-        placeholder="Enter ZIP code"
-        className="searchbar-input"
-        aria-describedby={error ? 'searchbar-error' : undefined}
-        autoComplete="off"
-        inputMode="numeric"
-        maxLength={5}
-      />
-      <button
-        type="submit"
-        disabled={searching}
-        className="searchbar-btn"
-        aria-label="Search"
+    <div className="searchbar-container">
+      <form
+        onSubmit={handleSubmit}
+        className="searchbar"
+        role="search"
+        aria-label="Search representatives by ZIP code or name"
       >
-        {searching ? <SpinnerIcon /> : <SearchIcon />}
-      </button>
-      {error && (
-        <p id="searchbar-error" className="searchbar-error" role="alert">
-          {error}
-        </p>
+        <label htmlFor="map-search" className="sr-only">
+          Search by ZIP code or name
+        </label>
+        <input
+          id="map-search"
+          type="search"
+          value={query}
+          onChange={(e) => handleQueryChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
+          placeholder="Search by ZIP or name"
+          className="searchbar-input"
+          role="combobox"
+          aria-describedby={error ? 'searchbar-error' : undefined}
+          aria-autocomplete={isNameSearch ? 'list' : undefined}
+          aria-controls={showDropdown ? listboxId : undefined}
+          aria-activedescendant={
+            showDropdown && activeIndex >= 0
+              ? `${listboxId}-option-${activeIndex}`
+              : undefined
+          }
+          aria-expanded={showDropdown}
+          autoComplete="off"
+          inputMode="text"
+        />
+        <button
+          type="submit"
+          disabled={searching}
+          className="searchbar-btn"
+          aria-label="Search"
+        >
+          {searching ? <SpinnerIcon /> : <SearchIcon />}
+        </button>
+        {error && (
+          <p id="searchbar-error" className="searchbar-error" role="alert">
+            {error}
+          </p>
+        )}
+      </form>
+      {showDropdown && (
+        <NameSearchDropdown
+          results={dropdownResults}
+          activeIndex={activeIndex}
+          onSelect={handleSelect}
+          onSetActiveIndex={setActiveIndex}
+          listboxId={listboxId}
+        />
       )}
-    </form>
+    </div>
   )
 }

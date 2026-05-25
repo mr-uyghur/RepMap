@@ -158,6 +158,7 @@ export default function App() {
           allRepresentatives={allRepresentatives}
           onZipSearchComplete={handleZipSearchComplete}
           onZipSearchReset={handleZipSearchReset}
+          onRepSelect={handleRepSelect}
         />
         <main id="main-content" className="app-map-area">
           <RepMap mapRef={mapRef} onRepSelect={handleRepSelect} />
