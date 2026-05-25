@@ -3,6 +3,7 @@ import type { MapRef } from 'react-map-gl'
 import RepMap from './components/Map/RepMap'
 import RepresentativePanel from './components/Panel/RepresentativePanel'
 import NavBar from './components/Layout/NavBar'
+import PartyRibbon from './components/Layout/PartyRibbon'
 import ZipSearchResults from './components/Search/ZipSearchResults'
 import { useMapStore } from './store/mapStore'
 import { initSyncPolling, teardownSyncPolling, useRepStore } from './store/repStore'
@@ -160,6 +161,7 @@ export default function App() {
           onZipSearchReset={handleZipSearchReset}
           onRepSelect={handleRepSelect}
         />
+        <PartyRibbon />
         <main id="main-content" className="app-map-area">
           <RepMap mapRef={mapRef} onRepSelect={handleRepSelect} />
           {zipSearchResult && (
