@@ -155,7 +155,7 @@
   white-space: nowrap;
 }
 
-@media (max-width: 639px) {
+@media (max-width: 768px) {
   .zip-results {
     top: auto;
     right: 0;

@@ -81,8 +81,18 @@
     0  8px 16px  -4px rgba(0, 0, 0, 0.38);
 }
 
+.panel-drag-handle {
+  display: none;
+  width: 36px;
+  height: 4px;
+  margin: 8px auto 0;
+  border-radius: 2px;
+  background: var(--color-border);
+  flex-shrink: 0;
+}
+
 /* ── Mobile Bottom-Sheet ──────────────────────────────────────────────────── */
-@media (max-width: 639px) {
+@media (max-width: 768px) {
   .panel {
     top: auto;
     bottom: 0;
@@ -94,6 +104,21 @@
     border-left: none;
     border-top: 1px solid var(--color-border-subtle);
     box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.4);
+  }
+
+  .panel-drag-handle {
+    display: block;
+  }
+}
+
+@media (max-width: 768px) and (prefers-reduced-motion: no-preference) {
+  @keyframes panel-slide-up-mobile {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+
+  .panel {
+    animation: panel-slide-up-mobile 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 }
 

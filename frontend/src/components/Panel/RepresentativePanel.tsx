@@ -122,6 +122,7 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
 
   return (
     <div className="panel">
+      <div className="panel-drag-handle" aria-hidden="true" />
       {isSyncing && (
         <div className="panel-sync-banner" aria-live="polite">
           Data refreshing…

@@ -86,6 +86,9 @@ export default function RepresentativePin({
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
+            pointerEvents: 'auto',
+            padding: '8px',
+            margin: '-8px',
           }}
         >
           <div
@@ -185,6 +188,9 @@ export default function RepresentativePin({
           flexDirection: 'column',
           alignItems: 'center',
           gap: zoomTier === 2 ? '2px' : '4px',
+          pointerEvents: 'auto',
+          padding: '8px',
+          margin: '-8px',
         }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}

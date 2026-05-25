@@ -171,7 +171,13 @@
   box-shadow: inset 0 0 0 1px var(--color-accent);
 }
 
-@media (max-width: 639px) {
+@media (max-width: 768px) {
+  .searchbar-dropdown {
+    max-height: 280px;
+  }
+}
+
+@media (max-width: 480px) {
   .searchbar-dropdown-item {
     grid-template-columns: 38px minmax(0, 1fr);
   }

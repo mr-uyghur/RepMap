@@ -106,10 +106,24 @@
 }
 
 /* ── Mobile ───────────────────────────────────────────────────────────────── */
-@media (max-width: 639px) {
+@media (max-width: 768px) {
+  .navbar-search-label {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
   .navbar {
-    padding: 0 12px;
-    gap: 8px;
+    padding: 0 10px;
+    gap: 6px;
+  }
+
+  .navbar-brand {
+    font-size: 1rem;
+  }
+
+  .navbar-brand::after {
+    display: none;
   }
 
   .navbar-search {
@@ -120,15 +134,11 @@
     box-shadow: none;
   }
 
-  .navbar-search-label {
-    display: none;
-  }
-
   .navbar-theme-label {
     display: none;
   }
 
   .navbar-theme-btn {
-    padding: 6px 8px;
+    padding: 6px;
   }
 }

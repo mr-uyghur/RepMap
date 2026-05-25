@@ -185,3 +185,13 @@ Frontend changes: new `PartyRibbon.tsx` component subscribing directly to the Zu
 Verification: `npx tsc --noEmit` and `npm run build` passed. Vite continues to report the existing Mapbox bundle-size warning during production builds.
 
 Phase 1 feature work complete.
+
+### 2026-05-25 - TASK_01: Mobile Responsive Layout (Phase 2)
+
+Shipped the first Phase 2 responsive layout update. At tablet and phone widths (`<= 768px`), the representative panel now presents as a bottom sheet with a visible drag handle, capped viewport height, rounded top corners, and reduced-motion-aware entrance animation. The navbar and search surfaces compact further at phone widths (`<= 480px`) so the primary controls remain usable without crowding.
+
+Frontend changes: `RepresentativePanel.tsx` and `RepresentativePanel.css` add the mobile sheet handle and responsive presentation; `NavBar.css` adds tablet and phone breakpoint behavior; `RepresentativePin.tsx` increases touch hit areas for map pins; `styles/components.css` limits mobile autocomplete height and compacts result items; and `ZipSearchResults.css` extends the full-width bottom overlay layout through tablet widths.
+
+Verification: `npx tsc --noEmit`, `npm run build`, and `git diff --check` passed. Vite continues to report the existing Mapbox bundle-size warning during production builds. Rendered device emulation was not available in this session.
+
+Phase 2 work underway.
