@@ -175,3 +175,13 @@ Shipped frontend-only representative search alongside the existing ZIP workflow.
 Frontend changes: new `utils/repSearch.ts` for token-aware matching and ranking, new `NameSearchDropdown.tsx` for accessible result rendering, and `SearchBar.tsx` updated with selection state, keyboard navigation (`ArrowUp`, `ArrowDown`, `Enter`, `Escape`), outside-focus dismissal, combobox attributes, and the new placeholder. `NavBar.tsx` and `App.tsx` now thread representative selection into the existing panel-opening flow, and `styles/components.css` includes dropdown layout and active-result styling.
 
 Remaining Phase 1 item: Party composition bar.
+
+### 2026-05-25 - TASK_04: Party Composition Ribbon (Phase 1)
+
+Shipped the collapsible party composition ribbon below the navbar. Once representative data is loaded, it displays national House and Senate totals for Democrats, Republicans, and Independents, with `other` representatives folded into the Independent bucket. Party totals use the existing light/dark theme color tokens and the ribbon remains out of the layout until `allReps` is populated.
+
+Frontend changes: new `PartyRibbon.tsx` component subscribing directly to the Zustand `allReps` slice, new `PartyRibbon.css` for the compact glass ribbon and collapsed toggle state, and `App.tsx` updated to mount the ribbon between the navbar and map. The collapsed preference persists in `localStorage` under `repmap.partyRibbon.collapsed`.
+
+Verification: `npx tsc --noEmit` and `npm run build` passed. Vite continues to report the existing Mapbox bundle-size warning during production builds.
+
+Phase 1 feature work complete.
