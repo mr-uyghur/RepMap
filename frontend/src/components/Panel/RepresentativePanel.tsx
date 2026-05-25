@@ -9,6 +9,7 @@ import BioTab from './BioTab'
 import HowToVoteTab from './HowToVoteTab'
 import VotesSection from './VotesSection'
 import { PARTY_COLORS } from '../../constants'
+import { copyToClipboard } from '../../utils/clipboard'
 import './RepresentativePanel.css'
 
 function CloseIcon() {
@@ -16,6 +17,16 @@ function CloseIcon() {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
       <line x1="18" y1="6" x2="6" y2="18"/>
       <line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  )
+}
+
+function ShareIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+      <polyline points="16 6 12 2 8 6"/>
+      <line x1="12" y1="2" x2="12" y2="15"/>
     </svg>
   )
 }
@@ -57,8 +68,17 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabKey>('biography')
+  const [copied, setCopied] = useState(false)
   const dm = useMapStore((s) => s.darkMode)
   const isSyncing = useRepStore((s) => s.isSyncing)
+
+  const handleCopy = async () => {
+    const ok = await copyToClipboard(window.location.href)
+    if (ok) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
 
   // Segmented control pill position
   const tabStripRef = useRef<HTMLDivElement>(null)
@@ -152,6 +172,22 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
           ) : null}
         </div>
 
+        {rep?.bioguide_id && (
+          <button
+            onClick={handleCopy}
+            aria-label="Copy link to this representative"
+            className="panel-close-btn"
+            style={{ marginRight: 4 }}
+          >
+            {copied ? (
+              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-success)', whiteSpace: 'nowrap' }}>
+                Copied!
+              </span>
+            ) : (
+              <ShareIcon />
+            )}
+          </button>
+        )}
         <button
           onClick={onClose}
           aria-label="Close panel"

@@ -18,11 +18,16 @@ class SyncStatusSerializer(serializers.ModelSerializer):
 
 class RepresentativeListSerializer(serializers.ModelSerializer):
     # Compact serializer for the map's initial representative payload.
+    bioguide_id = serializers.SerializerMethodField()
+
+    def get_bioguide_id(self, obj):
+        return (obj.external_ids or {}).get('bioguide_id', '')
+
     class Meta:
         model = Representative
         fields = [
             'id', 'name', 'level', 'party', 'state', 'district_number',
-            'photo_url', 'latitude', 'longitude',
+            'photo_url', 'latitude', 'longitude', 'bioguide_id',
         ]
 
 

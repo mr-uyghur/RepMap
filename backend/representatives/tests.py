@@ -316,7 +316,7 @@ class RepresentativeListEndpointTests(TestCase):
         response = self.client.get('/api/v1/representatives/')
         self.assertEqual(response.status_code, 200)
         rep = response.data[0]
-        for field in ('id', 'name', 'level', 'party', 'state', 'latitude', 'longitude'):
+        for field in ('id', 'name', 'level', 'party', 'state', 'latitude', 'longitude', 'bioguide_id'):
             self.assertIn(field, rep, f"Field '{field}' missing from list response")
 
     def test_detail_serializer_fields_not_in_list_response(self):
