@@ -167,3 +167,11 @@ Two issues from the original spec were resolved during planning: `bioguide_id` w
 Backend changes: `bioguide_id` added to `RepresentativeListSerializer` (and test updated). Frontend changes: new `utils/clipboard.ts`, `App.tsx` updated with URL write/clear, `document.title` sync, deep-link read-on-mount effect (with ref guard to prevent re-firing), and a `popstate` listener for back/forward navigation. `RepresentativePanel.tsx` gets `ShareIcon`, `copied` state, and the copy button in the header.
 
 Remaining Phase 1 items: Name + State search, Party composition bar.
+
+### 2026-05-25 - TASK_03: Name + State Search (Phase 1)
+
+Shipped frontend-only representative search alongside the existing ZIP workflow. The search bar now accepts representative names, state abbreviations, full state names, and chamber terms such as `TX senate`, while numeric input continues through the ZIP lookup path. Matching results appear in an autocomplete dropdown capped at eight entries with avatar, name, chamber/district, and party indicator.
+
+Frontend changes: new `utils/repSearch.ts` for token-aware matching and ranking, new `NameSearchDropdown.tsx` for accessible result rendering, and `SearchBar.tsx` updated with selection state, keyboard navigation (`ArrowUp`, `ArrowDown`, `Enter`, `Escape`), outside-focus dismissal, combobox attributes, and the new placeholder. `NavBar.tsx` and `App.tsx` now thread representative selection into the existing panel-opening flow, and `styles/components.css` includes dropdown layout and active-result styling.
+
+Remaining Phase 1 item: Party composition bar.
