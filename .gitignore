@@ -143,3 +143,11 @@ CLAUDE.md
 .agents/
 .antigravitycli/
 skills-lock.json
+
+# ============================================================
+# Local Planning & Tasks
+# ============================================================
+brainstorm_features.md
+roadmap.md
+tasks/
+

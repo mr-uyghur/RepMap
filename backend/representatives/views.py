@@ -181,13 +181,17 @@ class SyncStatusView(APIView):
 
 
 class VotesView(APIView):
-    """GET /api/representatives/{bioguide_id}/votes/ — recent votes from Congress.gov."""
+    """GET /api/representatives/{bioguide_id}/votes/ — recent votes from GovTrack."""
     throttle_classes = [VotesThrottle]
 
     def get(self, request, bioguide_id: str):
         if not BIOGUIDE_RE.match(bioguide_id):
             return error_response('Invalid bioguide_id format.')
-        votes = fetch_recent_votes(bioguide_id)
+        rep = Representative.objects.filter(
+            external_ids__bioguide_id=bioguide_id
+        ).only('external_ids').first()
+        govtrack_id = (rep.external_ids or {}).get('govtrack_id') if rep else None
+        votes = fetch_recent_votes(bioguide_id, govtrack_id=govtrack_id)
         return Response(votes)
 
 

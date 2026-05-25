@@ -1,31 +1,22 @@
 """
-Congress.gov API integration for fetching a legislator's recent votes.
+Vote and legislation data fetched from external APIs.
 
-API docs: https://api.congress.gov/
-Endpoint: GET /v3/member/{bioguide_id}/votes?api_key={key}
-Requires CONGRESS_API_KEY in settings (free registration at api.congress.gov).
+Votes source: GovTrack API (govtrack.us/api/v2) — no API key required.
+  Endpoint: GET /v2/vote_voter?person={govtrack_id}&order_by=-created&limit=20
+  GovTrack person IDs are stored on the Representative model as external_ids['govtrack_id'].
 
-Congress.gov response structure for each vote item:
-  date          — "YYYY-MM-DD"
-  position      — "Yes", "No", "Not Voting", "Present"  (or "Aye"/"Nay" in some chambers)
-  description   — plain-text description of the vote question
-  result        — "Passed", "Failed", "Agreed to", etc.
-  bill          — nested object: { number, type, title, ... }  (may be absent for procedural votes)
+Legislation source: Congress.gov API v3 — requires CONGRESS_API_KEY env var.
 """
 import logging
 
 import requests
-from django.conf import settings
 from django.core.cache import cache
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-_BASE_URL = 'https://api.congress.gov/v3/member/{bioguide_id}/votes'
 _CACHE_TTL = 60 * 60 * 6  # 6 hours
-
-
-class CongressApiUnavailable(Exception):
-    """Raised when Congress.gov cannot return usable legislation data."""
+_GOVTRACK_VOTES_URL = 'https://www.govtrack.us/api/v2/vote_voter'
 
 # Normalise chamber-specific position labels to a consistent vocabulary.
 _POSITION_MAP = {
@@ -38,10 +29,15 @@ _POSITION_MAP = {
 }
 
 
-def fetch_recent_votes(bioguide_id: str) -> list:
-    """Return up to 20 recent votes for the given legislator.
+class CongressApiUnavailable(Exception):
+    """Raised when Congress.gov cannot return usable legislation data."""
 
-    Results are cached for 6 hours keyed on bioguide_id.
+
+def fetch_recent_votes(bioguide_id: str, govtrack_id=None) -> list:
+    """Return up to 20 recent floor votes for the given legislator via GovTrack.
+
+    govtrack_id should be the integer/string GovTrack person ID from
+    Representative.external_ids['govtrack_id']. Results are cached 6 hours.
     Returns an empty list on any failure — never raises.
     """
     cache_key = f'congress_votes_{bioguide_id}'
@@ -49,45 +45,44 @@ def fetch_recent_votes(bioguide_id: str) -> list:
     if cached is not None:
         return cached
 
-    api_key = settings.CONGRESS_API_KEY
-    if not api_key:
-        logger.warning('CONGRESS_API_KEY is not set; skipping votes fetch for %s', bioguide_id)
+    if not govtrack_id:
+        logger.warning('No govtrack_id available for %s; skipping votes fetch', bioguide_id)
         return []
 
-    url = _BASE_URL.format(bioguide_id=bioguide_id)
     try:
         response = requests.get(
-            url,
-            params={'limit': 20},
-            headers={'x-api-key': api_key},
+            _GOVTRACK_VOTES_URL,
+            params={'person': govtrack_id, 'order_by': '-created', 'limit': 20},
             timeout=10,
         )
         response.raise_for_status()
         data = response.json()
     except (requests.RequestException, ValueError) as exc:
-        logger.warning('Congress.gov votes fetch failed for %s: %s', bioguide_id, exc)
-        return []
-
-    # The Congress.gov API returns votes under the top-level "votes" key.
-    try:
-        raw_votes = data['votes']
-        if not isinstance(raw_votes, list):
-            raise TypeError('votes is not a list')
-    except (KeyError, TypeError):
-        logger.warning('Unexpected Congress.gov response shape for %s', bioguide_id)
+        logger.warning('GovTrack votes fetch failed for %s (govtrack_id=%s): %s', bioguide_id, govtrack_id, exc)
         return []
 
     votes = []
-    for vote in raw_votes[:20]:
-        bill = vote.get('bill') or {}
-        raw_position = str(vote.get('position') or '').strip()
+    for item in data.get('objects', [])[:20]:
+        vote = item.get('vote', {})
+        option = item.get('option', {})
+        raw_position = str(option.get('value') or '').strip()
         position = _POSITION_MAP.get(raw_position.lower(), raw_position)
+
+        passed = vote.get('passed')
+        if passed is True:
+            result = 'Passed'
+        elif passed is False:
+            result = 'Failed'
+        else:
+            result_str = vote.get('result', '') or ''
+            result = '' if result_str.lower() == 'unknown' else result_str
+
         votes.append({
-            'bill_title': bill.get('title') or None,
-            'vote_date': vote.get('date', ''),
+            'bill_title': vote.get('question') or None,
+            'vote_date': (vote.get('created') or '')[:10],
             'vote_position': position,
-            'description': vote.get('description') or None,
-            'result': vote.get('result', ''),
+            'description': None,
+            'result': result,
         })
 
     cache.set(cache_key, votes, _CACHE_TTL)

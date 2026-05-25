@@ -1,8 +1,325 @@
 # RepMap
 
-Interactive map showing US Congressional Representatives and Senators.
+Interactive map showing US Congressional Representatives and Senators with district boundary overlays, ZIP code search, voting records, and legislation tracking.
 
-## Setup
+> **AI Agent Notice:** The AI summarization features (Anthropic/Claude integrations, `ai.py`, `AISummary` models, frontend stubs) are **intentionally paused and out of scope**. Do NOT review, suggest improvements for, or mention these AI features in your analysis or code generation.
+
+---
+
+## Tech Stack
+
+| Layer | Technology | Version |
+|---|---|---|
+| **Backend** | Django + Django REST Framework | Django 4.2, DRF 3.15 |
+| **Frontend** | React + TypeScript + Vite | React 18, Vite 6, TS 5.6 |
+| **Map** | Mapbox GL JS via `react-map-gl` | mapbox-gl 3.7, react-map-gl 7.1 |
+| **State Management** | Zustand | 5.0 |
+| **HTTP Client** | Axios (frontend), Requests (backend) | — |
+| **Database** | SQLite (dev) / PostgreSQL 16 (prod) | — |
+| **Cache** | LocMemCache (dev) / Redis via `django-redis` (prod) | — |
+| **Static Files** | WhiteNoise | 6.12 |
+| **Deployment** | Docker Compose / Railway | — |
+
+---
+
+## Project Structure
+
+```
+RepMap/
+├── backend/                          # Django project root
+│   ├── manage.py
+│   ├── repmap/                       # Django project config
+│   │   ├── settings.py               # All config: DB, cache, CORS, security, env vars
+│   │   ├── urls.py                   # Root URL routing (admin, health, sync-status, /api/v1/)
+│   │   ├── middleware.py             # Custom CSP middleware (Content-Security-Policy header)
+│   │   └── wsgi.py
+│   ├── representatives/              # Main (and only) Django app
+│   │   ├── models.py                 # Representative, SyncStatus models
+│   │   ├── views.py                  # All API views (ViewSets + APIViews)
+│   │   ├── serializers.py            # List vs Detail serializers, SyncStatus serializer
+│   │   ├── urls.py                   # App-level URL routing (DRF router + manual paths)
+│   │   ├── throttles.py              # Custom DRF throttle classes per endpoint
+│   │   ├── errors.py                 # Standardized error response helper
+│   │   ├── constants.py              # STATE_FIPS mapping (single source of truth)
+│   │   ├── admin.py                  # Django admin registration
+│   │   ├── tests.py                  # 700+ lines of unit tests (Django TestCase + DRF APIClient)
+│   │   ├── integrations/             # External service wrappers
+│   │   │   ├── census.py             # Census TIGER API (district GeoJSON, state boundaries)
+│   │   │   └── zip_lookup.py         # Local ZIP → (lat, lng, state, district) lookup
+│   │   ├── services/                 # Business logic
+│   │   │   ├── auto_sync.py          # Background thread auto-refresh (staleness check + daemon)
+│   │   │   └── congress_api.py       # Congress.gov API (votes, sponsored/cosponsored legislation)
+│   │   ├── management/commands/      # Django management commands
+│   │   │   ├── sync_legislators.py   # Sync all legislators from unitedstates.io YAML
+│   │   │   ├── build_district_data.py # Pre-build district GeoJSON from Census TIGER
+│   │   │   └── build_zip_data.py     # Build ZIP lookup table (Gazetteer + point-in-polygon)
+│   │   ├── district_data/            # Pre-built GeoJSON per state (committed, ~51 files)
+│   │   ├── zip_data/                 # zips.json.gz — compressed ZIP lookup table
+│   │   ├── fixtures/                 # initial_reps.json — seed data for fresh installs
+│   │   └── migrations/
+│   ├── requirements.txt              # Pinned Python dependencies
+│   ├── requirements/                 # Split requirements (base/dev/prod)
+│   ├── entrypoint.sh                 # Docker entrypoint (wait for DB, migrate, seed, gunicorn)
+│   ├── Dockerfile
+│   └── .env.example
+├── frontend/                         # Vite + React project root
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.ts                # Dev server config with /api proxy to backend
+│   ├── tsconfig.json
+│   ├── src/
+│   │   ├── main.tsx                  # React entry point
+│   │   ├── App.tsx                   # Root component (ErrorBoundary, NavBar, Map, Panel, Search)
+│   │   ├── App.css
+│   │   ├── index.css
+│   │   ├── api/                      # Backend communication layer
+│   │   │   ├── client.ts             # Axios instance (base URL from VITE_API_BASE_URL)
+│   │   │   ├── config.ts             # Fetches Mapbox token from /api/v1/config/ (cached)
+│   │   │   └── representatives.ts    # All API calls (reps, ZIP lookup, districts, votes, legislation)
+│   │   ├── store/                    # Zustand state stores
+│   │   │   ├── mapStore.ts           # Map camera state (zoom, center, selectedRepId, darkMode)
+│   │   │   └── repStore.ts           # Representative data + sync status polling (30s interval)
+│   │   ├── types/                    # TypeScript interfaces
+│   │   │   └── index.ts              # Representative, Bill, ZipSearchResult, MapState, RepState, GeoJSON types
+│   │   ├── constants/
+│   │   │   └── index.ts              # PARTY_COLORS map
+│   │   ├── utils/
+│   │   │   └── zipFallback.ts        # Client-side ZIP → state fallback when backend is unavailable
+│   │   ├── styles/
+│   │   │   ├── variables.css         # Full design token system (light + dark mode CSS vars)
+│   │   │   └── components.css        # Shared component styles (cards, tabs, search)
+│   │   └── components/
+│   │       ├── Map/
+│   │       │   ├── RepMap.tsx         # Main map component (Mapbox GL, markers, tooltips, overlays)
+│   │       │   ├── RepresentativePin.tsx  # Map pin with glassmorphism label
+│   │       │   ├── DistrictOverlay.tsx    # District polygon layer
+│   │       │   └── DistrictBoundary.tsx   # District boundary lines
+│   │       ├── Panel/
+│   │       │   ├── RepresentativePanel.tsx  # Side panel (tabbed: Bio, Legislation, How to Vote)
+│   │       │   ├── RepresentativePanel.css
+│   │       │   ├── BioTab.tsx              # Bio/contact/committee info
+│   │       │   ├── LegislationTab.tsx      # Sponsored + cosponsored bills
+│   │       │   └── HowToVoteTab.tsx        # Voter resources
+│   │       ├── Search/
+│   │       │   ├── SearchBar.tsx           # Unified search (ZIP + name/state)
+│   │       │   ├── ZipcodeSearch.tsx       # ZIP search with map fly-to
+│   │       │   ├── ZipSearchResults.tsx    # ZIP search results overlay
+│   │       │   └── ZipSearchResults.css
+│   │       └── Layout/
+│   │           ├── NavBar.tsx              # Glass navbar with search + dark mode toggle
+│   │           └── NavBar.css
+│   ├── Dockerfile
+│   └── .env.example
+├── docker-compose.yml                # Full stack: PostgreSQL + Django + Vite
+├── DESIGN.md                         # Visual design system (color tokens, typography, glassmorphism)
+├── GEMINI.md                         # AI agent persona config
+├── .clauderc                         # Claude agent instructions
+├── .gitignore
+├── .dockerignore
+├── brainstorm_features.md            # Feature ideas document
+├── roadmap.md                        # Product roadmap
+└── tasks/                            # Task specifications for planned features
+    ├── TASK_01_voting_record_tab.md
+    ├── TASK_02_share_deep_link.md
+    ├── TASK_03_name_state_search.md
+    └── TASK_04_party_ribbon.md
+```
+
+---
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Frontend (Vite + React)              │
+│                                                             │
+│  App.tsx                                                    │
+│  ├── NavBar (SearchBar → ZipcodeSearch)                     │
+│  ├── RepMap (Mapbox GL + DistrictOverlay + Pins)            │
+│  ├── ZipSearchResults (overlay)                             │
+│  └── RepresentativePanel (BioTab / LegislationTab / HowTo) │
+│                                                             │
+│  State: mapStore (camera) + repStore (data + sync polling)  │
+│  API:   api/client.ts → Axios → http://localhost:8000       │
+└────────────────────────┬────────────────────────────────────┘
+                         │ HTTP (JSON)
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   Backend (Django + DRF)                     │
+│                                                             │
+│  /api/v1/representatives/         → RepresentativeViewSet   │
+│  /api/v1/representatives/<id>/    → Detail (rich serializer)│
+│  /api/v1/representatives/?zipcode → ZIP lookup (local table)│
+│  /api/v1/representatives/<bid>/votes/      → VotesView      │
+│  /api/v1/representatives/<bid>/legislation/ → LegislationView│
+│  /api/v1/districts/congressional/?state=XX → DistrictViewSet│
+│  /api/v1/districts/state-boundary/?state=XX                 │
+│  /api/v1/config/                  → Mapbox token endpoint   │
+│  /api/v1/zip-lookup/?zipcode=     → ZipLookupView (geocode) │
+│  /api/sync-status/                → SyncStatusView          │
+│  /api/health/                     → HealthView (liveness)   │
+│                                                             │
+│  Services: auto_sync.py (bg thread), congress_api.py        │
+│  Integrations: census.py, zip_lookup.py (local table)       │
+│  Models: Representative, SyncStatus                         │
+│  Cache: Redis (prod) / LocMemCache (dev)                    │
+│  DB: PostgreSQL (prod) / SQLite (dev)                       │
+└─────────────────────────────────────────────────────────────┘
+         │                              │
+         ▼                              ▼
+┌─────────────────┐          ┌────────────────────┐
+│ unitedstates.io │          │  Congress.gov API   │
+│ (YAML datasets) │          │  (votes, bills)     │
+│ No API key req. │          │  Requires API key   │
+└─────────────────┘          └────────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Census TIGER   │
+│  (district GeoJSON │
+│   + centroids)  │
+└─────────────────┘
+```
+
+---
+
+## Data Models
+
+### `Representative` (main model)
+
+| Field | Type | Notes |
+|---|---|---|
+| `name` | CharField(200) | Full name |
+| `level` | CharField (`house`/`senate`) | Indexed |
+| `party` | CharField (`democrat`/`republican`/`independent`/`other`) | — |
+| `state` | CharField(2) | State abbreviation, indexed |
+| `district_number` | IntegerField (nullable) | `None` = senator or at-large |
+| `photo_url` | URLField | Bioguide photo URL |
+| `website` | URLField | Official website |
+| `phone` | CharField(20) | Office phone |
+| `social_links` | JSONField (dict) | `{twitter: url, facebook: url, ...}` |
+| `term_start` / `term_end` | DateField (nullable) | Current term dates |
+| `office_room` | CharField(200) | Office building + room |
+| `committee_assignments` | JSONField (list) | List of committee name strings |
+| `latitude` / `longitude` | FloatField | Map pin coordinates |
+| `external_ids` | JSONField (dict) | `{bioguide_id, govtrack_id, ...}` |
+| `updated_at` | DateTimeField (auto) | Last update timestamp |
+
+**Ordering:** `['state', 'level', 'district_number']`
+
+### `SyncStatus` (singleton, id=1)
+
+| Field | Type | Notes |
+|---|---|---|
+| `last_synced_at` | DateTimeField (nullable) | Last successful sync |
+| `is_syncing` | BooleanField | Guard against duplicate syncs |
+| `last_error` | TextField | Error from last failed sync |
+
+---
+
+## API Endpoints
+
+All application endpoints are under `/api/v1/` except health and sync-status which are unversioned.
+
+| Method | Endpoint | Throttle | Description |
+|---|---|---|---|
+| GET | `/api/v1/representatives/` | `anon: 10000/day` | All reps (list serializer) — triggers auto-sync |
+| GET | `/api/v1/representatives/?zipcode=12345` | `zipcode_lookup: 20/hour` | Reps for ZIP (house + senators) |
+| GET | `/api/v1/representatives/<id>/` | `anon` | Rep detail (rich serializer with committees, links, etc.) |
+| GET | `/api/v1/representatives/<bioguide_id>/votes/` | `votes_lookup: 30/hour` | Recent 20 votes from Congress.gov |
+| GET | `/api/v1/representatives/<bioguide_id>/legislation/` | `legislation_lookup: 20/hour` | Sponsored + cosponsored bills |
+| GET | `/api/v1/districts/congressional/?state=CA` | `anon` | District GeoJSON (local file → cache → Census fallback) |
+| GET | `/api/v1/districts/state-boundary/?state=CA` | `anon` | State boundary GeoJSON |
+| GET | `/api/v1/zip-lookup/?zipcode=12345` | `anon` | Returns `{lat, lng}` only (for map fly-to) |
+| GET | `/api/v1/config/` | `anon` | Returns `{mapbox_token}` |
+| GET | `/api/sync-status/` | — | Sync state (unversioned) |
+| GET | `/api/health/` | none | Liveness check (unversioned, no auth, no throttle) |
+
+### Serializers
+
+- **List:** `id, name, level, party, state, district_number, photo_url, latitude, longitude`
+- **Detail:** All list fields + `website, phone, social_links, term_start, term_end, office_room, committee_assignments, external_ids, updated_at, district_label, office_address, congress_gov_url, bioguide_url, bioguide_id`
+
+### Error Shape
+
+All error responses use: `{"error": "message"}` with optional `"detail"` key. Health endpoint uses `{"status": "ok/error", "db": "ok/error"}`.
+
+---
+
+## Data Pipeline
+
+### 1. Representative Data (`sync_legislators`)
+
+```
+unitedstates.io YAML (no API key)
+  → parse legislators-current.yaml
+  → fetch committee-membership-current.yaml
+  → fetch district centroids from Census TIGER
+  → upsert Representative records (update existing by bioguide_id)
+  → update SyncStatus (last_synced_at, is_syncing=False)
+```
+
+**Auto-sync:** On each `GET /api/v1/representatives/`, `trigger_sync_if_stale()` checks if data is older than `AUTO_SYNC_STALE_HOURS` (default 24h). If stale, spawns a daemon thread running `sync_legislators`. Two-layer dedup: in-process `threading.Lock` + DB `is_syncing` flag.
+
+### 2. District GeoJSON (`build_district_data`)
+
+```
+Census TIGER API → simplified GeoJSON (0.01° offset)
+  → backend/representatives/district_data/{STATE}.json
+  → committed to git (changes only after redistricting ~every 10 years)
+```
+
+### 3. ZIP Lookup Table (`build_zip_data`)
+
+```
+Census Gazetteer (ZCTA centroids)
+  + local district_data/*.json (point-in-polygon)
+  → backend/representatives/zip_data/zips.json.gz
+  → {"95131": {"lat": 37.3869, "lng": -121.897, "state": "CA", "district": 17}}
+  → No external API calls at runtime
+```
+
+### 4. Congress.gov API (votes + legislation)
+
+```
+Congress.gov /v3/member/{bioguide_id}/votes       → cached 6h
+Congress.gov /v3/member/{bioguide_id}/sponsored-legislation   → cached 12h
+Congress.gov /v3/member/{bioguide_id}/cosponsored-legislation → cached 12h
+Requires CONGRESS_API_KEY environment variable
+```
+
+---
+
+## Environment Variables
+
+### Backend (`backend/.env`)
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `DJANGO_SECRET_KEY` | **Yes** | — | App will crash without it |
+| `DEBUG` | No | `False` | Set `True` for local dev |
+| `ALLOWED_HOSTS` | No | `localhost,127.0.0.1` | Comma-separated |
+| `CORS_ALLOWED_ORIGINS` | No | Vite dev URLs in debug | Comma-separated |
+| `DATABASE_URL` | No | SQLite | PostgreSQL URL for prod |
+| `REDIS_URL` | No | LocMemCache | Redis URL for prod cache |
+| `CONGRESS_API_KEY` | No (dev) | — | Required for votes/legislation tabs |
+| `MAPBOX_TOKEN` | **Yes** | Falls back to `VITE_MAPBOX_TOKEN` | Served via `/api/v1/config/` |
+| `AUTO_SYNC_ENABLED` | No | `true` | Background data refresh |
+| `AUTO_SYNC_STALE_HOURS` | No | `24` | Staleness threshold |
+| `DISTRICT_DATA_DIR` | No | `representatives/district_data/` | Override path |
+| `DISTRICT_LIVE_FALLBACK` | No | `true` | Census API fallback when local files missing |
+| `SECURE_SSL_REDIRECT` | No | `False` | Opt-in HTTPS redirect (prod only) |
+
+### Frontend (`frontend/.env`)
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `VITE_API_BASE_URL` | No | `http://localhost:8000` | Backend URL (baked into bundle) |
+| `VITE_MAPBOX_TOKEN` | No | — | Only used if backend config endpoint unavailable |
+
+---
+
+## Setup (Local Development)
 
 ### Backend
 
@@ -26,130 +343,169 @@ cp .env.example .env      # Add your Mapbox token
 npm run dev
 ```
 
-## Environment Variables
+### Docker (Full Stack)
 
-### Backend (.env)
-- `DJANGO_SECRET_KEY` — Django secret key
-- `DATABASE_URL` — PostgreSQL URL (defaults to SQLite if not set)
-- `REDIS_URL` — Redis URL (defaults to localhost:6379)
-- `AUTO_SYNC_ENABLED` — Enable automatic background data refresh (default: `true`)
-- `AUTO_SYNC_STALE_HOURS` — Hours before representative data is considered stale (default: `24`)
-- `DISTRICT_DATA_DIR` — Override path for local district GeoJSON files (optional)
-- `DISTRICT_LIVE_FALLBACK` — Allow live Census fetch when local district file is missing (default: `false`; set `true` during development)
-
-### Frontend (.env)
-- `VITE_MAPBOX_TOKEN` — Mapbox GL JS access token
-- `VITE_API_BASE_URL` — Backend URL (defaults to http://localhost:8000)
-
-## Features
-
-- Interactive US map with Mapbox GL JS
-- Zoom-based view switching: House reps (zoom > 7) vs Senators (zoom 4–7)
-- Zipcode search to fly to your representatives
-- Congressional district boundaries from Census TIGER API
-- Google Civic API integration for live representative data
-
-## Architecture
-
-- Backend: Django + Django REST Framework
-- Frontend: React + TypeScript + Vite + react-map-gl
-- State: Zustand stores
-- Cache: Redis (24h for Civic API, 7d for Census GeoJSON)
-
-## Security & Secrets
-
-### Rotating Compromised Secrets
-
-Never commit `.env` files. If a secret was exposed, replace it immediately in your local `.env` and in any deployment environment variables.
-
-**Django secret key** — generate a new one:
 ```bash
-python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+cp backend/.env.example .env  # Edit with your keys
+docker compose up --build
+# Backend: http://localhost:8000
+# Frontend: http://localhost:5173
 ```
-Set the output as `DJANGO_SECRET_KEY` in `backend/.env`.
 
-**Mapbox token** — go to your Mapbox account → Access Tokens, delete the compromised token, and create a new one. Set it as `VITE_MAPBOX_TOKEN` in `frontend/.env`.
+---
 
-### API Rate Limiting
+## Data Bootstrap Commands
 
-One endpoint is throttled per IP address (anonymous requests):
-
-| Endpoint | Limit |
-|---|---|
-| `GET /api/representatives/?zipcode=<zip>` | 30 requests / hour |
-
-Exceeding the limit returns `429 Too Many Requests` with a `Retry-After` header. All other read endpoints are unthrottled.
-
-## District Border Data
-
-Congressional district boundaries are served from pre-built local GeoJSON files in
-`backend/representatives/district_data/`. Storing them locally eliminates live Census
-API dependency during normal app usage and makes rendering fast.
-
-### Generating district data
-
-Run once before the first deployment (and again after redistricting):
+Run these once before first deployment (and after redistricting):
 
 ```bash
 cd backend
+
+# 1. Sync all current legislators (no API key needed)
+python manage.py sync_legislators
+
+# 2. Build district GeoJSON (fetches from Census TIGER)
 python manage.py build_district_data
+python manage.py build_district_data --states CA TX NY    # specific states
+python manage.py build_district_data --overwrite          # re-download
+
+# 3. Build ZIP lookup table (requires district data from step 2)
+python manage.py build_zip_data
+python manage.py build_zip_data --overwrite               # rebuild
 ```
 
-This fetches simplified boundary data for all 51 state codes from the Census TIGER API
-and saves one file per state (`CA.json`, `TX.json`, etc.). The command is safe to
-interrupt and re-run — already-downloaded states are skipped unless you add `--overwrite`.
+**Commit the generated files** (`district_data/*.json` and `zip_data/zips.json.gz`) to version control.
+
+---
+
+## Testing
 
 ```bash
-# Fetch only specific states
-python manage.py build_district_data --states CA TX NY
-
-# Re-download everything (e.g. after redistricting)
-python manage.py build_district_data --overwrite
+cd backend
+python manage.py test
 ```
 
-**Commit the generated files** to version control. They change rarely (only after
-redistricting, roughly every 10 years) and committing them means deployments don't
-need a Census API connection.
+Tests cover (~700 lines in `representatives/tests.py`):
+- ZIP lookup endpoint (valid/invalid/404/503)
+- ZIP-code representative search (503/404/400/empty DB)
+- Local ZIP lookup integration (geocode, at-large, fetch_reps)
+- Security settings (SSL redirect opt-in)
+- Auto-sync staleness logic and trigger guards
+- Representative list and detail endpoints (field sets, ordering)
+- Legislation endpoint (bioguide validation, happy path, upstream failure, missing key)
+- Sync status endpoint (no row, with data, while syncing)
+- Health endpoint (200, DB error → 500, no auth required)
+- Congress API key validation guard
+- Bill URL builder (ordinal suffixes, edge cases)
+- Standardized error shape
 
-### Development without local files
+---
 
-Set `DISTRICT_LIVE_FALLBACK=true` in `backend/.env` to fall back to live Census
-requests when a local file is missing. This is the default in `.env.example` for
-convenience during development. In production, keep it `false` and rely on the
-committed files.
+## Security
 
-## Automatic Data Refresh
+### Rate Limiting
 
-Representative records are refreshed automatically in the background — no manual `sync_legislators` runs needed in normal operation.
-
-**How it works:**
-1. The first `GET /api/representatives/` request after the stale window fires a background daemon thread.
-2. The thread calls the existing `sync_legislators` command (fetches the public Congress dataset + Census coordinates).
-3. Existing data is served immediately while the refresh runs — no blocking.
-4. On completion, `SyncStatus.last_synced_at` is updated. Subsequent requests skip the sync until the next stale window.
-
-**Preventing duplicate syncs:**  An in-process `threading.Lock` plus a `SyncStatus.is_syncing` DB flag ensure only one sync runs at a time.
-
-**Config:**
-| Variable | Default | Description |
+| Scope | Rate | Applied To |
 |---|---|---|
-| `AUTO_SYNC_ENABLED` | `true` | Set `false` to disable auto-refresh and rely on manual `sync_legislators` |
-| `AUTO_SYNC_STALE_HOURS` | `24` | Hours after which data is considered stale |
+| `anon` (global baseline) | 10,000/day | All endpoints by default |
+| `zipcode_lookup` | 20/hour | `/api/v1/representatives/?zipcode=` |
+| `votes_lookup` | 30/hour | `/api/v1/representatives/<bid>/votes/` |
+| `legislation_lookup` | 20/hour | `/api/v1/representatives/<bid>/legislation/` |
+| Health endpoint | None | No throttle, no auth |
 
-**Multi-worker note:** The threading lock guards within a single process. If you run Gunicorn with multiple workers, the DB `is_syncing` flag reduces but does not fully eliminate duplicate syncs across workers. For multi-worker production, consider a cron job (`0 2 * * * python manage.py sync_legislators`) as a more reliable alternative.
+### Headers & Middleware
 
-### Production Security Headers
+- **CSP:** Custom `ContentSecurityPolicyMiddleware` (Mapbox, Google Fonts, Congress.gov images)
+- **CORS:** `django-cors-headers` — Vite dev origins in debug, explicit list in prod
+- **Production (DEBUG=False):** HSTS (1yr), `X-Content-Type-Options: nosniff`, secure cookies
+- **SSL redirect:** Opt-in via `SECURE_SSL_REDIRECT=True` env var (not auto-enabled)
 
-When `DEBUG=False`, Django automatically sets:
-- `Strict-Transport-Security` (1 year, includes subdomains)
-- `X-Content-Type-Options: nosniff`
-- Secure flags on session and CSRF cookies
-- Proxy-aware HTTPS header (`X-Forwarded-Proto`)
+### Mapbox Token
 
-**`SECURE_SSL_REDIRECT` is opt-in** — set `SECURE_SSL_REDIRECT=True` in your production environment to redirect plain HTTP requests to HTTPS. It is **not** auto-enabled by `DEBUG=False`, so the local Django dev server (which serves plain HTTP) is unaffected.
+Served via `/api/v1/config/` backend endpoint — never baked into the JS bundle. Frontend fetches it once per session and caches in memory.
 
+---
 
-<!--
-Note to AI Code Assistants: The AI summarization features (Anthropic/Claude integrations, ai.py, AISummary models, etc.) are intentionally paused and out of scope. Do NOT review, suggest improvements for, or mention these AI features in your analysis or code generation.
--->
+## Frontend Architecture
 
+### State Management (Zustand)
+
+- **`mapStore`**: `zoom`, `center`, `selectedRepId`, `darkMode` + setters
+- **`repStore`**: `reps[]`, `allReps[]`, `loading`, `error`, `isSyncing`, `lastSyncedAt` + sync polling (30s interval)
+
+### Key Behaviors
+
+- **Zoom-based view switching:** House reps appear at zoom > 7, Senators at zoom 4–7
+- **ZIP search → fly-to:** `handleZipSearchComplete()` → `flyTo()` with cubic easing → selects House rep by default
+- **Rep selection:** Cinematic camera drop (`pitch: 45°, bearing: -10°, zoom: 9.5, duration: 2s`)
+- **Dark mode:** Toggled in `mapStore`, applied via `.dark` class on `<html>` for CSS variable theming
+- **ZIP fallback:** `zipFallback.ts` uses a client-side ZIP range → state mapping when the backend is unavailable
+- **Sync polling:** `initSyncPolling()` fetches `/api/sync-status/` every 30s, cleans up on unmount
+
+### Component Hierarchy
+
+```
+App
+├── ErrorBoundary
+├── NavBar (SearchBar → ZipcodeSearch)
+├── RepMap (Mapbox GL)
+│   ├── RepresentativePin (per rep)
+│   ├── DistrictOverlay (per state)
+│   └── DistrictBoundary
+├── ZipSearchResults (overlay, conditional)
+└── RepresentativePanel (side panel, conditional)
+    ├── BioTab
+    ├── LegislationTab
+    └── HowToVoteTab
+```
+
+### Design System
+
+See `DESIGN.md` for the full token system. Key patterns:
+- **Glassmorphism** on all overlays: `backdrop-filter: blur(16px) saturate(1.6)`
+- **CSS variables** in `styles/variables.css` — full light/dark mode token set
+- **Fonts:** Space Grotesk (display) + Inter (body) via Google Fonts
+- **Party colors:** Democrat blue, Republican red, Independent slate
+
+---
+
+## Key Conventions
+
+- **Error responses** always use `{"error": "message"}` shape (see `errors.py`)
+- **Bioguide ID format:** Single uppercase letter + 6 digits (e.g., `L000001`), validated via regex
+- **District number:** `None` means senator or at-large House delegate
+- **State codes:** Always 2-letter uppercase abbreviations (validated against `STATE_FIPS` dict)
+- **API versioning:** All app endpoints under `/api/v1/`; health + sync-status are unversioned
+- **Cache TTLs:** District GeoJSON = 7 days, Votes = 6 hours, Legislation = 12 hours
+- **Sync dedup:** In-process `threading.Lock` + DB `is_syncing` flag
+- **No external API calls at ZIP lookup time** — all resolved from local `zips.json.gz`
+
+---
+
+## Deployment
+
+### Railway (Current Target)
+
+- Backend: Gunicorn (2 workers) via `entrypoint.sh`
+- Frontend: Vite build → static hosting
+- Config files: `backend/railway.toml`, `frontend/railway.toml`
+
+### Docker Compose
+
+3-service stack: `db` (PostgreSQL 16-alpine), `backend` (Django + Gunicorn), `frontend` (Vite dev server).
+
+The `docker-compose.yml` sets up:
+- Named volume for Postgres data persistence
+- Source bind mounts for hot-reload development
+- Shared bridge network (`repmap_net`) for inter-service DNS
+- `API_TARGET` env var for Vite's dev proxy to reach the backend container
+
+---
+
+## Planned Features
+
+See `tasks/` directory for detailed specs:
+- `TASK_01`: Voting record tab
+- `TASK_02`: Shareable deep links
+- `TASK_03`: Name/state search
+- `TASK_04`: Party color ribbon on pins

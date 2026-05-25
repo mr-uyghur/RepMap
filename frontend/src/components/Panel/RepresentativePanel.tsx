@@ -7,6 +7,7 @@ import type { Representative } from '../../types'
 import LegislationTab from './LegislationTab'
 import BioTab from './BioTab'
 import HowToVoteTab from './HowToVoteTab'
+import VotesSection from './VotesSection'
 import { PARTY_COLORS } from '../../constants'
 import './RepresentativePanel.css'
 
@@ -19,7 +20,7 @@ function CloseIcon() {
   )
 }
 
-type TabKey = 'biography' | 'voting_record' | 'how_to_vote'
+type TabKey = 'biography' | 'voting_record' | 'votes' | 'how_to_vote'
 
 const PARTY_LABELS: Record<string, string> = {
   democrat: 'Democrat',
@@ -31,6 +32,7 @@ const PARTY_LABELS: Record<string, string> = {
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'biography',     label: 'Biography'    },
   { key: 'voting_record', label: 'Legislation'  },
+  { key: 'votes',         label: 'Votes'        },
   { key: 'how_to_vote',   label: 'How to Vote'  },
 ]
 
@@ -200,6 +202,12 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
                 bioguide_id={rep.bioguide_id ?? ''}
                 congressUrl={rep.congress_gov_url}
                 darkMode={dm}
+              />
+            )}
+            {activeTab === 'votes' && (
+              <VotesSection
+                bioguide_id={rep.bioguide_id ?? ''}
+                congressUrl={rep.congress_gov_url}
               />
             )}
             {activeTab === 'how_to_vote' && <HowToVoteTab rep={rep} />}

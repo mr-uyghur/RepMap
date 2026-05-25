@@ -43,6 +43,14 @@ export interface LegislationResponse {
   cosponsored: Bill[]
 }
 
+export interface Vote {
+  bill_title: string | null
+  vote_date: string
+  vote_position: string
+  description: string | null
+  result: string
+}
+
 export interface ZipSearchResult {
   zipcode: string
   lat: number
