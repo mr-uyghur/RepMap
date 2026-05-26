@@ -1,5 +1,6 @@
 import type { Representative } from '../../types'
 import { PARTY_COLORS } from '../../constants'
+import ReportCard from './ReportCard'
 
 // ── Inline SVG Icons ──────────────────────────────────────────────────────────
 
@@ -314,6 +315,8 @@ export default function BioTab({ rep }: Props) {
             </div>
           </div>
         )}
+
+        {rep.bioguide_id && <ReportCard bioguideId={rep.bioguide_id} />}
 
       </div>
     </div>

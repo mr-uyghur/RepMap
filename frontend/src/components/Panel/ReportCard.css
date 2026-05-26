@@ -1,0 +1,87 @@
+.report-card {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.report-card-title {
+  margin: 0 0 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-subtle, var(--color-text-muted));
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.report-card-gauges {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.report-card-gauge-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+
+.report-card-gauge-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.report-card-gauge-value {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-card-gauge-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.report-card-gauge-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.report-card-gauge-subtitle {
+  margin: 3px 0 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.report-card-note {
+  margin: 14px 0 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.report-card-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.report-card--loading .report-card-skeleton {
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, var(--color-border) 25%, var(--color-bg-elevated) 50%, var(--color-border) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  margin-bottom: 10px;
+}
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

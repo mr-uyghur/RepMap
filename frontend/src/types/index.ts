@@ -51,6 +51,17 @@ export interface Vote {
   result: string
 }
 
+export interface ReportCardData {
+  attendance_pct: number | null
+  bipartisanship_score: number | null
+  effectiveness_score: number | null
+  votes_analyzed: number
+  bills_analyzed: number
+  bills_became_law: number
+  cross_party_cosponsors: number
+  data_note: string
+}
+
 export interface ZipSearchResult {
   zipcode: string
   lat: number
