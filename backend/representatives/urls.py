@@ -4,6 +4,7 @@ from .views import RepresentativeViewSet, DistrictViewSet, ZipLookupView, SyncSt
 from .views_auth import SessionInfoView, LogoutView
 from .views_watchlist import WatchlistListCreateView, WatchlistDeleteView, WatchlistStatusView
 from .views_report_card import ReportCardView
+from .views_elections import ElectionDatesView
 
 router = DefaultRouter()
 # Register the app's read-only APIs with DRF's router.
@@ -25,6 +26,8 @@ urlpatterns = [
     path('representatives/<str:bioguide_id>/legislation/', LegislationView.as_view()),
     # Computed accountability report card for a specific legislator.
     path('representatives/<str:bioguide_id>/report-card/', ReportCardView.as_view()),
+    # Election date data for a given state.
+    path('elections/', ElectionDatesView.as_view()),
     # Exposes SyncStatus for the frontend to show data freshness indicators.
     path('sync-status/', SyncStatusView.as_view()),
     # Lightweight ZIP centroid lookup used by the map search box.

@@ -1,0 +1,78 @@
+.election-countdown {
+  padding: 16px;
+  margin-bottom: 16px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.election-countdown-label {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-subtle, var(--color-text-muted));
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.election-countdown-timer {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.election-countdown-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.election-countdown-digit {
+  font-size: 28px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-accent);
+  line-height: 1;
+}
+
+.election-countdown-unit-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.election-countdown-sep {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  padding-bottom: 14px;
+}
+
+.election-countdown-deadline {
+  margin: 0 0 10px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.election-countdown-ics {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.election-countdown-ics:hover {
+  border-color: var(--color-accent);
+  background: var(--color-bg-elevated);
+}

@@ -1,4 +1,5 @@
 import type { Representative } from '../../types'
+import ElectionCountdown from './ElectionCountdown'
 
 interface StateResource {
   name: string
@@ -69,6 +70,7 @@ export default function HowToVoteTab({ rep }: Props) {
 
   return (
     <div className="htv-tab-content">
+      <ElectionCountdown state={rep.state} />
       <h3 className="htv-tab-title">How to Vote in {stateName}</h3>
       <p className="htv-resources-desc">Official resources for {stateName} voters:</p>
       <div className="htv-links">

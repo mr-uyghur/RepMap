@@ -62,6 +62,17 @@ export interface ReportCardData {
   data_note: string
 }
 
+export interface ElectionDateInfo {
+  date: string
+  label: string
+}
+
+export interface ElectionDates {
+  next_primary: ElectionDateInfo | null
+  next_general: ElectionDateInfo | null
+  registration_deadline: string | null
+}
+
 export interface ZipSearchResult {
   zipcode: string
   lat: number
