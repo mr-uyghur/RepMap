@@ -5,6 +5,9 @@ from .views_auth import SessionInfoView, LogoutView
 from .views_watchlist import WatchlistListCreateView, WatchlistDeleteView, WatchlistStatusView
 from .views_report_card import ReportCardView
 from .views_elections import ElectionDatesView
+from .views_notifications import (
+    NotificationListView, UnreadCountView, MarkReadView, MarkAllReadView,
+)
 
 router = DefaultRouter()
 # Register the app's read-only APIs with DRF's router.
@@ -28,6 +31,11 @@ urlpatterns = [
     path('representatives/<str:bioguide_id>/report-card/', ReportCardView.as_view()),
     # Election date data for a given state.
     path('elections/', ElectionDatesView.as_view()),
+    # Notifications — unread-count/ and read-all/ must come before <int:notification_id>/read/
+    path('notifications/', NotificationListView.as_view()),
+    path('notifications/unread-count/', UnreadCountView.as_view()),
+    path('notifications/read-all/', MarkAllReadView.as_view()),
+    path('notifications/<int:notification_id>/read/', MarkReadView.as_view()),
     # Exposes SyncStatus for the frontend to show data freshness indicators.
     path('sync-status/', SyncStatusView.as_view()),
     # Lightweight ZIP centroid lookup used by the map search box.

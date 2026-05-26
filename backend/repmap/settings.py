@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+    'django_celery_beat',
     'representatives',
 ]
 
@@ -168,6 +169,18 @@ REST_FRAMEWORK = {
 
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 CONGRESS_API_KEY = os.environ.get('CONGRESS_API_KEY', '')
+
+# ---------------------------------------------------------------------------
+# Celery — background task processing
+# ---------------------------------------------------------------------------
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', REDIS_URL or 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+NOTIFICATION_CHECK_INTERVAL_HOURS = int(os.environ.get('NOTIFICATION_CHECK_INTERVAL_HOURS', '6'))
 
 # ---------------------------------------------------------------------------
 # django-allauth — Google OAuth social login
