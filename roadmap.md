@@ -219,3 +219,81 @@ Shipped a state-level delegation drawer for map exploration. Clicking a district
 Frontend changes: `mapStore.ts` and `types/index.ts` now track the selected state; `RepMap.tsx` routes district-surface clicks to the tray independently of zoom while representative pins retain individual selection; new `StateTray.tsx` and `StateTray.css` provide the themed responsive drawer; and `App.tsx` coordinates the tray with deep links, comparison, ZIP results, and detail selection.
 
 Verification: `npx tsc --noEmit`, `npm run build`, and `git diff --check` passed. Vite continues to report the existing Mapbox bundle-size warning during production builds. Interactive browser verification was not available in this session.
+
+Phase 2 feature work complete.
+
+### 2026-05-25 — TASK_01: Google OAuth Backend (Phase 3)
+
+Shipped session-based Google OAuth via `django-allauth`. The settings-based `SOCIALACCOUNT_PROVIDERS['google']['APP']` approach eliminates the need for a `SocialApp` database row — credentials come from environment variables (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`) added to `.env.example`. A `/api/v1/auth/user/` endpoint (AllowAny, GET) exposes the current user object for the frontend and a `/api/v1/auth/logout/` endpoint (IsAuthenticated, POST) ends the session.
+
+Backend changes: `django-allauth` added to `requirements.txt`; `settings.py` updated with `django.contrib.sites`, `allauth.*` and `allauth.socialaccount.providers.google` in INSTALLED_APPS, `SITE_ID = 1`, `AUTHENTICATION_BACKENDS`, `SOCIALACCOUNT_PROVIDERS`, `CORS_ALLOW_CREDENTIALS`, `SESSION_COOKIE_SAMESITE`, and `CSRF_COOKIE_SAMESITE`; `repmap/urls.py` includes `accounts/` for allauth's own views plus the two new API endpoints; migrations run for `sites` and `allauth` tables.
+
+Verification: `python manage.py test` — full suite green.
+
+### 2026-05-25 — TASK_02: Frontend Auth UI (Phase 3)
+
+Shipped the auth context and login/logout UI. The axios client gains `withCredentials: true`, `xsrfCookieName: 'csrftoken'`, and `xsrfHeaderName: 'X-CSRFToken'` so that Django's CSRF enforcement on authenticated POST/DELETE calls is satisfied in-browser. A new `AuthContext` (React context + `useAuth()` hook) fetches `/api/v1/auth/user/` on mount and exposes `isAuthenticated`, `user`, `login` (redirect to Google OAuth), and `logout`.
+
+Frontend changes: `api/client.ts` updated with CSRF and credentials config; new `contexts/AuthContext.tsx`; new `UserMenu.tsx` rendering a sign-in button when logged out and an avatar + sign-out button when authenticated; `main.tsx` wraps `<App/>` in `<AuthProvider>`; `NavBar.tsx` adds a right-section grouping container with the theme toggle and `UserMenu`.
+
+Verification: `npx tsc --noEmit` and `npm run build` clean.
+
+### 2026-05-25 — TASK_03: Watchlist Backend (Phase 3)
+
+Shipped the watchlist data layer. A new `UserWatchlist` model (FK `auth.User`, FK `Representative`, `created_at`, unique-together constraint) allows users to follow specific representatives. Three authenticated endpoints (list, add, remove) return the full representative payload from `RepresentativeListSerializer` so the frontend can render watched-rep cards without a second request.
+
+Backend changes: `UserWatchlist` added to `models.py`; `serializers.py` gains a `WatchlistSerializer`; new `WatchlistView`, `WatchlistAddView`, `WatchlistRemoveView` in `views.py` (all `IsAuthenticated`); URLs registered before the DRF router include; migration `0007_userwatchlist.py` created and applied; watchlist tests added.
+
+Verification: `python manage.py test` — full suite green.
+
+### 2026-05-25 — TASK_04: Frontend Watchlist UI (Phase 3)
+
+Shipped the watchlist UX — a watch button on each representative panel and a "My Reps" dashboard. The `useWatchlist()` hook is lifted to `App.tsx` (inside `AuthProvider`) as the single source of truth; `isWatched`, `toggle`, `entries`, and `refresh` are threaded to both `RepresentativePanel` and `MyRepsDashboard`.
+
+Frontend changes: new `hooks/useWatchlist.ts`; `RepresentativePanel.tsx` gains a `WatchButton` (eye icon, authenticated-only) to the left of the share button; new `MyRepsDashboard.tsx` (card grid of watched reps with unwatch controls); `App.tsx` adds `dashboardOpen` state and passes `onMyRepsClick` to `NavBar`; `NavBar.tsx` shows "My Reps" button when authenticated.
+
+Verification: `npx tsc --noEmit` and `npm run build` clean.
+
+### 2026-05-25 — TASK_05: Report Card Backend (Phase 3)
+
+Shipped the representative accountability scoring endpoint. Three sub-scores are computed from Congress.gov data: attendance (recent votes with a position vs. total), effectiveness (sponsored bills that became law), and bipartisanship (cosponsored legislation with at least one cross-party cosponsor). Results are cached for 6 hours to stay within Congress.gov rate limits.
+
+Backend changes: new `services/report_card.py` with scoring logic reusing `fetch_recent_votes`, `fetch_sponsored_legislation`, and `fetch_cosponsored_legislation`; new `ReportCardView` (AllowAny, 6h cache) using the govtrack-lookup pattern from `VotesView`; `ReportCardThrottle` subclasses `AnonRateThrottle` (not `BaseThrottle`) with a `report_card` scope and rate in `DEFAULT_THROTTLE_RATES`; URL registered before the router include; tests added.
+
+Verification: `python manage.py test` — full suite green.
+
+### 2026-05-25 — TASK_06: Frontend Report Card (Phase 3)
+
+Shipped the report card component displayed at the bottom of the Biography tab. Three circular gauges (attendance, effectiveness, bipartisanship) render with color thresholds (green ≥ 70%, yellow ≥ 40%, red below), a skeleton loading state, and a graceful insufficient-data fallback for representatives with limited Congress.gov coverage.
+
+Frontend changes: `ReportCardData` type added to `types/index.ts`; `getReportCard` added to `api/representatives.ts`; new `ReportCard.tsx` and `ReportCard.css`; `BioTab.tsx` renders `<ReportCard bioguideId={rep.bioguide_id} />` at the bottom when a bioguide ID is present.
+
+Verification: `npx tsc --noEmit` and `npm run build` clean.
+
+### 2026-05-25 — TASK_07: Election Countdown (Phase 3)
+
+Shipped a full-stack election countdown widget. A static `election_data/elections.json` file covers the 2026 federal cycle (primary windows and general election date per state), served by a cached `ElectionDatesView`. The frontend widget computes a live countdown (updating every minute) and renders the relevant upcoming election for the displayed representative's state. A one-click `.ics` export lets users add the date to their calendar.
+
+Backend changes: new `election_data/elections.json`; new `views_elections.py` with `ElectionDatesView` (AllowAny, 1h cache); URL registered in `repmap/urls.py`.
+
+Frontend changes: `ElectionDateInfo` and `ElectionDates` types added; `getElectionDates` added to `api/representatives.ts`; new `ElectionCountdown.tsx` and `ElectionCountdown.css`; embedded at the top of `HowToVoteTab.tsx`.
+
+Verification: `python manage.py test`, `npx tsc --noEmit`, and `npm run build` all clean.
+
+### 2026-05-25 — TASK_08: Notification Backend (Phase 3)
+
+Shipped the Celery-driven notification system. A `@shared_task` named `check_watchlist_activity` iterates every watched representative, fetches their most-recent vote via the GovTrack service, and creates a `Notification` row only if that `vote_key` (bioguide_id + vote_date) hasn't been seen before — preventing duplicate alerts on re-runs. Four authenticated notification endpoints (list, unread-count, mark-one-read, mark-all-read) expose the feed to the frontend.
+
+Backend changes: `celery` and `django-celery-beat` added to `requirements.txt`; `repmap/celery.py` and `repmap/__init__.py` created; `settings.py` gains the Celery block and `django_celery_beat` in INSTALLED_APPS; `Notification` model added to `models.py` with DB indexes; `tasks.py` with module-level `fetch_recent_votes` import (required for `unittest.mock.patch`); `serializers_notifications.py`, `views_notifications.py`, and URL registrations (unread-count and read-all before the per-ID route to prevent slug collisions); migration `0008_notification.py` applied; tests cover API isolation, unread count, mark-read dedup, and synchronous in-process task execution.
+
+Verification: `python manage.py test` (105 tests) — full suite green. Synchronous `check_watchlist_activity()` call confirmed: 1 notification created on first run, 0 on second run (dedup working).
+
+### 2026-05-25 — TASK_09: Frontend Notification Bell (Phase 3)
+
+Shipped the in-app notification bell with activity feed dropdown. A red badge on the bell icon shows the unread count, polled every 60 seconds while the user is authenticated. Clicking the bell loads the full notification feed into a glassmorphism dropdown; each item shows its type icon (checkmark for votes, document for legislation), representative name, relative timestamp, and unread highlight. Individual and bulk mark-as-read work optimistically. The dropdown closes on outside click or Escape.
+
+Frontend changes: new `api/notifications.ts` (NotificationItem type + list/unread-count/read/read-all functions); new `NotificationBell.tsx` with `timeAgo` helper, 60s polling, outside-click and Escape handlers, mark-read and mark-all-read optimistic updates; new `NotificationBell.css` (badge, scrollable dropdown, unread background, mobile full-width fixed position); `NavBar.tsx` updated with `NotificationBell` import rendered between the dark mode toggle and `UserMenu`, authenticated-only.
+
+Verification: `npx tsc --noEmit` and `npm run build` clean (expected Mapbox bundle-size warning only).
+
+Phase 3 feature work complete.
