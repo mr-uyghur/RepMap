@@ -162,6 +162,7 @@ REST_FRAMEWORK = {
         'zipcode_lookup': '20/hour',
         'votes_lookup': '30/hour',
         'legislation_lookup': '20/hour',
+        'report_card_lookup': '20/hour',
     },
 }
 

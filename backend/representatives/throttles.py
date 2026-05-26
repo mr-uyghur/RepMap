@@ -15,3 +15,8 @@ class LegislationThrottle(AnonRateThrottle):
     # Throttle legislation lookups — each request may hit two Congress.gov endpoints.
     scope = 'legislation_lookup'
 
+
+class ReportCardThrottle(AnonRateThrottle):
+    # Throttle report card lookups — each request may hit multiple Congress.gov endpoints.
+    scope = 'report_card_lookup'
+

@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import RepresentativeViewSet, DistrictViewSet, ZipLookupView, SyncStatusView, VotesView, LegislationView, HealthView, ConfigView
 from .views_auth import SessionInfoView, LogoutView
 from .views_watchlist import WatchlistListCreateView, WatchlistDeleteView, WatchlistStatusView
+from .views_report_card import ReportCardView
 
 router = DefaultRouter()
 # Register the app's read-only APIs with DRF's router.
@@ -22,6 +23,8 @@ urlpatterns = [
     path('representatives/<str:bioguide_id>/votes/', VotesView.as_view()),
     # Sponsored and cosponsored legislation for a specific legislator.
     path('representatives/<str:bioguide_id>/legislation/', LegislationView.as_view()),
+    # Computed accountability report card for a specific legislator.
+    path('representatives/<str:bioguide_id>/report-card/', ReportCardView.as_view()),
     # Exposes SyncStatus for the frontend to show data freshness indicators.
     path('sync-status/', SyncStatusView.as_view()),
     # Lightweight ZIP centroid lookup used by the map search box.
