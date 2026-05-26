@@ -1,6 +1,7 @@
 import { useMapStore } from '../../store/mapStore'
 import SearchBar from '../Search/SearchBar'
 import UserMenu from './UserMenu'
+import NotificationBell from './NotificationBell'
 import { useAuth } from '../../contexts/AuthContext'
 import type { Representative, ZipSearchResult } from '../../types'
 import './NavBar.css'
@@ -74,6 +75,7 @@ export default function NavBar({
           {darkMode ? <SunIcon /> : <MoonIcon />}
           <span className="navbar-theme-label">{darkMode ? 'Light' : 'Dark'}</span>
         </button>
+        {isAuthenticated && <NotificationBell onSelectRep={onRepSelect} />}
         <UserMenu />
       </div>
     </nav>
