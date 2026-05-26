@@ -8,6 +8,7 @@ import LegislationTab from './LegislationTab'
 import BioTab from './BioTab'
 import HowToVoteTab from './HowToVoteTab'
 import VotesSection from './VotesSection'
+import WatchButton from './WatchButton'
 import { PARTY_COLORS } from '../../constants'
 import { copyToClipboard } from '../../utils/clipboard'
 import './RepresentativePanel.css'
@@ -74,6 +75,8 @@ interface Props {
   onClose: () => void
   compareMode: boolean
   onCompareModeChange: (active: boolean) => void
+  isWatched?: (id: number) => boolean
+  onToggleWatch?: (id: number) => Promise<void>
 }
 
 export default function RepresentativePanel({
@@ -81,6 +84,8 @@ export default function RepresentativePanel({
   onClose,
   compareMode,
   onCompareModeChange,
+  isWatched,
+  onToggleWatch,
 }: Props) {
   const [rep, setRep] = useState<Representative | null>(null)
   const [loading, setLoading] = useState(true)
@@ -277,6 +282,13 @@ export default function RepresentativePanel({
             <CompareIcon />
             <span>{compareMode ? 'Cancel' : 'Compare'}</span>
           </button>
+        )}
+        {rep && isWatched && onToggleWatch && (
+          <WatchButton
+            repId={rep.id}
+            isWatched={isWatched(rep.id)}
+            onToggle={onToggleWatch}
+          />
         )}
         {rep?.bioguide_id && (
           <button

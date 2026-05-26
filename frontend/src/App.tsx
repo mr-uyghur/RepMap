@@ -7,8 +7,10 @@ import StateTray from './components/Panel/StateTray'
 import NavBar from './components/Layout/NavBar'
 import PartyRibbon from './components/Layout/PartyRibbon'
 import ZipSearchResults from './components/Search/ZipSearchResults'
+import MyRepsDashboard from './components/Dashboard/MyRepsDashboard'
 import { useMapStore } from './store/mapStore'
 import { initSyncPolling, teardownSyncPolling, useRepStore } from './store/repStore'
+import { useWatchlist } from './hooks/useWatchlist'
 import type { Representative, ZipSearchResult } from './types'
 import './App.css'
 
@@ -43,6 +45,8 @@ export default function App() {
   const [zipSearchResult, setZipSearchResult] = useState<ZipSearchResult | null>(null)
   const [detailPanelOpen, setDetailPanelOpen] = useState(false)
   const [compareMode, setCompareMode] = useState(false)
+  const [dashboardOpen, setDashboardOpen] = useState(false)
+  const { entries: watchlistEntries, loading: watchlistLoading, isWatched, toggle: toggleWatch } = useWatchlist()
   const selectedRepId = useMapStore((s) => s.selectedRepId)
   const setSelectedRepId = useMapStore((s) => s.setSelectedRepId)
   const selectedStateCode = useMapStore((s) => s.selectedStateCode)
@@ -244,6 +248,7 @@ export default function App() {
           onZipSearchComplete={handleZipSearchComplete}
           onZipSearchReset={handleZipSearchReset}
           onRepSelect={handleRepSelect}
+          onMyRepsClick={() => setDashboardOpen(true)}
         />
         <PartyRibbon />
         <main id="main-content" className="app-map-area">
@@ -276,10 +281,20 @@ export default function App() {
               onClose={handlePanelClose}
               compareMode={compareMode}
               onCompareModeChange={setCompareMode}
+              isWatched={isWatched}
+              onToggleWatch={toggleWatch}
             />
           )}
         </main>
       </div>
+        {dashboardOpen && (
+          <MyRepsDashboard
+            entries={watchlistEntries}
+            loading={watchlistLoading}
+            onClose={() => setDashboardOpen(false)}
+            onSelectRep={(rep) => handleRepSelect(rep as Representative)}
+          />
+        )}
     </ErrorBoundary>
   )
 }
