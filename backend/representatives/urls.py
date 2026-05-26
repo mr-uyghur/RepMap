@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import RepresentativeViewSet, DistrictViewSet, ZipLookupView, SyncStatusView, VotesView, LegislationView, HealthView, ConfigView
+from .views_auth import SessionInfoView, LogoutView
 
 router = DefaultRouter()
 # Register the app's read-only APIs with DRF's router.
@@ -8,6 +9,9 @@ router.register(r'representatives', RepresentativeViewSet, basename='representat
 router.register(r'districts', DistrictViewSet, basename='district')
 
 urlpatterns = [
+    # Auth — session info and logout.
+    path('auth/session/', SessionInfoView.as_view()),
+    path('auth/logout/', LogoutView.as_view()),
     # Recent votes for a specific legislator, keyed by bioguide_id.
     path('representatives/<str:bioguide_id>/votes/', VotesView.as_view()),
     # Sponsored and cosponsored legislation for a specific legislator.

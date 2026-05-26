@@ -11,4 +11,6 @@ urlpatterns = [
     path('api/sync-status/', SyncStatusView.as_view()),
     # All application endpoints live under the versioned prefix.
     path('api/v1/', include('representatives.urls')),
+    # Google OAuth login / callback routes provided by django-allauth.
+    path('accounts/', include('allauth.urls')),
 ]
