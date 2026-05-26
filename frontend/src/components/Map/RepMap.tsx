@@ -235,12 +235,6 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     map.flyTo({ pitch: 0, bearing: 0, duration: 1200, essential: true })
   }, [selectedRepId, mapRef])
 
-  useEffect(() => {
-    if (selectedStateCode && (zoom < 4.5 || zoom > 7.5)) {
-      setSelectedStateCode(null)
-    }
-  }, [selectedStateCode, setSelectedStateCode, zoom])
-
   // Idempotent: re-applies fog and camera angle. Called on initial load and on
   // every style.load event so theme switches restore all atmospheric polish.
   const restorePolish = useCallback(() => {
@@ -319,20 +313,10 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
       const stateAbbr = feature.properties.state_abbr as string
       if (!stateAbbr) return
 
-      if (zoom >= 5 && zoom <= 7) {
-        setSelectedStateCode(stateAbbr)
-        setSelectedRepId(null)
-        return
-      }
-
-      const cd = parseInt(String(feature.properties.CD119 ?? ''), 10)
-      // At-large reps have district_number === null in the DB; Census stores them as CD119 = 0.
-      const rep = allReps.find(
-        (r) => r.level === 'house' && r.state === stateAbbr && (r.district_number ?? 0) === cd
-      )
-      if (rep) onRepSelect(rep)
+      setSelectedStateCode(stateAbbr)
+      setSelectedRepId(null)
     },
-    [allReps, onRepSelect, setSelectedRepId, setSelectedStateCode, zoom]
+    [setSelectedRepId, setSelectedStateCode]
   )
 
   // Dims district layers during flyTo for a smoother 3D camera animation.

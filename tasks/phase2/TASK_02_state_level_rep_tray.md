@@ -2,9 +2,9 @@
 
 > **For agentic workers:** Use `superpowers:executing-plans` to implement this task step-by-step.
 
-**Goal:** Provide an overview of all representatives in a state when a user interacts with the map at state-level zoom tiers (zoom 5–7). Instead of forcing selection of a single house district when clicking at low zooms, show a slide-out tray listing both Senators and all House Representatives for that state.
+**Goal:** Provide an overview of all representatives in a state when a user clicks a district surface on the map. Instead of forcing selection of a single House representative from a district click, show a slide-out tray listing both Senators and all House Representatives for that state. Representative pins remain the explicit route to individual details.
 
-**Architecture:** Frontend-only. Add a new `selectedStateCode` state to Zustand `mapStore.ts` and mount a `StateTray.tsx` drawer in `App.tsx`. Click interactions in `RepMap.tsx` at zoom 5–7 will set the state code, triggering the tray.
+**Architecture:** Frontend-only. Add a new `selectedStateCode` state to Zustand `mapStore.ts` and mount a `StateTray.tsx` drawer in `App.tsx`. District-surface click interactions in `RepMap.tsx` will set the state code at any zoom level, triggering the tray; `RepresentativePin` clicks continue into the individual detail flow.
 
 **Tech Stack:** React, TypeScript, Zustand, CSS.
 
@@ -14,7 +14,7 @@
 
 - Modify: `frontend/src/store/mapStore.ts` (add `selectedStateCode` and setter to store interface and implementation)
 - Modify: `frontend/src/types/index.ts` (add `selectedStateCode` to `MapState` interface)
-- Modify: `frontend/src/components/Map/RepMap.tsx` (intercept click events at zoom 5–7, set state code, and suppress standard detail panel zoom-in)
+- Modify: `frontend/src/components/Map/RepMap.tsx` (route district-surface click events to state selection at any zoom, while preserving representative pin selection)
 - Create: `frontend/src/components/Panel/StateTray.tsx` (new left-side slide-out drawer)
 - Create: `frontend/src/components/Panel/StateTray.css` (glassmorphism drawer and scrolling card styles)
 - Modify: `frontend/src/App.tsx` (import and render `StateTray`, coordinate closing behavior)
@@ -23,7 +23,8 @@
 
 ## Acceptance Criteria
 
-- [ ] At map zoom levels between `5` and `7` (inclusive), clicking on any state boundary selects that state and opens the `StateTray`. It does NOT open the individual `RepresentativePanel` nor does it automatically zoom into a single district centroid.
+- [ ] At any map zoom level where a district surface is clickable, clicking it selects that state and opens the `StateTray`. It does NOT open the individual `RepresentativePanel` nor automatically zoom into a single district centroid.
+- [ ] Clicking a representative pin opens the individual `RepresentativePanel` with its existing camera behavior and does NOT open the `StateTray`.
 - [ ] The `StateTray` renders as a sleek slide-out drawer on the **left side** of the screen (`position: absolute; left: 16px; top: 16px; bottom: 24px; width: 380px; z-index: 25`).
 - [ ] The drawer uses the established glassmorphism styling (`background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.3)` in light mode, and dark mode equivalent).
 - [ ] The tray displays:
@@ -36,7 +37,7 @@
   - Opens their full `RepresentativePanel`.
   - Animates the map camera (flyTo) to their centroid.
 - [ ] An 'X' close button inside the tray header clears `selectedStateCode` and slides the tray shut.
-- [ ] The tray automatically closes if the map is zoomed in past `7.5` or out below `4.5`.
+- [ ] Zooming while the tray is open does not change its selection or close it.
 - [ ] TypeScript compiles with no errors.
 
 ---
@@ -50,7 +51,7 @@
     setSelectedStateCode: (code: string | null) => void
     ```
 - **Map click handling** (`frontend/src/components/Map/RepMap.tsx`):
-  - `handleMapClick` (lines 268–286) is where district clicks are captured. You need to inspect `zoom` inside this callback. If `zoom >= 5 && zoom <= 7`, retrieve `stateAbbr` from `feature.properties.state_abbr` and call `setSelectedStateCode(stateAbbr)`. Do not call `onRepSelect()`.
+  - `handleMapClick` (lines 268–286) is where district-surface clicks are captured. Retrieve `stateAbbr` from `feature.properties.state_abbr` and call `setSelectedStateCode(stateAbbr)` for every valid district-surface click. Do not call `onRepSelect()`.
 - **CSS Transitions**:
   - The drawer needs slide-in and slide-out animations matching the existing design aesthetics. Use keyframes like:
     ```css
@@ -102,35 +103,24 @@ export const useMapStore = create<MapState>((set) => ({
 }))
 ```
 
-### Step 3 — Intercept map clicks at zoom 5–7 in `RepMap.tsx`
+### Step 3 — Route district-surface clicks to the state tray in `RepMap.tsx`
 
-Import `useMapStore` actions and alter `handleMapClick` (around line 268) to divert click execution if within the zoom range:
+Import `useMapStore` actions and alter `handleMapClick` (around line 268) to divert any district-surface click into state selection:
 
 ```typescript
   const { zoom, center, selectedRepId, darkMode, setZoom, setCenter, setSelectedRepId, selectedStateCode, setSelectedStateCode } = useMapStore()
 ```
 
-Inside `handleMapClick`:
+Inside `handleMapClick`, route any district-surface click to state selection:
 ```typescript
       const stateAbbr = feature.properties.state_abbr as string
-      const cd = parseInt(String(feature.properties.CD119 ?? ''), 10)
       if (!stateAbbr) return
 
-      if (zoom >= 5 && zoom <= 7) {
-        setSelectedStateCode(stateAbbr)
-        setSelectedRepId(null) // clear selected representative panel if open
-        return
-      }
+      setSelectedStateCode(stateAbbr)
+      setSelectedRepId(null) // clear selected representative panel if open
 ```
 
-Also, close the state tray if zoom drifts out of bounds. Add a `useEffect` inside `RepMap.tsx`:
-```typescript
-  useEffect(() => {
-    if (selectedStateCode && (zoom < 4.5 || zoom > 7.5)) {
-      setSelectedStateCode(null)
-    }
-  }, [zoom, selectedStateCode, setSelectedStateCode])
-```
+Do not close the state tray in response to zoom changes. A pin click, tray-card selection, close control, or existing conflicting flow closes it explicitly.
 
 ### Step 4 — Create `frontend/src/components/Panel/StateTray.tsx`
 
@@ -464,7 +454,7 @@ In the JSX render tree, inside `.app-map-area` (around line 167):
 ## Manual Verification
 
 1. Start development servers.
-2. In the browser, zoom out so the map sits at zoom `5.5` (US view is widely visible, but states are clear).
+2. In the browser, set the map to a state-overview zoom where district surfaces and senator pins can be clicked.
 3. Click inside the state of **Texas** or **New York**.
 4. Confirm:
    - Map does NOT zoom into a district.
@@ -476,8 +466,10 @@ In the JSX render tree, inside `.app-map-area` (around line 167):
    - The tray closes.
    - The map cinematic zoom drops to that representative's district.
    - The `RepresentativePanel` opens with their exact details.
-6. Re-zoom to zoom `5.5`, click a state, and verify clicking the 'X' button in the tray closes it cleanly.
-7. Click a state, then zoom out below zoom `4.5` (or in past `7.5`): verify the tray automatically disappears.
+6. Click a representative pin and verify it opens individual detail without opening the state tray.
+7. At a closer map zoom, click a district surface and verify it still opens the state tray; click a House pin and verify it opens individual detail.
+8. With the tray open, change the zoom level and verify the tray remains open until it is explicitly dismissed or an individual representative is selected.
+9. Click a state surface and verify clicking the 'X' button in the tray closes it cleanly.
 
 ---
 

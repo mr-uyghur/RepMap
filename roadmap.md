@@ -27,7 +27,7 @@ Make the app production-grade for real users on real devices.
 | Feature | Effort | Notes |
 |---|---|---|
 | **Mobile responsive layout** | ~1 week | Panel → bottom sheet with drag handle. Search → full-width. Pins → touch-optimized tap targets. CSS breakpoints at 768px and 480px. |
-| **State-level rep tray** | ~3 days | At zoom 5–7, slide-out tray listing all House + Senate for the visible state. Click → detail panel. |
+| **State-level rep tray** | ~3 days | Clicking a district surface opens a tray listing all House + Senate for that state; pins and tray cards open individual details. |
 | **Keyboard navigation** | ~2 days | Arrow keys cycle through visible pins. Escape closes panel. Focus trap in panel. |
 | **Compare two reps** | ~4 days | Shift+click or "Compare" button → split panel with side-by-side bio, committees, term progress, vote alignment. |
 
@@ -214,8 +214,8 @@ Verification: `npx tsc --noEmit`, `npm run build`, and `git diff --check` passed
 
 ### 2026-05-25 - TASK_02: State-Level Representative Tray (Phase 2)
 
-Shipped a state-level delegation drawer for map exploration. At zoom levels 5 through 7, clicking a district surface now opens a left-side state tray instead of jumping straight into one House representative; the tray lists both senators and district-sorted House representatives, and selecting a card opens the existing detail flow with its camera animation.
+Shipped a state-level delegation drawer for map exploration. Clicking a district surface at any zoom level opens a left-side state tray instead of jumping straight into one House representative; the tray lists both senators and district-sorted House representatives, and selecting a card opens the existing detail flow with its camera animation. Clicking a representative pin remains the direct route to individual details.
 
-Frontend changes: `mapStore.ts` and `types/index.ts` now track the selected state; `RepMap.tsx` routes state-level clicks to the tray and clears it outside the zoom band; new `StateTray.tsx` and `StateTray.css` provide the themed responsive drawer; and `App.tsx` coordinates the tray with deep links, comparison, ZIP results, and detail selection.
+Frontend changes: `mapStore.ts` and `types/index.ts` now track the selected state; `RepMap.tsx` routes district-surface clicks to the tray independently of zoom while representative pins retain individual selection; new `StateTray.tsx` and `StateTray.css` provide the themed responsive drawer; and `App.tsx` coordinates the tray with deep links, comparison, ZIP results, and detail selection.
 
 Verification: `npx tsc --noEmit`, `npm run build`, and `git diff --check` passed. Vite continues to report the existing Mapbox bundle-size warning during production builds. Interactive browser verification was not available in this session.
