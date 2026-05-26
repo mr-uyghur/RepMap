@@ -1,5 +1,6 @@
 import { useMapStore } from '../../store/mapStore'
 import SearchBar from '../Search/SearchBar'
+import UserMenu from './UserMenu'
 import type { Representative, ZipSearchResult } from '../../types'
 import './NavBar.css'
 
@@ -51,14 +52,17 @@ export default function NavBar({
           onRepSelect={onRepSelect}
         />
       </div>
-      <button
-        onClick={toggleDarkMode}
-        aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-        className="navbar-theme-btn"
-      >
-        {darkMode ? <SunIcon /> : <MoonIcon />}
-        <span className="navbar-theme-label">{darkMode ? 'Light' : 'Dark'}</span>
-      </button>
+      <div className="navbar-right">
+        <button
+          onClick={toggleDarkMode}
+          aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          className="navbar-theme-btn"
+        >
+          {darkMode ? <SunIcon /> : <MoonIcon />}
+          <span className="navbar-theme-label">{darkMode ? 'Light' : 'Dark'}</span>
+        </button>
+        <UserMenu />
+      </div>
     </nav>
   )
 }
