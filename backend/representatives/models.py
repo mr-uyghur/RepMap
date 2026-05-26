@@ -73,3 +73,25 @@ class SyncStatus(models.Model):
             return f'Last synced: {self.last_synced_at.isoformat()}'
         return 'Never synced'
 
+
+class UserWatchlist(models.Model):
+    """Tracks which representatives a user is watching for activity updates."""
+    user = models.ForeignKey(
+        'auth.User',
+        on_delete=models.CASCADE,
+        related_name='watchlist_entries',
+    )
+    representative = models.ForeignKey(
+        Representative,
+        on_delete=models.CASCADE,
+        related_name='watchers',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'representative')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user.email} → {self.representative.name}'
+

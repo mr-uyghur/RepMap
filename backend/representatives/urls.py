@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import RepresentativeViewSet, DistrictViewSet, ZipLookupView, SyncStatusView, VotesView, LegislationView, HealthView, ConfigView
 from .views_auth import SessionInfoView, LogoutView
+from .views_watchlist import WatchlistListCreateView, WatchlistDeleteView, WatchlistStatusView
 
 router = DefaultRouter()
 # Register the app's read-only APIs with DRF's router.
@@ -12,6 +13,11 @@ urlpatterns = [
     # Auth — session info and logout.
     path('auth/session/', SessionInfoView.as_view()),
     path('auth/logout/', LogoutView.as_view()),
+    # Watchlist — status/ must come before <int:representative_id>/ to avoid
+    # the URL resolver treating "status" as an integer parameter.
+    path('watchlist/', WatchlistListCreateView.as_view()),
+    path('watchlist/status/', WatchlistStatusView.as_view()),
+    path('watchlist/<int:representative_id>/', WatchlistDeleteView.as_view()),
     # Recent votes for a specific legislator, keyed by bioguide_id.
     path('representatives/<str:bioguide_id>/votes/', VotesView.as_view()),
     # Sponsored and cosponsored legislation for a specific legislator.
