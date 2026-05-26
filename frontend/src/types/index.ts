@@ -64,10 +64,14 @@ export interface MapState {
   zoom: number
   center: [number, number]
   selectedRepId: number | null
+  selectedStateCode: string | null
+  compareRepId: number | null
   darkMode: boolean
   setZoom: (zoom: number) => void
   setCenter: (center: [number, number]) => void
   setSelectedRepId: (id: number | null) => void
+  setSelectedStateCode: (code: string | null) => void
+  setCompareRepId: (id: number | null) => void
   toggleDarkMode: () => void
 }
 

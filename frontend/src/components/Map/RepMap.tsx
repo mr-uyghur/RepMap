@@ -129,7 +129,18 @@ interface Props {
 }
 
 export default function RepMap({ mapRef, onRepSelect }: Props) {
-  const { zoom, center, selectedRepId, darkMode, setZoom, setCenter, setSelectedRepId } = useMapStore()
+  const {
+    zoom,
+    center,
+    selectedRepId,
+    selectedStateCode,
+    darkMode,
+    setZoom,
+    setCenter,
+    setSelectedRepId,
+    setSelectedStateCode,
+    setCompareRepId,
+  } = useMapStore()
   const { reps, allReps, loading: repsLoading, setReps, setLoading } = useRepStore()
   const [mapboxToken, setMapboxToken] = useState<string>('')
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -170,6 +181,31 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     setFillLayerIds(['national-districts-fill'])
   }), [])
 
+  useEffect(() => {
+    function handleArrowNavigation(event: KeyboardEvent) {
+      if (!['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].includes(event.key)) return
+
+      const container = containerRef.current
+      const active = document.activeElement
+      if (!(active instanceof HTMLElement) || !container?.contains(active)) return
+      if (!active.matches('.mapboxgl-marker [role="button"]')) return
+
+      const pins = Array.from(
+        container.querySelectorAll<HTMLElement>('.mapboxgl-marker [role="button"]')
+      )
+      const currentIndex = pins.indexOf(active)
+      if (currentIndex === -1 || pins.length === 0) return
+
+      event.preventDefault()
+      const direction = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1
+      const nextIndex = (currentIndex + direction + pins.length) % pins.length
+      pins[nextIndex].focus()
+    }
+
+    window.addEventListener('keydown', handleArrowNavigation)
+    return () => window.removeEventListener('keydown', handleArrowNavigation)
+  }, [])
+
   const handleDistrictsLoaded = useCallback(() => {
     setDistrictsLoaded(true)
   }, [])
@@ -198,6 +234,12 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     if (map.getPitch() === 0 && Math.abs(map.getBearing()) < 0.5) return
     map.flyTo({ pitch: 0, bearing: 0, duration: 1200, essential: true })
   }, [selectedRepId, mapRef])
+
+  useEffect(() => {
+    if (selectedStateCode && (zoom < 4.5 || zoom > 7.5)) {
+      setSelectedStateCode(null)
+    }
+  }, [selectedStateCode, setSelectedStateCode, zoom])
 
   // Idempotent: re-applies fog and camera angle. Called on initial load and on
   // every style.load event so theme switches restore all atmospheric polish.
@@ -271,28 +313,41 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
       if (!feature?.properties) {
         // Empty area click — dismiss the panel (triggers 2D reversion via the useEffect above).
         setSelectedRepId(null)
+        setSelectedStateCode(null)
         return
       }
       const stateAbbr = feature.properties.state_abbr as string
-      const cd = parseInt(String(feature.properties.CD119 ?? ''), 10)
       if (!stateAbbr) return
+
+      if (zoom >= 5 && zoom <= 7) {
+        setSelectedStateCode(stateAbbr)
+        setSelectedRepId(null)
+        return
+      }
+
+      const cd = parseInt(String(feature.properties.CD119 ?? ''), 10)
       // At-large reps have district_number === null in the DB; Census stores them as CD119 = 0.
       const rep = allReps.find(
         (r) => r.level === 'house' && r.state === stateAbbr && (r.district_number ?? 0) === cd
       )
       if (rep) onRepSelect(rep)
     },
-    [allReps, onRepSelect, setSelectedRepId]
+    [allReps, onRepSelect, setSelectedRepId, setSelectedStateCode, zoom]
   )
 
   // Dims district layers during flyTo for a smoother 3D camera animation.
-  const handleRepClick = useCallback((rep: Representative) => {
+  const handleRepClick = useCallback((rep: Representative, event: { shiftKey: boolean }) => {
+    if (event.shiftKey && selectedRepId !== null && selectedRepId !== rep.id) {
+      setCompareRepId(rep.id)
+      return
+    }
+
     setIsFlying(true)
     onRepSelect(rep)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const map = (mapRef as React.RefObject<any>).current?.getMap?.()
     if (map) map.once('moveend', () => setIsFlying(false))
-  }, [onRepSelect, mapRef])
+  }, [onRepSelect, selectedRepId, setCompareRepId, mapRef])
 
   const pinPositions = useMemo(() => {
     const positions: Record<number, Position> = {}
@@ -468,7 +523,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
           />
         )}
 
-        {pinsToShow.map((rep) => (
+        {pinsToShow.map((rep, index) => (
           <RepresentativePin
             key={rep.id}
             rep={{
@@ -476,6 +531,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
               ...(pinPositions[rep.id] ?? {}),
             }}
             onClick={handleRepClick}
+            tabIndex={index === 0 ? 0 : -1}
             offset={pinOffsets[rep.id]}
             zoomTier={zoomTier as 1 | 2 | 3 | 4}
             showLabel={labelVisibility[rep.id] ?? true}

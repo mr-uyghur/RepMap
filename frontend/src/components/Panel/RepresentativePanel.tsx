@@ -31,6 +31,17 @@ function ShareIcon() {
   )
 }
 
+function CompareIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="8" cy="8" r="3" />
+      <circle cx="16" cy="8" r="3" />
+      <path d="M3 20a5 5 0 0 1 10 0" />
+      <path d="M11 20a5 5 0 0 1 10 0" />
+    </svg>
+  )
+}
+
 type TabKey = 'biography' | 'voting_record' | 'votes' | 'how_to_vote'
 
 const PARTY_LABELS: Record<string, string> = {
@@ -61,9 +72,16 @@ function getChamberLabel(rep: Representative) {
 interface Props {
   repId: number
   onClose: () => void
+  compareMode: boolean
+  onCompareModeChange: (active: boolean) => void
 }
 
-export default function RepresentativePanel({ repId, onClose }: Props) {
+export default function RepresentativePanel({
+  repId,
+  onClose,
+  compareMode,
+  onCompareModeChange,
+}: Props) {
   const [rep, setRep] = useState<Representative | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
@@ -71,6 +89,9 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
   const [copied, setCopied] = useState(false)
   const dm = useMapStore((s) => s.darkMode)
   const isSyncing = useRepStore((s) => s.isSyncing)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
 
   const handleCopy = async () => {
     const ok = await copyToClipboard(window.location.href)
@@ -118,11 +139,83 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
   // Reset to first tab whenever a new representative is opened.
   useEffect(() => { setActiveTab('biography') }, [repId])
 
+  useEffect(() => {
+    if (compareMode) return
+
+    previousFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null
+    closeButtonRef.current?.focus()
+
+    const getFocusableElements = () => {
+      const elements = Array.from(
+        panelRef.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        ) ?? []
+      )
+      const closeButton = closeButtonRef.current
+      if (!closeButton) return elements
+      return [closeButton, ...elements.filter((element) => element !== closeButton)]
+    }
+
+    function handleTabKey(event: KeyboardEvent) {
+      if (event.key !== 'Tab') return
+
+      const focusables = getFocusableElements()
+      if (focusables.length === 0) {
+        event.preventDefault()
+        return
+      }
+
+      const first = focusables[0]
+      const activeIndex = focusables.indexOf(document.activeElement as HTMLElement)
+      event.preventDefault()
+
+      if (activeIndex === -1) {
+        const destination = event.shiftKey ? focusables[focusables.length - 1] : first
+        destination.focus()
+        return
+      }
+
+      const direction = event.shiftKey ? -1 : 1
+      const nextIndex = (activeIndex + direction + focusables.length) % focusables.length
+      focusables[nextIndex].focus()
+    }
+
+    function keepFocusInPanel(event: FocusEvent) {
+      if (event.target instanceof Node && !panelRef.current?.contains(event.target)) {
+        closeButtonRef.current?.focus()
+      }
+    }
+
+    window.addEventListener('keydown', handleTabKey)
+    document.addEventListener('focusin', keepFocusInPanel)
+    return () => {
+      window.removeEventListener('keydown', handleTabKey)
+      document.removeEventListener('focusin', keepFocusInPanel)
+      if (previousFocusRef.current?.isConnected) {
+        previousFocusRef.current.focus()
+      }
+    }
+  }, [compareMode])
+
   const color = rep ? PARTY_COLORS[rep.party] : '#6b7280'
 
   return (
-    <div className="panel">
+    <div
+      className="panel"
+      ref={panelRef}
+      role="dialog"
+      aria-modal={!compareMode}
+      aria-label={compareMode ? 'Select another representative to compare' : 'Representative details'}
+    >
       <div className="panel-drag-handle" aria-hidden="true" />
+      {compareMode && (
+        <div className="panel-compare-banner" role="status">
+          <strong>Compare Mode:</strong> Click another pin or search a representative to select
+          side-by-side comparison.
+        </div>
+      )}
       {isSyncing && (
         <div className="panel-sync-banner" aria-live="polite">
           Data refreshing…
@@ -173,8 +266,21 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
           ) : null}
         </div>
 
+        {rep && (
+          <button
+            type="button"
+            onClick={() => onCompareModeChange(!compareMode)}
+            aria-label={compareMode ? 'Cancel comparison selection' : 'Compare with another representative'}
+            aria-pressed={compareMode}
+            className={`panel-action-btn${compareMode ? ' panel-action-btn--active' : ''}`}
+          >
+            <CompareIcon />
+            <span>{compareMode ? 'Cancel' : 'Compare'}</span>
+          </button>
+        )}
         {rep?.bioguide_id && (
           <button
+            type="button"
             onClick={handleCopy}
             aria-label="Copy link to this representative"
             className="panel-close-btn"
@@ -190,6 +296,8 @@ export default function RepresentativePanel({ repId, onClose }: Props) {
           </button>
         )}
         <button
+          type="button"
+          ref={closeButtonRef}
           onClick={onClose}
           aria-label="Close panel"
           className="panel-close-btn"

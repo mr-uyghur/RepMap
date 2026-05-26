@@ -195,3 +195,27 @@ Frontend changes: `RepresentativePanel.tsx` and `RepresentativePanel.css` add th
 Verification: `npx tsc --noEmit`, `npm run build`, and `git diff --check` passed. Vite continues to report the existing Mapbox bundle-size warning during production builds. Rendered device emulation was not available in this session.
 
 Phase 2 work underway.
+
+### 2026-05-25 - TASK_03: Keyboard Navigation & Accessibility Polish (Phase 2)
+
+Shipped keyboard access for map pin and representative panel workflows. Rendered map pins now use a single tab stop with arrow-key cycling across available markers, while the representative panel opens as a modal dialog with close-button autofocus, a strict focus trap, and focus restoration to the control that opened it.
+
+Frontend changes: `RepMap.tsx` handles arrow-key marker traversal; `RepresentativePin.tsx` accepts the roving tab stop; `RepresentativePanel.tsx` adds dialog semantics and focus management; and `App.tsx` provides stable panel close handling plus page-wide Escape dismissal.
+
+Verification: `npx tsc --noEmit`, `npm run build`, and `git diff --check` passed. Vite continues to report the existing Mapbox bundle-size warning during production builds. The repository does not currently install `eslint`, so its configured lint script cannot execute.
+
+### 2026-05-25 - TASK_04: Compare Two Representatives (Phase 2)
+
+Shipped side-by-side representative comparison. Users can open comparison directly with Shift+click on a second map pin or enter Compare Mode from the representative panel and select a second representative from a pin or search result. The comparison dialog loads both rich profiles independently, shows contact and term information in parallel columns, and calls out shared state and committee assignments.
+
+Frontend changes: `mapStore.ts` and `types/index.ts` track the comparison representative; `RepMap.tsx` and `RepresentativePin.tsx` pass explicit modifier-key selection events; `RepresentativePanel.tsx` provides the compare action and selection banner while allowing background selection; new `ComparePanel.tsx` and `ComparePanel.css` implement the centered accessible dialog; and `App.tsx` coordinates selection, close, and Escape behavior.
+
+Verification: `npx tsc --noEmit`, `npm run build`, and `git diff --check` passed. Vite continues to report the existing Mapbox bundle-size warning during production builds.
+
+### 2026-05-25 - TASK_02: State-Level Representative Tray (Phase 2)
+
+Shipped a state-level delegation drawer for map exploration. At zoom levels 5 through 7, clicking a district surface now opens a left-side state tray instead of jumping straight into one House representative; the tray lists both senators and district-sorted House representatives, and selecting a card opens the existing detail flow with its camera animation.
+
+Frontend changes: `mapStore.ts` and `types/index.ts` now track the selected state; `RepMap.tsx` routes state-level clicks to the tray and clears it outside the zoom band; new `StateTray.tsx` and `StateTray.css` provide the themed responsive drawer; and `App.tsx` coordinates the tray with deep links, comparison, ZIP results, and detail selection.
+
+Verification: `npx tsc --noEmit`, `npm run build`, and `git diff --check` passed. Vite continues to report the existing Mapbox bundle-size warning during production builds. Interactive browser verification was not available in this session.

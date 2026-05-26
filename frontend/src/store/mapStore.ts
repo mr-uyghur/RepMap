@@ -5,10 +5,14 @@ export const useMapStore = create<MapState>((set) => ({
   zoom: 4,
   center: [-98.5795, 39.8283], // Center of US
   selectedRepId: null,
+  selectedStateCode: null,
+  compareRepId: null,
   darkMode: false,
   // Small focused store for map camera state and UI toggles.
   setZoom: (zoom) => set({ zoom }),
   setCenter: (center) => set({ center }),
   setSelectedRepId: (id) => set({ selectedRepId: id }),
+  setSelectedStateCode: (code) => set({ selectedStateCode: code }),
+  setCompareRepId: (id) => set({ compareRepId: id }),
   toggleDarkMode: () => set((s) => ({ darkMode: !s.darkMode })),
 }))

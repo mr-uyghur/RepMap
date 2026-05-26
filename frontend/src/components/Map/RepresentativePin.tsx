@@ -16,7 +16,9 @@ const TIER_CONFIG = {
 
 interface Props {
   rep: Representative
-  onClick: (rep: Representative) => void
+  onClick: (rep: Representative, event: MouseEvent<HTMLDivElement> | KeyboardEvent<HTMLDivElement>) => void
+  /** Roving tab stop: only the first rendered pin is reachable by Tab. */
+  tabIndex?: 0 | -1
   /** Pixel offset from the marker's anchor — used to separate co-located senators */
   offset?: [number, number]
   /** Current zoom tier (1–4). Determines visual density. */
@@ -30,6 +32,7 @@ interface Props {
 export default function RepresentativePin({
   rep,
   onClick,
+  tabIndex = -1,
   offset,
   zoomTier,
   showLabel = true,
@@ -48,14 +51,14 @@ export default function RepresentativePin({
 
   const handlePinClick = (e: MouseEvent<HTMLDivElement>) => {
     e.stopPropagation()
-    onClick(rep)
+    onClick(rep, e)
   }
 
   const handlePinKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key !== 'Enter' && e.key !== ' ') return
     e.preventDefault()
     e.stopPropagation()
-    onClick(rep)
+    onClick(rep, e)
   }
 
   // Z-index hierarchy: selected > hovered > senator > house
@@ -73,7 +76,7 @@ export default function RepresentativePin({
       >
         <div
           role="button"
-          tabIndex={0}
+          tabIndex={tabIndex}
           aria-label={accessibleLabel}
           aria-pressed={isSelected}
           onMouseEnter={() => setHovered(true)}
@@ -178,7 +181,7 @@ export default function RepresentativePin({
     >
       <div
         role="button"
-        tabIndex={0}
+        tabIndex={tabIndex}
         aria-label={accessibleLabel}
         aria-pressed={isSelected}
         style={{

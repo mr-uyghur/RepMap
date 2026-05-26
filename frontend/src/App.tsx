@@ -2,6 +2,8 @@ import { Component, useRef, useCallback, useEffect, useState } from 'react'
 import type { MapRef } from 'react-map-gl'
 import RepMap from './components/Map/RepMap'
 import RepresentativePanel from './components/Panel/RepresentativePanel'
+import ComparePanel from './components/Panel/ComparePanel'
+import StateTray from './components/Panel/StateTray'
 import NavBar from './components/Layout/NavBar'
 import PartyRibbon from './components/Layout/PartyRibbon'
 import ZipSearchResults from './components/Search/ZipSearchResults'
@@ -40,8 +42,13 @@ export default function App() {
   const mapRef = useRef<MapRef>(null)
   const [zipSearchResult, setZipSearchResult] = useState<ZipSearchResult | null>(null)
   const [detailPanelOpen, setDetailPanelOpen] = useState(false)
+  const [compareMode, setCompareMode] = useState(false)
   const selectedRepId = useMapStore((s) => s.selectedRepId)
   const setSelectedRepId = useMapStore((s) => s.setSelectedRepId)
+  const selectedStateCode = useMapStore((s) => s.selectedStateCode)
+  const setSelectedStateCode = useMapStore((s) => s.setSelectedStateCode)
+  const compareRepId = useMapStore((s) => s.compareRepId)
+  const setCompareRepId = useMapStore((s) => s.setCompareRepId)
   const darkMode = useMapStore((s) => s.darkMode)
   const allRepresentatives = useRepStore((s) => s.allReps)
 
@@ -67,7 +74,20 @@ export default function App() {
   const hasDeepLinked = useRef(false)
 
   const handleRepSelect = useCallback(
-    (rep: Representative) => {
+    (rep: Representative, options?: { skipCompare?: boolean }) => {
+      setSelectedStateCode(null)
+
+      if (!options?.skipCompare && compareMode && selectedRepId !== null) {
+        if (rep.id !== selectedRepId) {
+          setCompareRepId(rep.id)
+          setCompareMode(false)
+        }
+        return
+      }
+
+      // A direct user selection supersedes any one-time URL initialization.
+      hasDeepLinked.current = true
+      setCompareRepId(null)
       setSelectedRepId(rep.id)
       setDetailPanelOpen(true)
       if (rep.bioguide_id) {
@@ -90,7 +110,7 @@ export default function App() {
         easing: (t: number) => t * (2 - t),
       })
     },
-    [setSelectedRepId]
+    [compareMode, selectedRepId, setCompareRepId, setSelectedRepId, setSelectedStateCode]
   )
 
   const handleFlyTo = useCallback((lat: number, lng: number) => {
@@ -105,6 +125,9 @@ export default function App() {
   const handleZipSearchComplete = useCallback(
     (result: ZipSearchResult) => {
       setZipSearchResult(result)
+      setCompareMode(false)
+      setCompareRepId(null)
+      setSelectedStateCode(null)
       setDetailPanelOpen(false)
       handleFlyTo(result.lat, result.lng)
       const defaultRep =
@@ -112,14 +135,69 @@ export default function App() {
         result.representatives[0]
       setSelectedRepId(defaultRep?.id ?? null)
     },
-    [handleFlyTo, setSelectedRepId]
+    [handleFlyTo, setCompareRepId, setSelectedRepId, setSelectedStateCode]
   )
 
   const handleZipSearchReset = useCallback(() => {
     setZipSearchResult(null)
+    setCompareMode(false)
+    setCompareRepId(null)
+    setSelectedStateCode(null)
     setDetailPanelOpen(false)
     setSelectedRepId(null)
-  }, [setSelectedRepId])
+  }, [setCompareRepId, setSelectedRepId, setSelectedStateCode])
+
+  const handlePanelClose = useCallback(() => {
+    setCompareMode(false)
+    setCompareRepId(null)
+    setDetailPanelOpen(false)
+    setSelectedRepId(null)
+    window.history.replaceState({}, '', window.location.pathname)
+  }, [setCompareRepId, setSelectedRepId])
+
+  const handleCompareClose = useCallback(() => {
+    setCompareMode(false)
+    setCompareRepId(null)
+    setDetailPanelOpen(true)
+  }, [setCompareRepId])
+
+  const handleStateTrayClose = useCallback(() => {
+    setSelectedStateCode(null)
+  }, [setSelectedStateCode])
+
+  const handleStateTrayRepSelect = useCallback(
+    (rep: Representative) => {
+      handleRepSelect(rep, { skipCompare: true })
+    },
+    [handleRepSelect]
+  )
+
+  useEffect(() => {
+    if (compareRepId !== null) setCompareMode(false)
+  }, [compareRepId])
+
+  useEffect(() => {
+    if (!selectedStateCode) return
+    setZipSearchResult(null)
+    setCompareMode(false)
+    setCompareRepId(null)
+    setDetailPanelOpen(false)
+    setSelectedRepId(null)
+    window.history.replaceState({}, '', window.location.pathname)
+  }, [selectedStateCode, setCompareRepId, setSelectedRepId])
+
+  useEffect(() => {
+    if (!detailPanelOpen || compareRepId !== null) return
+
+    function handleGlobalEscape(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      handlePanelClose()
+    }
+
+    window.addEventListener('keydown', handleGlobalEscape)
+    return () => window.removeEventListener('keydown', handleGlobalEscape)
+  }, [compareRepId, detailPanelOpen, handlePanelClose])
 
   useEffect(() => {
     if (hasDeepLinked.current || allRepresentatives.length === 0) return
@@ -140,17 +218,23 @@ export default function App() {
       if (bioguideId) {
         const rep = allRepresentatives.find((r) => r.bioguide_id === bioguideId)
         if (rep) {
+          setSelectedStateCode(null)
+          setCompareMode(false)
+          setCompareRepId(null)
           setSelectedRepId(rep.id)
           setDetailPanelOpen(true)
         }
       } else {
+        setSelectedStateCode(null)
+        setCompareMode(false)
+        setCompareRepId(null)
         setSelectedRepId(null)
         setDetailPanelOpen(false)
       }
     }
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
-  }, [allRepresentatives, setSelectedRepId])
+  }, [allRepresentatives, setCompareRepId, setSelectedRepId, setSelectedStateCode])
 
   return (
     <ErrorBoundary>
@@ -164,6 +248,13 @@ export default function App() {
         <PartyRibbon />
         <main id="main-content" className="app-map-area">
           <RepMap mapRef={mapRef} onRepSelect={handleRepSelect} />
+          {selectedStateCode && (
+            <StateTray
+              stateCode={selectedStateCode}
+              onClose={handleStateTrayClose}
+              onSelectRep={handleStateTrayRepSelect}
+            />
+          )}
           {zipSearchResult && (
             <ZipSearchResults
               result={zipSearchResult}
@@ -172,14 +263,19 @@ export default function App() {
               onClear={handleZipSearchReset}
             />
           )}
-          {selectedRepId !== null && detailPanelOpen && (
+          {selectedRepId !== null && compareRepId !== null && (
+            <ComparePanel
+              repIdA={selectedRepId}
+              repIdB={compareRepId}
+              onClose={handleCompareClose}
+            />
+          )}
+          {selectedRepId !== null && compareRepId === null && detailPanelOpen && (
             <RepresentativePanel
               repId={selectedRepId}
-              onClose={() => {
-                setDetailPanelOpen(false)
-                setSelectedRepId(null)
-                window.history.replaceState({}, '', window.location.pathname)
-              }}
+              onClose={handlePanelClose}
+              compareMode={compareMode}
+              onCompareModeChange={setCompareMode}
             />
           )}
         </main>
