@@ -21,7 +21,13 @@ class JSONListField(models.TextField):
 
 class Representative(models.Model):
     # One current federal legislator shown in the app.
-    LEVEL_CHOICES = [('house', 'US House'), ('senate', 'US Senate')]
+    LEVEL_CHOICES = [
+        ('us_house', 'US House'),
+        ('us_senate', 'US Senate'),
+        ('state_house', 'State House'),
+        ('state_senate', 'State Senate'),
+        ('governor', 'Governor'),
+    ]
     PARTY_CHOICES = [
         ('democrat', 'Democrat'),
         ('republican', 'Republican'),
@@ -30,7 +36,7 @@ class Representative(models.Model):
     ]
 
     name = models.CharField(max_length=200)
-    level = models.CharField(max_length=10, choices=LEVEL_CHOICES, db_index=True)
+    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, db_index=True)
     party = models.CharField(max_length=20, choices=PARTY_CHOICES)
     state = models.CharField(max_length=2, db_index=True)
     district_number = models.IntegerField(null=True, blank=True, db_index=True)
@@ -53,8 +59,10 @@ class Representative(models.Model):
 
     def __str__(self):
         # Human-readable label for admin/debug output.
-        if self.level == 'senate':
+        if self.level == 'us_senate':
             return f"Sen. {self.name} ({self.state})"
+        if self.level in ('state_house', 'state_senate', 'governor'):
+            return f"{self.get_level_display()} {self.name} ({self.state})"
         return f"Rep. {self.name} ({self.state}-{self.district_number})"
 
 

@@ -54,12 +54,12 @@ function useRepresentativeDetail(repId: number): DetailState {
 }
 
 function getChamberLabel(rep: Representative) {
-  return rep.level === 'senate' ? 'US Senator' : 'US Representative'
+  return rep.level === 'us_senate' ? 'US Senator' : 'US Representative'
 }
 
 function getDistrictLabel(rep: Representative) {
   if (rep.district_label) return rep.district_label
-  if (rep.level === 'senate') return rep.state
+  if (rep.level === 'us_senate') return rep.state
   if (rep.district_number == null) return `${rep.state} - At-Large`
   return `${rep.state} - District ${rep.district_number}`
 }

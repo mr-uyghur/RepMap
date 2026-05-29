@@ -9,7 +9,7 @@ from representatives.models import Representative, UserWatchlist, Notification
 
 def _make_rep(**kwargs):
     defaults = dict(
-        name='Test Rep', level='house', party='democrat',
+        name='Test Rep', level='us_house', party='democrat',
         state='CA', district_number=1, latitude=37.0, longitude=-120.0,
         external_ids={'bioguide_id': 'T000001', 'govtrack_id': '412345'},
         social_links={}, committee_assignments=[],

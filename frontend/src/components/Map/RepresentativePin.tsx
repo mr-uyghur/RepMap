@@ -40,7 +40,7 @@ export default function RepresentativePin({
 }: Props) {
   const [hovered, setHovered] = useState(false)
   const color = PARTY_COLORS[rep.party] || '#6b7280'
-  const isSenator = rep.level === 'senate'
+  const isSenator = rep.level === 'us_senate'
   const config = TIER_CONFIG[zoomTier]
   const districtLabel = isSenator
     ? `${rep.state} senator`

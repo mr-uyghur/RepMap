@@ -81,7 +81,7 @@ class ZipcodeEndpointTests(TestCase):
 
     def test_no_zip_returns_all_reps(self):
         Representative.objects.create(
-            name='Test Rep', level='house', party='democrat',
+            name='Test Rep', level='us_house', party='democrat',
             state='CA', district_number=1, latitude=37.0, longitude=-120.0,
         )
         response = self.client.get('/api/v1/representatives/')
@@ -148,19 +148,19 @@ class LocalZipLookupTests(TestCase):
         """fetch_reps_by_zipcode queries DB using state + district from local table."""
         from representatives.integrations.zip_lookup import fetch_reps_by_zipcode
         Representative.objects.create(
-            name='House Rep', level='house', party='democrat',
+            name='House Rep', level='us_house', party='democrat',
             state='CA', district_number=17, latitude=37.0, longitude=-121.0,
         )
         Representative.objects.create(
-            name='Senator A', level='senate', party='democrat',
+            name='Senator A', level='us_senate', party='democrat',
             state='CA', district_number=None, latitude=37.0, longitude=-119.0,
         )
         with self._patch_table():
             reps = fetch_reps_by_zipcode('95131')
         self.assertEqual(len(reps), 2)
         levels = {r.level for r in reps}
-        self.assertIn('house', levels)
-        self.assertIn('senate', levels)
+        self.assertIn('us_house', levels)
+        self.assertIn('us_senate', levels)
 
     @override_settings(AUTO_SYNC_ENABLED=False)
     def test_fetch_reps_unknown_zip_returns_empty(self):
@@ -275,7 +275,7 @@ def _make_rep(**kwargs):
     """Create a Representative with sensible defaults for test isolation."""
     defaults = dict(
         name='Test Rep',
-        level='house',
+        level='us_house',
         party='democrat',
         state='CA',
         district_number=12,
@@ -301,10 +301,10 @@ class RepresentativeListEndpointTests(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.house_rep = _make_rep(
-            name='Jane Doe', level='house', party='democrat', state='CA', district_number=12,
+            name='Jane Doe', level='us_house', party='democrat', state='CA', district_number=12,
         )
         self.senator = _make_rep(
-            name='John Smith', level='senate', party='republican', state='CA', district_number=None,
+            name='John Smith', level='us_senate', party='republican', state='CA', district_number=None,
         )
 
     def test_returns_200_with_all_reps(self):
@@ -334,7 +334,7 @@ class RepresentativeListEndpointTests(TestCase):
 
     def test_ordering_is_stable(self):
         # Model Meta ordering is ['state', 'level', 'district_number'].
-        # House reps sort before senators alphabetically by level ('house' < 'senate').
+        # House reps sort before senators alphabetically by level ('us_house' < 'us_senate').
         response = self.client.get('/api/v1/representatives/')
         self.assertEqual(response.status_code, 200)
         levels = [r['level'] for r in response.data]
@@ -354,7 +354,7 @@ class RepresentativeDetailEndpointTests(TestCase):
         self.client = APIClient()
         self.rep = _make_rep(
             name='Ada Lovelace',
-            level='senate',
+            level='us_senate',
             party='independent',
             state='NY',
             district_number=None,
@@ -386,12 +386,12 @@ class RepresentativeDetailEndpointTests(TestCase):
         self.assertEqual(response.data['district_label'], 'NY')
 
     def test_district_label_house_numbered(self):
-        house_rep = _make_rep(level='house', state='TX', district_number=7)
+        house_rep = _make_rep(level='us_house', state='TX', district_number=7)
         response = self.client.get(f'/api/v1/representatives/{house_rep.id}/')
         self.assertEqual(response.data['district_label'], 'TX - District 7')
 
     def test_district_label_at_large(self):
-        at_large = _make_rep(level='house', state='AK', district_number=None)
+        at_large = _make_rep(level='us_house', state='AK', district_number=None)
         response = self.client.get(f'/api/v1/representatives/{at_large.id}/')
         self.assertEqual(response.data['district_label'], 'AK - At-Large')
 

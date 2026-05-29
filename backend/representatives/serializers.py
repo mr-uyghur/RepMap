@@ -49,7 +49,9 @@ class RepresentativeDetailSerializer(serializers.ModelSerializer):
 
     def get_district_label(self, obj):
         # Build a frontend-friendly district label that handles at-large cases.
-        if obj.level == 'senate':
+        if obj.level == 'us_senate':
+            return obj.state
+        if obj.level in ('state_house', 'state_senate', 'governor'):
             return obj.state
         if obj.district_number is None:
             return f'{obj.state} - At-Large'

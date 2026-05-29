@@ -74,8 +74,8 @@ export default function PartyRibbon() {
     }
   })
 
-  const houseCounts = useMemo(() => countByParty(allReps, 'house'), [allReps])
-  const senateCounts = useMemo(() => countByParty(allReps, 'senate'), [allReps])
+  const houseCounts = useMemo(() => countByParty(allReps, 'us_house'), [allReps])
+  const senateCounts = useMemo(() => countByParty(allReps, 'us_senate'), [allReps])
 
   if (allReps.length === 0) return null
 

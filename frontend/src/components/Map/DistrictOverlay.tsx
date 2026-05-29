@@ -85,7 +85,7 @@ export default function DistrictOverlay({ onLoaded, dimmed = false }: Props) {
   const partyMap = useMemo(() => {
     const map: Record<string, string> = {}
     for (const rep of allReps) {
-      if (rep.level === 'house') {
+      if (rep.level === 'us_house') {
         // Normalize null (at-large) to 0, matching Census CD119 = "00" → parseInt = 0.
         map[`${rep.state}-${rep.district_number ?? 0}`] = rep.party
       }

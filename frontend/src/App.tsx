@@ -135,7 +135,7 @@ export default function App() {
       setDetailPanelOpen(false)
       handleFlyTo(result.lat, result.lng)
       const defaultRep =
-        result.representatives.find((rep) => rep.level === 'house') ??
+        result.representatives.find((rep) => rep.level === 'us_house') ??
         result.representatives[0]
       setSelectedRepId(defaultRep?.id ?? null)
     },

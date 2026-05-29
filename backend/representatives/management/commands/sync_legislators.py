@@ -290,7 +290,7 @@ class Command(BaseCommand):
 
             fields = dict(
                 name=full_name,
-                level='senate',
+                level='us_senate',
                 party=party,
                 state=state,
                 district_number=None,
@@ -343,7 +343,7 @@ class Command(BaseCommand):
 
             fields = dict(
                 name=full_name,
-                level='house',
+                level='us_house',
                 party=party,
                 state=state,
                 district_number=district if district != 0 else None,

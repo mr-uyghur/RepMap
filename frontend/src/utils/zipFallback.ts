@@ -111,10 +111,10 @@ export function resolveZipSearchFallback(
   if (!stateReps.length) return null
 
   const senators = stateReps
-    .filter((rep) => rep.level === 'senate')
+    .filter((rep) => rep.level === 'us_senate')
     .sort((a, b) => a.name.localeCompare(b.name))
   const nearestHouse = stateReps
-    .filter((rep) => rep.level === 'house')
+    .filter((rep) => rep.level === 'us_house')
     .sort((a, b) =>
       distanceSquared(a, location.lat, location.lng) -
       distanceSquared(b, location.lat, location.lng)

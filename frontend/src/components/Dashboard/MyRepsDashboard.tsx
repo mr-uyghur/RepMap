@@ -17,7 +17,7 @@ function formatDate(iso: string): string {
 }
 
 function getDistrictLabel(entry: WatchlistEntry['representative']): string {
-  if (entry.level === 'senate') return entry.state
+  if (entry.level === 'us_senate') return entry.state
   if (entry.district_number == null) return `${entry.state} — At-Large`
   return `${entry.state}-${entry.district_number}`
 }
@@ -92,7 +92,7 @@ export default function MyRepsDashboard({ entries, loading, onClose, onSelectRep
                     <div className="my-reps-info">
                       <p className="my-reps-name">{rep.name}</p>
                       <p className="my-reps-meta">
-                        {rep.level === 'senate' ? 'Senator' : 'Representative'} · {getDistrictLabel(rep)}
+                        {rep.level === 'us_senate' ? 'Senator' : 'Representative'} · {getDistrictLabel(rep)}
                       </p>
                       <p className="my-reps-date">Watching since {formatDate(entry.watched_at)}</p>
                     </div>

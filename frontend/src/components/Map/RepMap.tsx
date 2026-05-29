@@ -337,7 +337,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     const positions: Record<number, Position> = {}
 
     for (const rep of reps) {
-      if (rep.level !== 'house' || rep.district_number == null) continue
+      if (rep.level !== 'us_house' || rep.district_number == null) continue
 
       // House pins prefer an interior point from the district polygon over a coarse centroid.
       const featureCollection = getCachedDistrictGeoJSON(rep.state) as {
@@ -396,7 +396,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
   // zoom < 4: no pins  |  zoom 4–7: senators only  |  zoom ≥ 7: all reps
   const pinsToShow = useMemo(() => {
     if (zoomTier === 0) return []
-    if (zoomTier <= 2) return reps.filter((rep) => rep.level === 'senate')
+    if (zoomTier <= 2) return reps.filter((rep) => rep.level === 'us_senate')
     return reps
   }, [zoomTier, reps])
 
@@ -414,8 +414,8 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     const sorted = [...pinsToShow].sort((a, b) => {
       if (a.id === selectedRepId) return -1
       if (b.id === selectedRepId) return 1
-      if (a.level === 'senate' && b.level !== 'senate') return -1
-      if (b.level === 'senate' && a.level !== 'senate') return 1
+      if (a.level === 'us_senate' && b.level !== 'us_senate') return -1
+      if (b.level === 'us_senate' && a.level !== 'us_senate') return 1
       return 0
     })
 
@@ -499,7 +499,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
 
         {/* Highlight the selected House rep's congressional district.
             Senators have no district_number, so DistrictBoundary renders nothing. */}
-        {selectedRep?.level === 'house' && (
+        {selectedRep?.level === 'us_house' && (
           <DistrictBoundary
             state={selectedRep.state}
             districtNumber={selectedRep.district_number}

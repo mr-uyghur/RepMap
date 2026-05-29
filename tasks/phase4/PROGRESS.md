@@ -2,7 +2,7 @@
 
 | Task | Name | Component | Status | Commit |
 |---|---|---|---|---|
-| 01 | Level field migration | Full-stack | Pending | — |
+| 01 | Level field migration | Full-stack | Done | — |
 | 02 | OpenStates API integration | Backend | Pending | — |
 | 03 | State legislator sync command | Backend | Pending | — |
 | 04 | State district GeoJSON pipeline | Backend | Pending | — |

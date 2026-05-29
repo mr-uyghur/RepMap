@@ -10,12 +10,12 @@ const PARTY_LABELS: Record<string, string> = {
 }
 
 function getChamberLabel(rep: Representative) {
-  return rep.level === 'senate' ? 'Senator' : 'House'
+  return rep.level === 'us_senate' ? 'Senator' : 'House'
 }
 
 function getDistrictLabel(rep: Representative) {
   if (rep.district_label) return rep.district_label
-  if (rep.level === 'senate') return rep.state
+  if (rep.level === 'us_senate') return rep.state
   if (rep.district_number == null) return `${rep.state} At-Large`
   return `${rep.state}-${rep.district_number}`
 }
@@ -33,8 +33,8 @@ export default function ZipSearchResults({
   onSelectRep,
   onClear,
 }: Props) {
-  const houseReps = result.representatives.filter((rep) => rep.level === 'house')
-  const senators = result.representatives.filter((rep) => rep.level === 'senate')
+  const houseReps = result.representatives.filter((rep) => rep.level === 'us_house')
+  const senators = result.representatives.filter((rep) => rep.level === 'us_senate')
   const orderedReps = [...houseReps, ...senators]
 
   return (

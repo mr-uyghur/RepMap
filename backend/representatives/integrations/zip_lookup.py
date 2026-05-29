@@ -68,14 +68,14 @@ def fetch_reps_by_zipcode(zipcode: str) -> list:
 
     # House rep for this district (district_number=None means at-large or delegate).
     house_rep = Representative.objects.filter(
-        level='house', state=state_abbr, district_number=district_number
+        level='us_house', state=state_abbr, district_number=district_number
     ).first()
     if house_rep:
         reps.append(house_rep)
 
     # Both senators for this state.
     senators = list(
-        Representative.objects.filter(level='senate', state=state_abbr).order_by('name')
+        Representative.objects.filter(level='us_senate', state=state_abbr).order_by('name')
     )
     reps.extend(senators)
 

@@ -1,4 +1,4 @@
-export type Level = 'house' | 'senate'
+export type Level = 'us_house' | 'us_senate' | 'state_house' | 'state_senate' | 'governor'
 export type Party = 'democrat' | 'republican' | 'independent' | 'other'
 
 export interface Representative {

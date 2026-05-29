@@ -69,7 +69,7 @@ function score(query: string, rep: Representative): number {
     rep.name,
     rep.state,
     STATE_NAMES[rep.state] ?? '',
-    rep.level === 'senate' ? 'senate senator' : 'house representative',
+    rep.level === 'us_senate' ? 'senate senator' : 'house representative',
   ].map((field) => field.toLowerCase())
   const tokens = query.toLowerCase().split(/\s+/).filter(Boolean)
 

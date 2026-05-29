@@ -72,7 +72,7 @@ const PARTY_LABELS: Record<string, string> = {
 }
 
 function districtLabel(rep: Representative) {
-  if (rep.level === 'senate') return 'US Senator'
+  if (rep.level === 'us_senate') return 'US Senator'
   if (rep.district_number == null) return 'At-Large Representative'
   return `District ${rep.district_number}`
 }
@@ -106,10 +106,10 @@ export default function StateTray({ stateCode, onClose, onSelectRep }: Props) {
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const stateReps = allReps.filter((rep) => rep.state === stateCode)
   const senators = stateReps
-    .filter((rep) => rep.level === 'senate')
+    .filter((rep) => rep.level === 'us_senate')
     .sort((a, b) => a.name.localeCompare(b.name))
   const representatives = stateReps
-    .filter((rep) => rep.level === 'house')
+    .filter((rep) => rep.level === 'us_house')
     .sort((a, b) => (a.district_number ?? 0) - (b.district_number ?? 0))
   const stateName = STATE_NAMES[stateCode] ?? stateCode
 

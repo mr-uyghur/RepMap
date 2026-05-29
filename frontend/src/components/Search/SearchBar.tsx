@@ -131,7 +131,7 @@ export default function SearchBar({
           ? liveRepresentatives
           : fallback?.representatives ?? []
         const defaultRep =
-          representatives.find((rep) => rep.level === 'house') ?? representatives[0]
+          representatives.find((rep) => rep.level === 'us_house') ?? representatives[0]
         const location = liveLocation ?? fallback ?? (defaultRep
           ? { lat: defaultRep.latitude, lng: defaultRep.longitude }
           : null)
