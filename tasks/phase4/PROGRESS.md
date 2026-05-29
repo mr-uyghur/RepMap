@@ -4,7 +4,7 @@
 |---|---|---|---|---|
 | 01 | Level field migration | Full-stack | Done | — |
 | 02 | OpenStates API integration | Backend | Done | — |
-| 03 | State legislator sync command | Backend | Pending | — |
+| 03 | State legislator sync command | Backend | Done | — |
 | 04 | State district GeoJSON pipeline | Backend | Pending | — |
 | 05 | Frontend state reps display | Frontend | Pending | — |
 | 06 | Embeddable widget route | Frontend | Pending | — |

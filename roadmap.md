@@ -315,3 +315,11 @@ Created the backend service layer for fetching state legislators from the OpenSt
 Backend changes: new `integrations/openstates.py` with `fetch_state_legislators(state) -> list[dict]`, `OpenStatesUnavailable` exception, 24h cache under `openstates_legislators_{state}`, `org_classification` → `level` mapping (`lower` → `state_house`, `upper` → `state_senate`), party normalization to existing `PARTY_CHOICES`, coordinate fallback to `STATE_CENTROIDS`, and full pagination to handle large legislatures (NH ~400 members). `STATE_CENTROIDS` extracted from `sync_legislators.py` into `constants.py` as a shared single source of truth. `OPENSTATES_API_KEY` added to `settings.py` and `.env.example`. New `tests_openstates.py` with 11 tests covering normalization, chamber detection, multi-page pagination, caching isolation, error wrapping, auth header, and jurisdiction format.
 
 Verification: `python manage.py test` — 116 tests, all green.
+
+### 2026-05-28 — TASK_03: State Legislator Sync Command (Phase 4)
+
+Created `sync_state_legislators` management command that fetches and upserts state legislators from OpenStates into the `Representative` table, following the same upsert-by-external-ID pattern as `sync_legislators.py`.
+
+Backend changes: new `management/commands/sync_state_legislators.py` with `--states` (one or more state codes) and `--purge` (delete retired legislators) flags; upfront `OPENSTATES_API_KEY` guard that raises `CommandError` before the loop; upsert keyed on `external_ids__openstates_id` with a pre-loaded in-memory dict for O(1) lookup; per-state 100ms sleep to stay well under OpenStates rate limits; purge implemented as a Python-loop filter (JSONField `__in` is unreliable on SQLite dev DB); done message reports created/updated/skipped counts. New `tests_sync_state.py` with 7 tests covering create, update, invalid-state error, missing-API-key error, purge removes retired records, no-purge leaves retired records, and done-message format.
+
+Verification: `python manage.py test` — 123 tests, all green. Live verification against OpenStates API requires `OPENSTATES_API_KEY` in `.env` and was not run in this session.
