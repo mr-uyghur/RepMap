@@ -169,6 +169,12 @@ REST_FRAMEWORK = {
 
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 CONGRESS_API_KEY = os.environ.get('CONGRESS_API_KEY', '')
+OPENSTATES_API_KEY = os.environ.get('OPENSTATES_API_KEY', '')
+
+if not DEBUG and not OPENSTATES_API_KEY:
+    logging.warning(
+        'OPENSTATES_API_KEY is not set. State-level representative data will be unavailable.'
+    )
 
 # ---------------------------------------------------------------------------
 # Celery — background task processing
