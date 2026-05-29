@@ -298,14 +298,6 @@ Verification: `npx tsc --noEmit` and `npm run build` clean (expected Mapbox bund
 
 Phase 3 feature work complete.
 
-### 2026-05-28 — TASK_02: OpenStates API Integration (Phase 4)
-
-Created the backend service layer for fetching state legislators from the OpenStates v3 REST API. The spec described a GraphQL integration, but the v3 endpoint is a REST/OpenAPI service — the implementation uses `GET /people` with cursor-free integer pagination (`page`/`max_page`) rather than a GraphQL query.
-
-Backend changes: new `integrations/openstates.py` with `fetch_state_legislators(state) -> list[dict]`, `OpenStatesUnavailable` exception, 24h cache under `openstates_legislators_{state}`, `org_classification` → `level` mapping (`lower` → `state_house`, `upper` → `state_senate`), party normalization to existing `PARTY_CHOICES`, coordinate fallback to `STATE_CENTROIDS`, and full pagination to handle large legislatures (NH ~400 members). `STATE_CENTROIDS` extracted from `sync_legislators.py` into `constants.py` as a shared single source of truth. `OPENSTATES_API_KEY` added to `settings.py` and `.env.example`. New `tests_openstates.py` with 11 tests covering normalization, chamber detection, multi-page pagination, caching isolation, error wrapping, auth header, and jurisdiction format.
-
-Verification: `python manage.py test` — 116 tests, all green.
-
 ### 2026-05-28 — TASK_01: Level Field Migration (Phase 4)
 
 Renamed the `level` field values from `'house'`/`'senate'` to `'us_house'`/`'us_senate'` across the full stack and expanded `LEVEL_CHOICES` with three new state-level entries (`state_house`, `state_senate`, `governor`). This is the foundation migration that lets Phase 4 add OpenStates legislators and state district GeoJSON without colliding on the generic `house`/`senate` strings.
@@ -315,3 +307,11 @@ Backend changes: `LEVEL_CHOICES` expanded to 5 values and `max_length` widened 1
 Frontend changes: `Level` type in `types/index.ts` expanded to the 5 new values; every `=== 'house'`/`=== 'senate'` comparison flipped across 13 component and utility files (`RepMap.tsx`, `DistrictOverlay.tsx`, `PartyRibbon.tsx`, `RepresentativePin.tsx`, `RepresentativePanel.tsx`, `StateTray.tsx`, `ComparePanel.tsx`, `repSearch.ts`, `App.tsx`, `MyRepsDashboard.tsx`, `NameSearchDropdown.tsx`, `SearchBar.tsx`, `zipFallback.ts`, `ZipSearchResults.tsx`); human-facing search tokens in `repSearch.ts` (`"senate senator"`, `"house representative"`) kept verbatim so text queries for "senate"/"house" continue to match.
 
 Verification: `python manage.py test` — 105 tests, all green. `npx tsc --noEmit` and `npm run build` clean. Sanity grep confirmed zero stale `=== 'house'`/`=== 'senate'` literals in source or fixture JSON.
+
+### 2026-05-28 — TASK_02: OpenStates API Integration (Phase 4)
+
+Created the backend service layer for fetching state legislators from the OpenStates v3 REST API. The spec described a GraphQL integration, but the v3 endpoint is a REST/OpenAPI service — the implementation uses `GET /people` with integer pagination (`page`/`max_page`) rather than a GraphQL query.
+
+Backend changes: new `integrations/openstates.py` with `fetch_state_legislators(state) -> list[dict]`, `OpenStatesUnavailable` exception, 24h cache under `openstates_legislators_{state}`, `org_classification` → `level` mapping (`lower` → `state_house`, `upper` → `state_senate`), party normalization to existing `PARTY_CHOICES`, coordinate fallback to `STATE_CENTROIDS`, and full pagination to handle large legislatures (NH ~400 members). `STATE_CENTROIDS` extracted from `sync_legislators.py` into `constants.py` as a shared single source of truth. `OPENSTATES_API_KEY` added to `settings.py` and `.env.example`. New `tests_openstates.py` with 11 tests covering normalization, chamber detection, multi-page pagination, caching isolation, error wrapping, auth header, and jurisdiction format.
+
+Verification: `python manage.py test` — 116 tests, all green.
