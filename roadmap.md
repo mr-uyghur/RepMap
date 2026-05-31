@@ -353,3 +353,13 @@ Added a public `/embed` route and an iframe snippet generator in the main app.
 No backend changes were needed: `X-Frame-Options: DENY` is set by Django and only applies to Django-served responses. The `/embed` HTML is served by Vite (dev) / the static frontend host (prod) — Django never serves it, so no header change was required. The existing CSP has no `frame-ancestors` directive, so the embed renders in an iframe with zero server-side modification.
 
 Verification: `npx tsc --noEmit` and `npm run build` clean. `python manage.py test` — 145 tests, all green.
+
+### 2026-05-30 — TASK_07: Committee Network Graph (Phase 4)
+
+Added a full-screen D3 force-directed graph visualizing committee membership connections across all federal representatives.
+
+Backend changes: `committee_assignments` added to `RepresentativeListSerializer` so the field is included in the initial `allReps` payload — no extra API calls needed. One test assertion updated to reflect the deliberate inclusion.
+
+Frontend changes: `d3` and `@types/d3` added as dependencies. New `CommitteeGraph.tsx` builds nodes from `allReps` (filtered to reps with ≥1 committee), constructs edges via a committee→rep-index map (O(n·k) rather than O(n²)), runs a D3 force simulation with link/charge/center/collide forces, renders as SVG with pan/zoom via `d3.zoom()`, and supports drag-to-reposition nodes. Node radius scales as `3 + √(committee_count) × 2.2`; fill color is the existing `PARTY_COLORS` constant; edge opacity scales with shared-committee count. Hover tooltips show name, party, state, and committee count. Clicking a node closes the modal and opens the representative's panel. `CommitteeGraphModal.tsx` wraps the graph in a full-screen accessible dialog (focus trap, Escape key, backdrop click) with a committee filter `<select>` populated from all unique committee names in `allReps` and a live "N representatives shown" counter. A "Committees" button added to `NavBar.tsx`; `App.tsx` gains `committeeGraphOpen` state and renders the modal.
+
+Verification: `python manage.py test` — 145 tests, all green. `npx tsc --noEmit` and `npm run build` clean (expected Mapbox bundle-size warning only).
