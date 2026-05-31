@@ -40,14 +40,20 @@ export default function RepresentativePin({
 }: Props) {
   const [hovered, setHovered] = useState(false)
   const color = PARTY_COLORS[rep.party] || '#6b7280'
-  const isSenator = rep.level === 'us_senate'
+  const isSenator = rep.level === 'us_senate' || rep.level === 'state_senate'
   const config = TIER_CONFIG[zoomTier]
-  const districtLabel = isSenator
+
+  const levelPrefix = rep.level === 'state_senate' ? 'State Sen.'
+    : rep.level === 'state_house' ? 'State Rep.'
+    : rep.level === 'us_senate' ? 'Sen.'
+    : 'Rep.'
+
+  const districtLabel = (rep.level === 'us_senate' || rep.level === 'state_senate')
     ? `${rep.state} senator`
     : rep.district_number != null
       ? `${rep.state} district ${rep.district_number}`
-      : `${rep.state} at-large district`
-  const accessibleLabel = `Select ${rep.name}, ${districtLabel}`
+      : `${rep.state} at-large`
+  const accessibleLabel = `Select ${levelPrefix} ${rep.name}, ${districtLabel}`
 
   const handlePinClick = (e: MouseEvent<HTMLDivElement>) => {
     e.stopPropagation()
@@ -61,7 +67,7 @@ export default function RepresentativePin({
     onClick(rep, e)
   }
 
-  // Z-index hierarchy: selected > hovered > senator > house
+  // Z-index hierarchy: selected > hovered > senator > house/state
   const zIndex = isSelected ? 20 : hovered ? 15 : isSenator ? 3 : 1
 
   // ─── Tier 1: Party-colored dot ───────────────────────────────────────
@@ -146,7 +152,7 @@ export default function RepresentativePin({
               >
                 {rep.party.charAt(0).toUpperCase()} · {rep.state}
                 {isSenator
-                  ? ' · Senator'
+                  ? ` · ${levelPrefix.replace('.', '')}`
                   : rep.district_number != null
                     ? ` · District ${rep.district_number}`
                     : ' · At-Large'}
@@ -306,7 +312,7 @@ export default function RepresentativePin({
             >
               {rep.party.charAt(0).toUpperCase()} · {rep.state}
               {isSenator
-                ? ' · Senator'
+                ? ` · ${levelPrefix.replace('.', '')}`
                 : rep.district_number != null
                   ? ` · District ${rep.district_number}`
                   : ' · At-Large'}

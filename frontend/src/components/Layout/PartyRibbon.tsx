@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useRepStore } from '../../store/repStore'
+import { useMapStore } from '../../store/mapStore'
 import type { Level, Representative } from '../../types'
 import './PartyRibbon.css'
 
@@ -66,6 +67,7 @@ function ChamberGroup({ label, counts }: { label: string; counts: ChamberCounts 
 
 export default function PartyRibbon() {
   const allReps = useRepStore((state) => state.allReps)
+  const viewLevel = useMapStore((s) => s.viewLevel)
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return window.localStorage.getItem(STORAGE_KEY) === 'true'
@@ -74,8 +76,12 @@ export default function PartyRibbon() {
     }
   })
 
-  const houseCounts = useMemo(() => countByParty(allReps, 'us_house'), [allReps])
-  const senateCounts = useMemo(() => countByParty(allReps, 'us_senate'), [allReps])
+  const isStateView = viewLevel === 'state'
+  const lowerLevel: Level = isStateView ? 'state_house' : 'us_house'
+  const upperLevel: Level = isStateView ? 'state_senate' : 'us_senate'
+
+  const houseCounts = useMemo(() => countByParty(allReps, lowerLevel), [allReps, lowerLevel])
+  const senateCounts = useMemo(() => countByParty(allReps, upperLevel), [allReps, upperLevel])
 
   if (allReps.length === 0) return null
 
@@ -93,11 +99,11 @@ export default function PartyRibbon() {
   return (
     <section
       className={`party-ribbon party-ribbon--${collapsed ? 'collapsed' : 'expanded'}`}
-      aria-label="Congressional party composition"
+      aria-label={isStateView ? 'State legislature party composition' : 'Congressional party composition'}
     >
       <div className="party-ribbon-groups">
-        <ChamberGroup label="House" counts={houseCounts} />
-        <ChamberGroup label="Senate" counts={senateCounts} />
+        <ChamberGroup label={isStateView ? 'State House' : 'House'} counts={houseCounts} />
+        <ChamberGroup label={isStateView ? 'State Senate' : 'Senate'} counts={senateCounts} />
       </div>
       <button
         type="button"

@@ -8,6 +8,7 @@ export const useMapStore = create<MapState>((set) => ({
   selectedStateCode: null,
   compareRepId: null,
   darkMode: false,
+  viewLevel: 'federal',
   // Small focused store for map camera state and UI toggles.
   setZoom: (zoom) => set({ zoom }),
   setCenter: (center) => set({ center }),
@@ -15,4 +16,5 @@ export const useMapStore = create<MapState>((set) => ({
   setSelectedStateCode: (code) => set({ selectedStateCode: code }),
   setCompareRepId: (id) => set({ compareRepId: id }),
   toggleDarkMode: () => set((s) => ({ darkMode: !s.darkMode })),
+  setViewLevel: (level) => set({ viewLevel: level }),
 }))

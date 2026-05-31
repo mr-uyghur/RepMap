@@ -2,6 +2,7 @@ import { useMapStore } from '../../store/mapStore'
 import SearchBar from '../Search/SearchBar'
 import UserMenu from './UserMenu'
 import NotificationBell from './NotificationBell'
+import LevelToggle from './LevelToggle'
 import { useAuth } from '../../contexts/AuthContext'
 import type { Representative, ZipSearchResult } from '../../types'
 import './NavBar.css'
@@ -58,6 +59,7 @@ export default function NavBar({
         />
       </div>
       <div className="navbar-right">
+        <LevelToggle />
         {isAuthenticated && onMyRepsClick && (
           <button
             onClick={onMyRepsClick}

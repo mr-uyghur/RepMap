@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { PARTY_COLORS } from '../../constants'
 import { useRepStore } from '../../store/repStore'
+import { useMapStore } from '../../store/mapStore'
 import type { Representative } from '../../types'
 import './StateTray.css'
 
@@ -72,9 +73,18 @@ const PARTY_LABELS: Record<string, string> = {
 }
 
 function districtLabel(rep: Representative) {
-  if (rep.level === 'us_senate') return 'US Senator'
-  if (rep.district_number == null) return 'At-Large Representative'
-  return `District ${rep.district_number}`
+  switch (rep.level) {
+    case 'us_senate':    return 'US Senator'
+    case 'state_senate': return 'State Senator'
+    case 'state_house':
+      return rep.district_number != null
+        ? `State House – District ${rep.district_number}`
+        : 'State House'
+    default:
+      return rep.district_number != null
+        ? `District ${rep.district_number}`
+        : 'At-Large Representative'
+  }
 }
 
 function RepCard({ rep, onClick }: { rep: Representative; onClick: () => void }) {
@@ -103,13 +113,17 @@ function RepCard({ rep, onClick }: { rep: Representative; onClick: () => void })
 
 export default function StateTray({ stateCode, onClose, onSelectRep }: Props) {
   const allReps = useRepStore((state) => state.allReps)
+  const viewLevel = useMapStore((s) => s.viewLevel)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const stateReps = allReps.filter((rep) => rep.state === stateCode)
+
+  const isStateView = viewLevel === 'state'
+
   const senators = stateReps
-    .filter((rep) => rep.level === 'us_senate')
+    .filter((rep) => rep.level === (isStateView ? 'state_senate' : 'us_senate'))
     .sort((a, b) => a.name.localeCompare(b.name))
   const representatives = stateReps
-    .filter((rep) => rep.level === 'us_house')
+    .filter((rep) => rep.level === (isStateView ? 'state_house' : 'us_house'))
     .sort((a, b) => (a.district_number ?? 0) - (b.district_number ?? 0))
   const stateName = STATE_NAMES[stateCode] ?? stateCode
 
@@ -131,10 +145,11 @@ export default function StateTray({ stateCode, onClose, onSelectRep }: Props) {
       <header className="state-tray-header">
         <div>
           <h2 className="state-tray-title" id="state-tray-title">
-            {stateName} Representatives
+            {stateName} {isStateView ? 'State' : ''} Representatives
           </h2>
           <p className="state-tray-subtitle">
-            {senators.length} Senators - {representatives.length} Representatives
+            {senators.length} {isStateView ? 'State Senators' : 'Senators'} –{' '}
+            {representatives.length} {isStateView ? 'State Reps' : 'Representatives'}
           </p>
         </div>
         <button
@@ -150,7 +165,9 @@ export default function StateTray({ stateCode, onClose, onSelectRep }: Props) {
 
       <div className="state-tray-body">
         <section aria-labelledby="state-tray-senators">
-          <h3 className="state-tray-section-title" id="state-tray-senators">US Senators</h3>
+          <h3 className="state-tray-section-title" id="state-tray-senators">
+            {isStateView ? 'State Senators' : 'US Senators'}
+          </h3>
           <div className="state-tray-senators">
             {senators.map((rep) => (
               <RepCard key={rep.id} rep={rep} onClick={() => onSelectRep(rep)} />
@@ -159,7 +176,9 @@ export default function StateTray({ stateCode, onClose, onSelectRep }: Props) {
         </section>
 
         <section className="state-tray-house" aria-labelledby="state-tray-house">
-          <h3 className="state-tray-section-title" id="state-tray-house">US Representatives</h3>
+          <h3 className="state-tray-section-title" id="state-tray-house">
+            {isStateView ? 'State Representatives' : 'US Representatives'}
+          </h3>
           <div className="state-tray-list">
             {representatives.map((rep) => (
               <RepCard key={rep.id} rep={rep} onClick={() => onSelectRep(rep)} />

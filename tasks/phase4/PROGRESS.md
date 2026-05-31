@@ -6,7 +6,7 @@
 | 02 | OpenStates API integration | Backend | Done | — |
 | 03 | State legislator sync command | Backend | Done | — |
 | 04 | State district GeoJSON pipeline | Backend | Done | — |
-| 05 | Frontend state reps display | Frontend | Pending | — |
+| 05 | Frontend state reps display | Frontend | Done | — |
 | 06 | Embeddable widget route | Frontend | Pending | — |
 | 07 | Committee network graph | Full-stack | Pending | — |
 | 08 | Historical redistricting comparison | Full-stack | Pending | — |

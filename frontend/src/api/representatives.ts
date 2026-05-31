@@ -43,6 +43,13 @@ export async function fetchStateBoundary(state: string): Promise<object> {
   return data
 }
 
+export async function fetchStateLegislativeDistricts(state: string, chamber: 'lower' | 'upper'): Promise<object> {
+  const { data } = await client.get('/api/v1/districts/state-legislative/', {
+    params: { state, chamber },
+  })
+  return data
+}
+
 export interface SyncStatus {
   last_synced_at: string | null
   is_syncing: boolean

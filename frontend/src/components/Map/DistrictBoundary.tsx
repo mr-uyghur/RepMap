@@ -1,49 +1,60 @@
 import { useEffect, useState } from 'react'
 import { Layer, Source } from 'react-map-gl'
-import { fetchCongressionalDistricts } from '../../api/representatives'
+import { fetchCongressionalDistricts, fetchStateLegislativeDistricts } from '../../api/representatives'
 import { getCachedDistrictGeoJSON } from './DistrictOverlay'
 import type { FeatureCollection } from './DistrictOverlay'
+import type { Level } from '../../types'
 
 interface Props {
   state: string
   districtNumber: number | null
   party?: string
+  level?: Level
 }
 
-export default function DistrictBoundary({ state, districtNumber, party }: Props) {
+export default function DistrictBoundary({ state, districtNumber, party, level }: Props) {
   const [geojson, setGeojson] = useState<FeatureCollection | null>(null)
 
+  const isStateLower = level === 'state_house'
+  const isStateUpper = level === 'state_senate'
+  const chamber: 'lower' | 'upper' = isStateUpper ? 'upper' : 'lower'
+  const districtField = isStateUpper ? 'SLDU' : 'SLDL'
+
   useEffect(() => {
-    // This component is only rendered for house reps (checked in RepMap).
-    // At-large house reps have districtNumber === null, which maps to CD119 = 0.
-    if (!state) {
+    if (!state) { setGeojson(null); return }
+
+    if (isStateLower || isStateUpper) {
       setGeojson(null)
+      fetchStateLegislativeDistricts(state, chamber)
+        .then((data) => setGeojson(data as FeatureCollection))
+        .catch(console.error)
       return
     }
+
+    // Federal house rep — use cache then live fallback.
     const cached = getCachedDistrictGeoJSON(state)
-    if (cached) {
-      setGeojson(cached)
-      return
-    }
+    if (cached) { setGeojson(cached); return }
 
     setGeojson(null)
     fetchCongressionalDistricts(state)
       .then((data) => setGeojson(data as FeatureCollection))
       .catch(console.error)
-  }, [state, districtNumber])
+  }, [state, districtNumber, isStateLower, isStateUpper, chamber])
 
   if (!geojson) return null
 
-  // Normalize: at-large house reps have districtNumber === null, which Census stores as CD119 = "00" (→ 0).
   const normalizedDistrict = districtNumber ?? 0
 
-  // Filter to just the rep's district.
-  // 119th Congress TIGER data stores the district number zero-padded in CD119 (e.g. "33" or "03").
+  // Filter to just the representative's district.
   const filtered: FeatureCollection = {
     ...geojson,
-    features: geojson.features.filter(
-      (f) => parseInt(String(f.properties?.CD119 ?? ''), 10) === normalizedDistrict
-    ),
+    features: geojson.features.filter((f) => {
+      if (isStateLower || isStateUpper) {
+        return parseInt(String(f.properties?.[districtField] ?? ''), 10) === normalizedDistrict
+      }
+      // Federal: 119th Congress TIGER data uses CD119.
+      return parseInt(String(f.properties?.CD119 ?? ''), 10) === normalizedDistrict
+    }),
   }
 
   // Nothing to render if the district wasn't found in the Census data

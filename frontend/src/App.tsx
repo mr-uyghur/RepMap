@@ -1,5 +1,6 @@
 import { Component, useRef, useCallback, useEffect, useState } from 'react'
 import type { MapRef } from 'react-map-gl'
+import type { ViewLevel } from './types'
 import RepMap from './components/Map/RepMap'
 import RepresentativePanel from './components/Panel/RepresentativePanel'
 import ComparePanel from './components/Panel/ComparePanel'
@@ -54,12 +55,27 @@ export default function App() {
   const compareRepId = useMapStore((s) => s.compareRepId)
   const setCompareRepId = useMapStore((s) => s.setCompareRepId)
   const darkMode = useMapStore((s) => s.darkMode)
+  const viewLevel = useMapStore((s) => s.viewLevel)
   const allRepresentatives = useRepStore((s) => s.allReps)
 
   useEffect(() => {
     initSyncPolling()
     return teardownSyncPolling
   }, [])
+
+  // Clear all selection state when the user toggles between Federal and State view.
+  const prevViewLevel = useRef<ViewLevel>('federal')
+  useEffect(() => {
+    if (prevViewLevel.current === viewLevel) return
+    prevViewLevel.current = viewLevel
+    setZipSearchResult(null)
+    setCompareMode(false)
+    setCompareRepId(null)
+    setDetailPanelOpen(false)
+    setSelectedRepId(null)
+    setSelectedStateCode(null)
+    window.history.replaceState({}, '', window.location.pathname)
+  }, [viewLevel, setCompareRepId, setSelectedRepId, setSelectedStateCode])
 
   // Sync Zustand dark mode state to a CSS class for variable-based theming.
   useEffect(() => {
@@ -94,8 +110,11 @@ export default function App() {
       setCompareRepId(null)
       setSelectedRepId(rep.id)
       setDetailPanelOpen(true)
-      if (rep.bioguide_id) {
-        const newUrl = `${window.location.pathname}?rep=${rep.bioguide_id}`
+      const isStateRep = rep.level === 'state_house' || rep.level === 'state_senate'
+      const repParam = rep.bioguide_id ? rep.bioguide_id : (isStateRep ? String(rep.id) : null)
+      if (repParam) {
+        const levelSuffix = isStateRep ? '&level=state' : ''
+        const newUrl = `${window.location.pathname}?rep=${repParam}${levelSuffix}`
         const hasRepParam = new URLSearchParams(window.location.search).has('rep')
         if (hasRepParam) {
           window.history.replaceState({}, '', newUrl)
@@ -206,9 +225,16 @@ export default function App() {
   useEffect(() => {
     if (hasDeepLinked.current || allRepresentatives.length === 0) return
     const params = new URLSearchParams(window.location.search)
-    const bioguideId = params.get('rep')
-    if (!bioguideId) return
-    const rep = allRepresentatives.find((r) => r.bioguide_id === bioguideId)
+    const repParam = params.get('rep')
+    const levelParam = params.get('level')
+    if (!repParam) return
+    let rep: typeof allRepresentatives[0] | undefined
+    if (levelParam === 'state') {
+      const numericId = parseInt(repParam, 10)
+      rep = allRepresentatives.find((r) => r.id === numericId)
+    } else {
+      rep = allRepresentatives.find((r) => r.bioguide_id === repParam)
+    }
     if (rep) {
       hasDeepLinked.current = true
       handleRepSelect(rep)
@@ -218,9 +244,16 @@ export default function App() {
   useEffect(() => {
     function onPopState() {
       const params = new URLSearchParams(window.location.search)
-      const bioguideId = params.get('rep')
-      if (bioguideId) {
-        const rep = allRepresentatives.find((r) => r.bioguide_id === bioguideId)
+      const repParam = params.get('rep')
+      const levelParam = params.get('level')
+      if (repParam) {
+        let rep: typeof allRepresentatives[0] | undefined
+        if (levelParam === 'state') {
+          const numericId = parseInt(repParam, 10)
+          rep = allRepresentatives.find((r) => r.id === numericId)
+        } else {
+          rep = allRepresentatives.find((r) => r.bioguide_id === repParam)
+        }
         if (rep) {
           setSelectedStateCode(null)
           setCompareMode(false)

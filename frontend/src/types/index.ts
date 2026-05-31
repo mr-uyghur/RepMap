@@ -1,5 +1,6 @@
 export type Level = 'us_house' | 'us_senate' | 'state_house' | 'state_senate' | 'governor'
 export type Party = 'democrat' | 'republican' | 'independent' | 'other'
+export type ViewLevel = 'federal' | 'state'
 
 export interface Representative {
   id: number
@@ -89,12 +90,14 @@ export interface MapState {
   selectedStateCode: string | null
   compareRepId: number | null
   darkMode: boolean
+  viewLevel: ViewLevel
   setZoom: (zoom: number) => void
   setCenter: (center: [number, number]) => void
   setSelectedRepId: (id: number | null) => void
   setSelectedStateCode: (code: string | null) => void
   setCompareRepId: (id: number | null) => void
   toggleDarkMode: () => void
+  setViewLevel: (level: ViewLevel) => void
 }
 
 export interface RepState {

@@ -52,22 +52,43 @@ const PARTY_LABELS: Record<string, string> = {
   other: 'Other',
 }
 
-const TABS: { key: TabKey; label: string }[] = [
+const FEDERAL_TABS: { key: TabKey; label: string }[] = [
   { key: 'biography',     label: 'Biography'    },
   { key: 'voting_record', label: 'Legislation'  },
   { key: 'votes',         label: 'Votes'        },
   { key: 'how_to_vote',   label: 'How to Vote'  },
 ]
 
+const STATE_TABS: { key: TabKey; label: string }[] = [
+  { key: 'biography',   label: 'Biography'   },
+  { key: 'how_to_vote', label: 'How to Vote' },
+]
+
+function isStateLevel(rep: Representative) {
+  return rep.level === 'state_house' || rep.level === 'state_senate'
+}
+
 function getDistrictLabel(rep: Representative) {
   if (rep.district_label) return rep.district_label
   if (rep.level === 'us_senate') return rep.state
-  if (rep.district_number == null) return `${rep.state} - At-Large`
-  return `${rep.state} - District ${rep.district_number}`
+  if (rep.level === 'state_senate') return `${rep.state} State Senate`
+  if (rep.level === 'state_house') {
+    if (rep.district_number == null) return `${rep.state} State House`
+    return `${rep.state} State House – District ${rep.district_number}`
+  }
+  if (rep.district_number == null) return `${rep.state} – At-Large`
+  return `${rep.state} – District ${rep.district_number}`
 }
 
 function getChamberLabel(rep: Representative) {
-  return rep.level === 'us_senate' ? 'US Senator' : 'US Representative'
+  switch (rep.level) {
+    case 'us_senate':    return 'US Senator'
+    case 'us_house':     return 'US Representative'
+    case 'state_senate': return 'State Senator'
+    case 'state_house':  return 'State Representative'
+    case 'governor':     return 'Governor'
+    default:             return rep.level
+  }
 }
 
 interface Props {
@@ -143,6 +164,8 @@ export default function RepresentativePanel({
 
   // Reset to first tab whenever a new representative is opened.
   useEffect(() => { setActiveTab('biography') }, [repId])
+
+  const tabs = rep && isStateLevel(rep) ? STATE_TABS : FEDERAL_TABS
 
   useEffect(() => {
     if (compareMode) return
@@ -290,7 +313,7 @@ export default function RepresentativePanel({
             onToggle={onToggleWatch}
           />
         )}
-        {rep?.bioguide_id && (
+        {rep && (rep.bioguide_id || isStateLevel(rep)) && (
           <button
             type="button"
             onClick={handleCopy}
@@ -333,7 +356,7 @@ export default function RepresentativePanel({
               style={{ left: pillStyle.left, width: pillStyle.width }}
               aria-hidden="true"
             />
-            {TABS.map(({ key, label }) => (
+            {tabs.map(({ key, label }) => (
               <button
                 key={key}
                 role="tab"
