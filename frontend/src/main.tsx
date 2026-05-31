@@ -7,14 +7,16 @@ import { AuthProvider } from './contexts/AuthContext'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route path="/embed" element={<EmbedPage />} />
-          <Route path="*" element={<App />} />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
-  </React.StrictMode>,
+  // StrictMode is intentionally disabled: react-map-gl v7 + mapbox-gl v3 are incompatible
+  // under StrictMode's double-invoke of effect cleanup. map.removeSource() internally calls
+  // _updateTerrain which crashes when the terrain renderer is uninitialized during the
+  // simulated unmount cycle. Re-enable StrictMode after upgrading to react-map-gl v8.
+  <BrowserRouter>
+    <AuthProvider>
+      <Routes>
+        <Route path="/embed" element={<EmbedPage />} />
+        <Route path="*" element={<App />} />
+      </Routes>
+    </AuthProvider>
+  </BrowserRouter>,
 )

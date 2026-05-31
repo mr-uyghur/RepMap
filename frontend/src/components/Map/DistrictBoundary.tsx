@@ -26,7 +26,10 @@ export default function DistrictBoundary({ state, districtNumber, party, level }
     if (isStateLower || isStateUpper) {
       setGeojson(null)
       fetchStateLegislativeDistricts(state, chamber)
-        .then((data) => setGeojson(data as FeatureCollection))
+        .then((data) => {
+          const fc = data as FeatureCollection
+          if (Array.isArray(fc?.features)) setGeojson(fc)
+        })
         .catch(console.error)
       return
     }

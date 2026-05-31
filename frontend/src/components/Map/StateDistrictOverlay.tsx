@@ -21,11 +21,14 @@ interface Props {
 // Module-level per-session cache — keyed by `${state}_lower` and `${state}_upper`.
 const districtCache: Record<string, FeatureCollection> = {}
 
-async function loadChamber(state: string, chamber: 'lower' | 'upper'): Promise<FeatureCollection> {
+async function loadChamber(state: string, chamber: 'lower' | 'upper'): Promise<FeatureCollection | null> {
   const key = `${state}_${chamber}`
   if (districtCache[key]) return districtCache[key]
-  const data = await fetchStateLegislativeDistricts(state, chamber)
-  districtCache[key] = data as FeatureCollection
+  const data = await fetchStateLegislativeDistricts(state, chamber) as FeatureCollection
+  // Reject responses that aren't valid GeoJSON FeatureCollections — DRF can return
+  // error objects or FeatureCollections with a missing/null features array.
+  if (!Array.isArray(data?.features)) return null
+  districtCache[key] = data
   return districtCache[key]
 }
 
