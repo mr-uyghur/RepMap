@@ -1,0 +1,85 @@
+.committee-graph-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.committee-graph-svg:active {
+  cursor: grabbing;
+}
+
+.committee-graph-edge {
+  stroke: var(--color-border, #d1d5db);
+  stroke-opacity: 0.4;
+  stroke-width: 1;
+}
+
+.committee-graph-node {
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.committee-graph-node:hover {
+  opacity: 0.85;
+}
+
+.committee-graph-node-ring {
+  fill: none;
+  stroke-width: 2;
+  stroke-opacity: 0.6;
+  pointer-events: none;
+}
+
+.committee-graph-tooltip {
+  position: absolute;
+  background: var(--glass-bg, rgba(255, 255, 255, 0.92));
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 10px;
+  padding: 10px 14px;
+  pointer-events: none;
+  font-size: 13px;
+  color: var(--color-text-primary, #111827);
+  max-width: 220px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  z-index: 10;
+  line-height: 1.4;
+}
+
+.committee-graph-tooltip-name {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.committee-graph-tooltip-meta {
+  color: var(--color-text-secondary, #6b7280);
+  font-size: 12px;
+}
+
+.committee-graph-tooltip-committees {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--color-border, #e5e7eb);
+  font-size: 11px;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.dark .committee-graph-tooltip {
+  background: rgba(30, 35, 48, 0.95);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #f3f4f6;
+}
+
+.dark .committee-graph-tooltip-meta,
+.dark .committee-graph-tooltip-committees {
+  color: #9ca3af;
+}
+
+.dark .committee-graph-tooltip-committees {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark .committee-graph-edge {
+  stroke: rgba(255, 255, 255, 0.15);
+}

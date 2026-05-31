@@ -13,6 +13,7 @@ interface Props {
   onZipSearchReset: () => void
   onRepSelect: (rep: Representative) => void
   onMyRepsClick?: () => void
+  onCommitteesClick?: () => void
 }
 
 function SunIcon() {
@@ -38,6 +39,7 @@ export default function NavBar({
   onZipSearchReset,
   onRepSelect,
   onMyRepsClick,
+  onCommitteesClick,
 }: Props) {
   const darkMode = useMapStore((s) => s.darkMode)
   const toggleDarkMode = useMapStore((s) => s.toggleDarkMode)
@@ -60,6 +62,16 @@ export default function NavBar({
       </div>
       <div className="navbar-right">
         <LevelToggle />
+        {onCommitteesClick && (
+          <button
+            onClick={onCommitteesClick}
+            className="navbar-theme-btn"
+            aria-label="View committee network"
+            title="Committee Network"
+          >
+            Committees
+          </button>
+        )}
         {isAuthenticated && onMyRepsClick && (
           <button
             onClick={onMyRepsClick}

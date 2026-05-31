@@ -9,6 +9,7 @@ import NavBar from './components/Layout/NavBar'
 import PartyRibbon from './components/Layout/PartyRibbon'
 import ZipSearchResults from './components/Search/ZipSearchResults'
 import MyRepsDashboard from './components/Dashboard/MyRepsDashboard'
+import CommitteeGraphModal from './components/Committee/CommitteeGraphModal'
 import { useMapStore } from './store/mapStore'
 import { initSyncPolling, teardownSyncPolling, useRepStore } from './store/repStore'
 import { useWatchlist } from './hooks/useWatchlist'
@@ -47,6 +48,7 @@ export default function App() {
   const [detailPanelOpen, setDetailPanelOpen] = useState(false)
   const [compareMode, setCompareMode] = useState(false)
   const [dashboardOpen, setDashboardOpen] = useState(false)
+  const [committeeGraphOpen, setCommitteeGraphOpen] = useState(false)
   const { entries: watchlistEntries, loading: watchlistLoading, isWatched, toggle: toggleWatch } = useWatchlist()
   const selectedRepId = useMapStore((s) => s.selectedRepId)
   const setSelectedRepId = useMapStore((s) => s.setSelectedRepId)
@@ -282,6 +284,7 @@ export default function App() {
           onZipSearchReset={handleZipSearchReset}
           onRepSelect={handleRepSelect}
           onMyRepsClick={() => setDashboardOpen(true)}
+          onCommitteesClick={() => setCommitteeGraphOpen(true)}
         />
         <PartyRibbon />
         <main id="main-content" className="app-map-area">
@@ -326,6 +329,16 @@ export default function App() {
             loading={watchlistLoading}
             onClose={() => setDashboardOpen(false)}
             onSelectRep={(rep) => handleRepSelect(rep as Representative)}
+          />
+        )}
+        {committeeGraphOpen && (
+          <CommitteeGraphModal
+            representatives={allRepresentatives}
+            onClose={() => setCommitteeGraphOpen(false)}
+            onNodeClick={(rep) => {
+              setCommitteeGraphOpen(false)
+              handleRepSelect(rep)
+            }}
           />
         )}
     </ErrorBoundary>

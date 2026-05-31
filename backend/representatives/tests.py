@@ -323,8 +323,9 @@ class RepresentativeListEndpointTests(TestCase):
         # List endpoint should return the compact serializer, not the full detail one.
         response = self.client.get('/api/v1/representatives/')
         rep = response.data[0]
-        for field in ('summaries', 'committee_assignments', 'social_links'):
+        for field in ('summaries', 'social_links'):
             self.assertNotIn(field, rep, f"Detail-only field '{field}' should not appear in list")
+        # committee_assignments is intentionally in the list serializer for the committee graph feature.
 
     def test_empty_database_returns_empty_list(self):
         Representative.objects.all().delete()
