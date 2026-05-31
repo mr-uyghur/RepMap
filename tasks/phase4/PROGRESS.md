@@ -9,5 +9,5 @@
 | 05 | Frontend state reps display | Frontend | Done | — |
 | 06 | Embeddable widget route | Frontend | Done | — |
 | 07 | Committee network graph | Full-stack | Done | 90f3471 |
-| 08 | Historical redistricting comparison | Full-stack | Pending | — |
+| 08 | Historical redistricting comparison | Full-stack | Done | 0d549ca |
 | 09 | PWA + offline mode | Frontend | Pending | — |
