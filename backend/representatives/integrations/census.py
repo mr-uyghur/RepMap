@@ -58,6 +58,66 @@ def fetch_congressional_districts(state: str) -> dict:
     return response.json()
 
 
+def get_state_district_data_dir() -> Path:
+    """Return the local state district data directory (settings override or project default)."""
+    from django.conf import settings
+    configured = getattr(settings, 'STATE_DISTRICT_DATA_DIR', None)
+    if configured:
+        return Path(configured)
+    return Path(__file__).resolve().parent.parent / 'state_district_data'
+
+
+def load_local_state_legislative_districts(state: str, chamber: str) -> Optional[dict]:
+    """
+    Load pre-built state legislative district GeoJSON from a local file.
+    chamber: 'lower' or 'upper'
+    Returns None if the file has not been generated yet.
+    """
+    suffix = 'lower' if chamber == 'lower' else 'upper'
+    path = get_state_district_data_dir() / f'{state.upper()}_{suffix}.json'
+    if not path.exists():
+        return None
+    with open(path) as f:
+        return json.load(f)
+
+
+def fetch_state_legislative_districts(state: str, chamber: str) -> dict:
+    """
+    Fetch state legislative district boundaries from Census TIGER API.
+    chamber: 'lower' (SLDL, layer 2) or 'upper' (SLDU, layer 4)
+    """
+    fips = STATE_FIPS.get(state.upper())
+    if not fips:
+        raise ValueError(f"Unknown state: {state}")
+
+    # SLDL (lower chamber) = layer 2, SLDU (upper chamber) = layer 4
+    layer = 2 if chamber == 'lower' else 4
+    district_field = 'SLDL' if chamber == 'lower' else 'SLDU'
+
+    url = f"{TIGER_BASE}/{layer}/query"
+    params = {
+        'where': f"STATE='{fips}'",
+        'outFields': f'GEOID,{district_field},NAME,STATE',
+        'outSR': '4326',
+        'f': 'geojson',
+        'returnGeometry': 'true',
+        'maxAllowableOffset': '0.01',
+    }
+
+    response = requests.get(url, params=params, timeout=60)
+    response.raise_for_status()
+    geojson = response.json()
+
+    # Add state_abbr to each feature for frontend convenience.
+    fips_to_abbr = {v: k for k, v in STATE_FIPS.items()}
+    for feature in geojson.get('features', []):
+        props = feature.get('properties', {})
+        state_fips = props.get('STATE', '')
+        props['state_abbr'] = fips_to_abbr.get(state_fips, state.upper())
+
+    return geojson
+
+
 def fetch_state_boundary(state: str) -> dict:
     """Fetch state boundary GeoJSON from Census TIGER API."""
     fips = STATE_FIPS.get(state.upper())

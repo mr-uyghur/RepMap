@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import RepresentativeViewSet, DistrictViewSet, ZipLookupView, SyncStatusView, VotesView, LegislationView, HealthView, ConfigView
+from .views import RepresentativeViewSet, DistrictViewSet, ZipLookupView, SyncStatusView, VotesView, LegislationView, HealthView, ConfigView, StateDistrictView
 from .views_auth import SessionInfoView, LogoutView
 from .views_watchlist import WatchlistListCreateView, WatchlistDeleteView, WatchlistStatusView
 from .views_report_card import ReportCardView
@@ -45,6 +45,8 @@ urlpatterns = [
     path('config/', ConfigView.as_view()),
     # Health check for load balancers and container orchestrators.
     path('health/', HealthView.as_view()),
+    # State legislative district GeoJSON (SLDL/SLDU from Census TIGER).
+    path('districts/state-legislative/', StateDistrictView.as_view()),
     # Include router-generated endpoints for representatives and district geometry.
     path('', include(router.urls)),
 ]

@@ -17,6 +17,7 @@ from .integrations.zip_lookup import fetch_reps_by_zipcode, geocode_zip
 from .integrations.census import (
     fetch_congressional_districts, fetch_state_boundary, STATE_FIPS,
     load_local_congressional_districts,
+    load_local_state_legislative_districts, fetch_state_legislative_districts,
 )
 from .services.congress_api import (
     CongressApiUnavailable,
@@ -163,6 +164,56 @@ class DistrictViewSet(viewsets.ViewSet):
         except Exception:
             logger.exception("Failed to fetch state boundary for %s", state)
             return error_response('Failed to fetch boundary data.', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class StateDistrictView(APIView):
+    """GET /api/v1/districts/state-legislative/?state=CA&chamber=lower"""
+
+    def get(self, request):
+        state = _validate_state(request.query_params.get('state', ''))
+        if not state:
+            return error_response('Valid 2-letter state abbreviation required.')
+
+        chamber = request.query_params.get('chamber', '').lower().strip()
+        if chamber not in ('lower', 'upper'):
+            return error_response('chamber must be "lower" or "upper".')
+
+        cache_key = f'state_district_geojson_{state}_{chamber}'
+        try:
+            cached = cache.get(cache_key)
+            if cached:
+                return Response(cached)
+        except Exception:
+            logger.warning("Cache unavailable for %s, fetching directly", cache_key)
+
+        local_data = load_local_state_legislative_districts(state, chamber)
+        if local_data is not None:
+            try:
+                cache.set(cache_key, local_data, 60 * 60 * 24 * 7)  # 7 days
+            except Exception:
+                pass
+            return Response(local_data)
+
+        if not settings.DISTRICT_LIVE_FALLBACK:
+            return error_response(
+                f'State district data for {state} ({chamber}) is not available. '
+                f'Run: python manage.py build_state_district_data',
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        try:
+            geojson = fetch_state_legislative_districts(state, chamber)
+            try:
+                cache.set(cache_key, geojson, 60 * 60 * 24 * 7)  # 7 days
+            except Exception:
+                pass
+            return Response(geojson)
+        except Exception:
+            logger.exception("Failed to fetch state legislative districts for %s %s", state, chamber)
+            return error_response(
+                'Failed to fetch state district data.',
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class SyncStatusView(APIView):
