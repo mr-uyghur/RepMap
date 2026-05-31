@@ -9,6 +9,7 @@ import BioTab from './BioTab'
 import HowToVoteTab from './HowToVoteTab'
 import VotesSection from './VotesSection'
 import WatchButton from './WatchButton'
+import EmbedSnippet from './EmbedSnippet'
 import { PARTY_COLORS } from '../../constants'
 import { copyToClipboard } from '../../utils/clipboard'
 import './RepresentativePanel.css'
@@ -39,6 +40,15 @@ function CompareIcon() {
       <circle cx="16" cy="8" r="3" />
       <path d="M3 20a5 5 0 0 1 10 0" />
       <path d="M11 20a5 5 0 0 1 10 0" />
+    </svg>
+  )
+}
+
+function EmbedIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="16 18 22 12 16 6" />
+      <polyline points="8 6 2 12 8 18" />
     </svg>
   )
 }
@@ -113,6 +123,7 @@ export default function RepresentativePanel({
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabKey>('biography')
   const [copied, setCopied] = useState(false)
+  const [showEmbed, setShowEmbed] = useState(false)
   const dm = useMapStore((s) => s.darkMode)
   const isSyncing = useRepStore((s) => s.isSyncing)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -330,6 +341,18 @@ export default function RepresentativePanel({
             )}
           </button>
         )}
+        {rep && (
+          <button
+            type="button"
+            onClick={() => setShowEmbed(true)}
+            aria-label="Get embed code"
+            className="panel-close-btn"
+            style={{ marginRight: 4 }}
+            title="Embed this representative"
+          >
+            <EmbedIcon />
+          </button>
+        )}
         <button
           type="button"
           ref={closeButtonRef}
@@ -339,6 +362,9 @@ export default function RepresentativePanel({
         >
           <CloseIcon />
         </button>
+        {showEmbed && rep && (
+          <EmbedSnippet rep={rep} onClose={() => setShowEmbed(false)} />
+        )}
       </div>
 
       {rep && (

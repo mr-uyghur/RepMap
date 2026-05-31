@@ -1,14 +1,20 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import App from './App.tsx'
+import EmbedPage from './pages/EmbedPage.tsx'
 import { AuthProvider } from './contexts/AuthContext'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  // StrictMode enables extra dev-time checks without affecting production behavior.
   <React.StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/embed" element={<EmbedPage />} />
+          <Route path="*" element={<App />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   </React.StrictMode>,
 )

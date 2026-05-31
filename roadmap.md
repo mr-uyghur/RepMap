@@ -332,6 +332,20 @@ Backend changes: `integrations/census.py` gains three new functions — `get_sta
 
 Verification: `python manage.py test` — 145 tests, all green.
 
+### 2026-05-30 — TASK_06: Embeddable Widget Route (Phase 4)
+
+Added a public `/embed` route and an iframe snippet generator in the main app.
+
+`react-router-dom` added as a new dependency. `main.tsx` now wraps both routes in `BrowserRouter` + `Routes`: `/embed` renders `EmbedPage`, the `*` catch-all renders the existing `App` unchanged — no `App.tsx` edits required since it reads `window.location` directly.
+
+`EmbedPage.tsx` is a full-screen map (`100vw × 100vh`) with no navbar, no party ribbon, no search. On mount it reads system `prefers-color-scheme` and syncs both the `.dark` class and the Zustand `darkMode` flag so Mapbox fog renders correctly. URL params are processed once after `allReps` loads (gated with a `hasProcessed` ref matching App's pattern): `?rep=<bioguide_id>` selects a federal rep; `?rep=<id>&level=state` selects a state rep; `?state=CA&district=12` selects the matching House rep; `?state=CA` alone flies to the state's centroid via a US senator's stored coordinates. A compact `EmbedPanel` component renders the full-detail Bio tab (`BioTab` + `ReportCard`) in a glassmorphism panel, plus a "View on RepMap →" link that opens the main app with the same deep-link URL format. A "Powered by RepMap" watermark sits in the bottom-right corner over the map.
+
+`EmbedSnippet.tsx` is a modal with three size presets (400×300, 600×400, 100%×500), a live-preview code block, a copy-to-clipboard button, and the raw embed URL. It closes on backdrop click or Escape. It is triggered from a new `⟨/⟩` icon button in `RepresentativePanel`'s header (next to the share button), visible whenever a rep is loaded.
+
+No backend changes were needed: `X-Frame-Options: DENY` is set by Django and only applies to Django-served responses. The `/embed` HTML is served by Vite (dev) / the static frontend host (prod) — Django never serves it, so no header change was required. The existing CSP has no `frame-ancestors` directive, so the embed renders in an iframe with zero server-side modification.
+
+Verification: `npx tsc --noEmit` and `npm run build` clean. `python manage.py test` — 145 tests, all green.
+
 ### 2026-05-30 — TASK_05: Frontend State Representatives Display (Phase 4)
 
 Updated the frontend to display state-level representatives alongside federal legislators, with a Federal/State view toggle and zoom-tiered pin disclosure.
