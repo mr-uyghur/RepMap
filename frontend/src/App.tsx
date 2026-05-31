@@ -50,6 +50,18 @@ export default function App() {
   const [compareMode, setCompareMode] = useState(false)
   const [dashboardOpen, setDashboardOpen] = useState(false)
   const [committeeGraphOpen, setCommitteeGraphOpen] = useState(false)
+  const [isOffline, setIsOffline] = useState(!navigator.onLine)
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false)
+    const handleOffline = () => setIsOffline(true)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
   const { entries: watchlistEntries, loading: watchlistLoading, isWatched, toggle: toggleWatch } = useWatchlist()
   const selectedRepId = useMapStore((s) => s.selectedRepId)
   const setSelectedRepId = useMapStore((s) => s.setSelectedRepId)
@@ -281,6 +293,11 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      {isOffline && (
+        <div className="offline-banner" role="status" aria-live="polite">
+          You&apos;re offline. Showing cached data.
+        </div>
+      )}
       <div className="app-shell">
         <NavBar
           allRepresentatives={allRepresentatives}
