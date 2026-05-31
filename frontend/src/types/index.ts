@@ -91,6 +91,8 @@ export interface MapState {
   compareRepId: number | null
   darkMode: boolean
   viewLevel: ViewLevel
+  redistrictingMode: boolean
+  redistrictingSliderValue: number
   setZoom: (zoom: number) => void
   setCenter: (center: [number, number]) => void
   setSelectedRepId: (id: number | null) => void
@@ -98,6 +100,8 @@ export interface MapState {
   setCompareRepId: (id: number | null) => void
   toggleDarkMode: () => void
   setViewLevel: (level: ViewLevel) => void
+  setRedistrictingMode: (mode: boolean) => void
+  setRedistrictingSliderValue: (value: number) => void
 }
 
 export interface RepState {

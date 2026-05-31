@@ -80,3 +80,8 @@ export async function getElectionDates(state: string): Promise<ElectionDates> {
   const { data } = await client.get('/api/v1/elections/', { params: { state } })
   return data
 }
+
+export async function fetchHistoricalDistricts(state: string): Promise<object> {
+  const { data } = await client.get('/api/v1/districts/historical/', { params: { state } })
+  return data
+}

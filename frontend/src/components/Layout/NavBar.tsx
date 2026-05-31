@@ -14,6 +14,7 @@ interface Props {
   onRepSelect: (rep: Representative) => void
   onMyRepsClick?: () => void
   onCommitteesClick?: () => void
+  onRedistrictingClick?: () => void
 }
 
 function SunIcon() {
@@ -40,9 +41,11 @@ export default function NavBar({
   onRepSelect,
   onMyRepsClick,
   onCommitteesClick,
+  onRedistrictingClick,
 }: Props) {
   const darkMode = useMapStore((s) => s.darkMode)
   const toggleDarkMode = useMapStore((s) => s.toggleDarkMode)
+  const redistrictingMode = useMapStore((s) => s.redistrictingMode)
   const { isAuthenticated } = useAuth()
 
   return (
@@ -70,6 +73,17 @@ export default function NavBar({
             title="Committee Network"
           >
             Committees
+          </button>
+        )}
+        {onRedistrictingClick && (
+          <button
+            onClick={onRedistrictingClick}
+            className={`navbar-theme-btn${redistrictingMode ? ' navbar-theme-btn--active' : ''}`}
+            aria-label={redistrictingMode ? 'Exit redistricting comparison mode' : 'Compare historical district boundaries'}
+            aria-pressed={redistrictingMode}
+            title="Historical Redistricting"
+          >
+            Redistricting
           </button>
         )}
         {isAuthenticated && onMyRepsClick && (

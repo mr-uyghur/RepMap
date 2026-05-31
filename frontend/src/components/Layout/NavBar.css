@@ -113,6 +113,18 @@
   box-shadow: 0 0 8px var(--color-accent-glow);
 }
 
+.navbar-theme-btn--active {
+  background: rgba(217, 119, 6, 0.12);
+  color: #d97706;
+  border-color: #d97706;
+}
+
+.navbar-theme-btn--active:hover {
+  background: rgba(217, 119, 6, 0.2);
+  border-color: #b45309;
+  box-shadow: 0 0 8px rgba(217, 119, 6, 0.3);
+}
+
 /* ── Mobile ───────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .navbar-search-label {

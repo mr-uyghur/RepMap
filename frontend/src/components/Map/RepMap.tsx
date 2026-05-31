@@ -11,6 +11,7 @@ import RepresentativePin from './RepresentativePin'
 import DistrictBoundary from './DistrictBoundary'
 import DistrictOverlay, { getCachedDistrictGeoJSON, subscribeToDistrictGeoJSON } from './DistrictOverlay'
 import StateDistrictOverlay from './StateDistrictOverlay'
+import RedistrictingOverlay from './RedistrictingOverlay'
 import type { Representative, FeatureGeometry, Ring, Polygon } from '../../types'
 
 // Fog/atmosphere settings for dark and light themes — defined at module level
@@ -137,6 +138,8 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     selectedStateCode,
     darkMode,
     viewLevel,
+    redistrictingMode,
+    redistrictingSliderValue,
     setZoom,
     setCenter,
     setSelectedRepId,
@@ -528,11 +531,18 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
       >
         <NavigationControl position="bottom-left" />
         {/* National congressional district overlay — always rendered for click events.
-            Visually hidden in state view (dimmed) but still interactive for state selection. */}
+            Visually hidden in state view (dimmed) but still interactive for state selection.
+            In redistricting mode its opacity scales with the slider (high = mostly current visible). */}
         <DistrictOverlay
           onLoaded={handleDistrictsLoaded}
           dimmed={isFlying || viewLevel === 'state'}
+          opacityScale={redistrictingMode && viewLevel === 'federal' ? redistrictingSliderValue / 100 : 1}
         />
+
+        {/* Historical (CD116) district overlay — visible in redistricting mode when zoomed to state level. */}
+        {redistrictingMode && viewLevel === 'federal' && zoom >= 5 && selectedStateCode && (
+          <RedistrictingOverlay stateCode={selectedStateCode} />
+        )}
 
         {/* State legislative district overlay — shown when a state is selected in state view. */}
         {viewLevel === 'state' && selectedStateCode && (

@@ -10,6 +10,7 @@ import PartyRibbon from './components/Layout/PartyRibbon'
 import ZipSearchResults from './components/Search/ZipSearchResults'
 import MyRepsDashboard from './components/Dashboard/MyRepsDashboard'
 import CommitteeGraphModal from './components/Committee/CommitteeGraphModal'
+import RedistrictingSlider from './components/Map/RedistrictingSlider'
 import { useMapStore } from './store/mapStore'
 import { initSyncPolling, teardownSyncPolling, useRepStore } from './store/repStore'
 import { useWatchlist } from './hooks/useWatchlist'
@@ -58,6 +59,9 @@ export default function App() {
   const setCompareRepId = useMapStore((s) => s.setCompareRepId)
   const darkMode = useMapStore((s) => s.darkMode)
   const viewLevel = useMapStore((s) => s.viewLevel)
+  const redistrictingMode = useMapStore((s) => s.redistrictingMode)
+  const setRedistrictingMode = useMapStore((s) => s.setRedistrictingMode)
+  const setRedistrictingSliderValue = useMapStore((s) => s.setRedistrictingSliderValue)
   const allRepresentatives = useRepStore((s) => s.allReps)
 
   useEffect(() => {
@@ -285,10 +289,19 @@ export default function App() {
           onRepSelect={handleRepSelect}
           onMyRepsClick={() => setDashboardOpen(true)}
           onCommitteesClick={() => setCommitteeGraphOpen(true)}
+          onRedistrictingClick={() => {
+            if (redistrictingMode) {
+              setRedistrictingMode(false)
+              setRedistrictingSliderValue(100)
+            } else {
+              setRedistrictingMode(true)
+            }
+          }}
         />
         <PartyRibbon />
         <main id="main-content" className="app-map-area">
           <RepMap mapRef={mapRef} onRepSelect={handleRepSelect} />
+          {redistrictingMode && viewLevel === 'federal' && <RedistrictingSlider />}
           {selectedStateCode && (
             <StateTray
               stateCode={selectedStateCode}

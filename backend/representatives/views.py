@@ -18,6 +18,7 @@ from .integrations.census import (
     fetch_congressional_districts, fetch_state_boundary, STATE_FIPS,
     load_local_congressional_districts,
     load_local_state_legislative_districts, fetch_state_legislative_districts,
+    load_local_historical_districts, fetch_historical_congressional_districts,
 )
 from .services.congress_api import (
     CongressApiUnavailable,
@@ -214,6 +215,50 @@ class StateDistrictView(APIView):
                 'Failed to fetch state district data.',
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class HistoricalDistrictView(APIView):
+    """GET /api/v1/districts/historical/?state=CA — serves CD116 GeoJSON for redistricting comparison."""
+
+    def get(self, request):
+        state = _validate_state(request.query_params.get('state', ''))
+        if not state:
+            return error_response('Valid 2-letter state abbreviation required.')
+
+        cache_key = f'historical_district_geojson_{state}'
+        try:
+            cached = cache.get(cache_key)
+            if cached:
+                return Response(cached)
+        except Exception:
+            logger.warning("Cache unavailable for %s, fetching directly", cache_key)
+
+        local_data = load_local_historical_districts(state)
+        if local_data is not None:
+            try:
+                cache.set(cache_key, local_data, 60 * 60 * 24 * 7)  # 7 days
+            except Exception:
+                pass
+            return Response(local_data)
+
+        if not settings.DISTRICT_LIVE_FALLBACK:
+            logger.warning("Historical district data missing for %s and live fallback is disabled", state)
+            return error_response(
+                f'Historical district data for {state} is not available. '
+                f'Run: python manage.py build_historical_district_data',
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        try:
+            geojson = fetch_historical_congressional_districts(state)
+            try:
+                cache.set(cache_key, geojson, 60 * 60 * 24 * 7)  # 7 days
+            except Exception:
+                pass
+            return Response(geojson)
+        except Exception:
+            logger.exception("Failed to fetch historical districts for %s", state)
+            return error_response('Failed to fetch historical district data.', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class SyncStatusView(APIView):

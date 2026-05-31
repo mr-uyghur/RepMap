@@ -118,6 +118,54 @@ def fetch_state_legislative_districts(state: str, chamber: str) -> dict:
     return geojson
 
 
+# Layer 12 = 116th Congressional Districts (2013-2023) on the TIGER Legislative MapServer.
+# Confirmed via GET {TIGER_BASE}?f=json — "116th Congressional Districts" is layer 12.
+HISTORICAL_CD_LAYER = 12
+
+
+def get_historical_district_data_dir() -> Path:
+    """Return the local historical district data directory (settings override or project default)."""
+    from django.conf import settings
+    configured = getattr(settings, 'HISTORICAL_DISTRICT_DATA_DIR', None)
+    if configured:
+        return Path(configured)
+    return Path(__file__).resolve().parent.parent / 'historical_district_data'
+
+
+def load_local_historical_districts(state: str) -> Optional[dict]:
+    """
+    Load pre-built historical (CD116) congressional district GeoJSON from a local file.
+    Returns None if the file has not been generated yet.
+    Run `python manage.py build_historical_district_data` to populate these files.
+    """
+    path = get_historical_district_data_dir() / f'{state.upper()}.json'
+    if not path.exists():
+        return None
+    with open(path) as f:
+        return json.load(f)
+
+
+def fetch_historical_congressional_districts(state: str) -> dict:
+    """Fetch historical (CD116) congressional district boundaries from Census TIGER API."""
+    fips = STATE_FIPS.get(state.upper())
+    if not fips:
+        raise ValueError(f"Unknown state: {state}")
+
+    url = f"{TIGER_BASE}/{HISTORICAL_CD_LAYER}/query"
+    params = {
+        'where': f"STATE='{fips}'",
+        'outFields': 'GEOID,CD116,NAME,STATE',
+        'outSR': '4326',
+        'f': 'geojson',
+        'returnGeometry': 'true',
+        'maxAllowableOffset': '0.01',
+    }
+
+    response = requests.get(url, params=params, timeout=30)
+    response.raise_for_status()
+    return response.json()
+
+
 def fetch_state_boundary(state: str) -> dict:
     """Fetch state boundary GeoJSON from Census TIGER API."""
     fips = STATE_FIPS.get(state.upper())

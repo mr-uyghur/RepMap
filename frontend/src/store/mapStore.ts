@@ -9,6 +9,8 @@ export const useMapStore = create<MapState>((set) => ({
   compareRepId: null,
   darkMode: false,
   viewLevel: 'federal',
+  redistrictingMode: false,
+  redistrictingSliderValue: 100,
   // Small focused store for map camera state and UI toggles.
   setZoom: (zoom) => set({ zoom }),
   setCenter: (center) => set({ center }),
@@ -17,4 +19,6 @@ export const useMapStore = create<MapState>((set) => ({
   setCompareRepId: (id) => set({ compareRepId: id }),
   toggleDarkMode: () => set((s) => ({ darkMode: !s.darkMode })),
   setViewLevel: (level) => set({ viewLevel: level }),
+  setRedistrictingMode: (mode) => set({ redistrictingMode: mode }),
+  setRedistrictingSliderValue: (value) => set({ redistrictingSliderValue: value }),
 }))
