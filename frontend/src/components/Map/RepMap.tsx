@@ -309,13 +309,18 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     const stateAbbr = feature.properties.state_abbr as string
 
     if (viewLevel === 'state') {
-      // In state view: skip national layer hover; use district NAME from state layers.
-      if (layerId === 'national-districts-fill') { setHoverInfo(null); return }
+      if (layerId === 'national-districts-fill') {
+        // National layer in state view \u2014 show just the state name so the user knows
+        // which state they're hovering over and can click to select it.
+        setHoverInfo({ x: e.point.x, y: e.point.y, label: stateAbbr ?? '' })
+        return
+      }
+      // State legislative district layer \u2014 show chamber + district name.
       const name = String(feature.properties.NAME ?? '')
       const chamber = layerId.includes('-lower-') ? 'Lower' : layerId.includes('-upper-') ? 'Upper' : ''
       const label = name
         ? `${stateAbbr} ${chamber} \u2013 ${name}`
-        : stateAbbr
+        : stateAbbr ?? ''
       setHoverInfo({ x: e.point.x, y: e.point.y, label })
       return
     }
@@ -427,11 +432,11 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
       if (zoomTier <= 2) return reps.filter((rep) => rep.level === 'us_senate')
       return reps.filter((rep) => rep.level === 'us_house' || rep.level === 'us_senate')
     }
-    // State view
-    if (zoom < 7) return []
-    if (zoom < 9) return reps.filter((rep) => rep.level === 'state_senate')
-    return reps.filter((rep) => rep.level === 'state_house' || rep.level === 'state_senate')
-  }, [zoomTier, zoom, reps, viewLevel])
+    // State view — only show pins for the selected state to avoid rendering 7k+ Markers
+    if (!selectedStateCode || zoom < 7) return []
+    if (zoom < 9) return reps.filter((rep) => rep.level === 'state_senate' && rep.state === selectedStateCode)
+    return reps.filter((rep) => (rep.level === 'state_house' || rep.level === 'state_senate') && rep.state === selectedStateCode)
+  }, [zoomTier, zoom, reps, viewLevel, selectedStateCode])
 
   // Label decluttering: project pin positions to screen pixels and hide labels
   // whose bounding boxes overlap a higher-priority pin's label.
@@ -531,12 +536,19 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
       >
         <NavigationControl position="bottom-left" />
         {/* National congressional district overlay — always rendered for click events.
-            Visually hidden in state view (dimmed) but still interactive for state selection.
-            In redistricting mode its opacity scales with the slider (high = mostly current visible). */}
+            In state view it stays faintly visible as the clickable base layer (reduced
+            opacity so it doesn't compete with state legislative overlays). Only hidden
+            during flyTo animations. In redistricting mode its opacity scales with the slider. */}
         <DistrictOverlay
           onLoaded={handleDistrictsLoaded}
-          dimmed={isFlying || viewLevel === 'state'}
-          opacityScale={redistrictingMode && viewLevel === 'federal' ? redistrictingSliderValue / 100 : 1}
+          dimmed={isFlying}
+          opacityScale={
+            redistrictingMode && viewLevel === 'federal'
+              ? redistrictingSliderValue / 100
+              : viewLevel === 'state'
+                ? 0
+                : 1
+          }
         />
 
         {/* Historical (CD116) district overlay — visible in redistricting mode when zoomed to state level. */}
@@ -544,14 +556,15 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
           <RedistrictingOverlay stateCode={selectedStateCode} />
         )}
 
-        {/* State legislative district overlay — shown when a state is selected in state view. */}
-        {viewLevel === 'state' && selectedStateCode && (
-          <StateDistrictOverlay
-            stateCode={selectedStateCode}
-            onLayersReady={setStateDistrictFillIds}
-            dimmed={isFlying}
-          />
-        )}
+        {/* State legislative district overlay — always mounted to avoid Mapbox removeSource
+            crashes (mapbox-gl v3 + globe projection race on terrain renderer). Sources use
+            stable IDs and swap data in-place; an empty FeatureCollection is used when no
+            state is selected or when in federal view. */}
+        <StateDistrictOverlay
+          stateCode={viewLevel === 'state' ? (selectedStateCode ?? '') : ''}
+          onLayersReady={setStateDistrictFillIds}
+          dimmed={isFlying || viewLevel !== 'state' || !selectedStateCode}
+        />
 
         {/* Highlight the selected rep's district boundary. */}
         {(selectedRep?.level === 'us_house' ||
@@ -592,6 +605,29 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
           backdropFilter: 'blur(8px)',
         }}>
           {loadError}
+        </div>
+      )}
+      {/* Prompt shown when state view is active but no state is selected yet */}
+      {viewLevel === 'state' && !selectedStateCode && (
+        <div style={{
+          position: 'absolute',
+          bottom: '40px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'var(--color-bg-glass)',
+          backdropFilter: 'blur(12px) saturate(1.4)',
+          WebkitBackdropFilter: 'blur(12px) saturate(1.4)',
+          border: '1px solid var(--color-bg-glass-border)',
+          color: 'var(--color-text-secondary)',
+          padding: '6px 14px',
+          borderRadius: 'var(--radius-md)',
+          fontSize: '12px',
+          pointerEvents: 'none',
+          whiteSpace: 'nowrap',
+          zIndex: 10,
+          boxShadow: 'var(--shadow-md)',
+        }}>
+          Click a state to see its legislative districts
         </div>
       )}
       {zoom < 4 && !zoomHintDismissed && (

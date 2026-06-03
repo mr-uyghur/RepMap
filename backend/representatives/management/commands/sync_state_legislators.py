@@ -95,7 +95,7 @@ class Command(BaseCommand):
             )
 
             if i < len(states):
-                time.sleep(0.1)
+                time.sleep(3.0)  # Respect OpenStates rate limits between states
 
         self.stdout.write('')
         self.stdout.write(

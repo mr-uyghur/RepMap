@@ -90,8 +90,9 @@ def fetch_state_legislative_districts(state: str, chamber: str) -> dict:
     if not fips:
         raise ValueError(f"Unknown state: {state}")
 
-    # SLDL (lower chamber) = layer 2, SLDU (upper chamber) = layer 4
-    layer = 2 if chamber == 'lower' else 4
+    # 2024 SLDU (upper chamber) = layer 1, 2024 SLDL (lower chamber) = layer 2.
+    # Layer 4 was incorrectly used for upper — it is "119th Congressional Districts".
+    layer = 2 if chamber == 'lower' else 1
     district_field = 'SLDL' if chamber == 'lower' else 'SLDU'
 
     url = f"{TIGER_BASE}/{layer}/query"

@@ -148,8 +148,8 @@ export default function StateTray({ stateCode, onClose, onSelectRep }: Props) {
             {stateName} {isStateView ? 'State' : ''} Representatives
           </h2>
           <p className="state-tray-subtitle">
-            {senators.length} {isStateView ? 'State Senators' : 'Senators'} –{' '}
-            {representatives.length} {isStateView ? 'State Reps' : 'Representatives'}
+            {senators.length} {isStateView ? 'State Senate' : 'Senators'} –{' '}
+            {representatives.length} {isStateView ? 'State House' : 'Representatives'}
           </p>
         </div>
         <button
@@ -166,7 +166,7 @@ export default function StateTray({ stateCode, onClose, onSelectRep }: Props) {
       <div className="state-tray-body">
         <section aria-labelledby="state-tray-senators">
           <h3 className="state-tray-section-title" id="state-tray-senators">
-            {isStateView ? 'State Senators' : 'US Senators'}
+            {isStateView ? 'State Senate' : 'US Senators'}
           </h3>
           <div className="state-tray-senators">
             {senators.map((rep) => (
@@ -177,7 +177,7 @@ export default function StateTray({ stateCode, onClose, onSelectRep }: Props) {
 
         <section className="state-tray-house" aria-labelledby="state-tray-house">
           <h3 className="state-tray-section-title" id="state-tray-house">
-            {isStateView ? 'State Representatives' : 'US Representatives'}
+            {isStateView ? 'State House' : 'US Representatives'}
           </h3>
           <div className="state-tray-list">
             {representatives.map((rep) => (
