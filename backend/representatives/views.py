@@ -11,7 +11,7 @@ from .errors import error_response
 from .throttles import ZipcodeLookupThrottle, VotesThrottle, LegislationThrottle
 
 from .models import Representative, SyncStatus
-from .services.auto_sync import trigger_sync_if_stale
+from .services.auto_sync import trigger_sync_if_stale, trigger_state_sync_if_missing
 from .serializers import RepresentativeListSerializer, RepresentativeDetailSerializer, SyncStatusSerializer
 from .integrations.zip_lookup import fetch_reps_by_zipcode, geocode_zip
 from .integrations.census import (
@@ -55,6 +55,7 @@ class RepresentativeViewSet(viewsets.ReadOnlyModelViewSet):
     def list(self, request):
         # Opportunistically refresh stale data without blocking the response.
         trigger_sync_if_stale()
+        trigger_state_sync_if_missing()
         zipcode = request.query_params.get('zipcode', '').strip()
 
         if zipcode:

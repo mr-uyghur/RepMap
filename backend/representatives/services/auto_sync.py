@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 # In-process lock — prevents two requests within the same worker from both
 # spawning a sync thread between the is_stale check and the thread start.
 _lock = threading.Lock()
+_state_lock = threading.Lock()
 
 
 def is_stale() -> bool:
@@ -97,3 +98,41 @@ def _run_sync() -> None:
     except Exception as exc:
         logger.error('auto-sync: sync failed: %s', exc)
         SyncStatus.objects.filter(id=1).update(is_syncing=False, last_error=str(exc))
+
+
+def trigger_state_sync_if_missing() -> None:
+    """
+    Non-blocking check for missing state legislators.  If OPENSTATES_API_KEY is
+    configured and the DB has no state-level representatives, spawns a background
+    thread to run sync_state_legislators once.  Safe to call on every list request
+    — after the initial population the DB count fast-paths and returns immediately.
+    """
+    if not getattr(settings, 'OPENSTATES_API_KEY', ''):
+        return
+
+    from representatives.models import Representative
+
+    if Representative.objects.filter(level__in=['state_house', 'state_senate']).exists():
+        return
+
+    if not _state_lock.acquire(blocking=False):
+        logger.debug('state-sync: lock held by another thread, skipping')
+        return
+
+    try:
+        # Re-check inside the lock to handle concurrent requests.
+        if Representative.objects.filter(level__in=['state_house', 'state_senate']).exists():
+            return
+        logger.info('state-sync: no state legislators found — launching background sync')
+        threading.Thread(target=_run_state_sync, daemon=True, name='state-sync').start()
+    finally:
+        _state_lock.release()
+
+
+def _run_state_sync() -> None:
+    """Executed inside the state-sync background daemon thread."""
+    try:
+        management.call_command('sync_state_legislators', verbosity=0)
+        logger.info('state-sync: completed successfully')
+    except Exception as exc:
+        logger.error('state-sync: sync failed: %s', exc)
