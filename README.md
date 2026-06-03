@@ -13,11 +13,14 @@ Interactive map showing US Congressional Representatives, Senators, and state le
 | **Backend** | Django + Django REST Framework | Django 4.2, DRF 3.15 |
 | **Auth** | django-allauth (Google OAuth) | ≥ 65.0 |
 | **Task Queue** | Celery + django-celery-beat | Celery ≥ 5.4 |
-| **Frontend** | React + TypeScript + Vite | React 18, Vite 6, TS 5.6 |
+| **Frontend** | React + TypeScript + Vite | React 18, Vite 6.3, TS 5.6 |
 | **Map** | Mapbox GL JS via `react-map-gl` | mapbox-gl 3.7, react-map-gl 7.1 |
+| **Routing** | React Router | react-router-dom 7.16 |
 | **State Management** | Zustand | 5.0 |
 | **Data Fetching** | TanStack React Query | 5.x |
 | **HTTP Client** | Axios (frontend), Requests (backend) | — |
+| **Visualization** | D3.js (committee network graph) | 7.9 |
+| **PWA / Offline** | vite-plugin-pwa (Workbox) | 1.3 |
 | **Database** | SQLite (dev) / PostgreSQL 16 (prod) | — |
 | **Cache / Broker** | LocMemCache (dev) / Redis via `django-redis` (prod) | — |
 | **Static Files** | WhiteNoise | 6.12 |
@@ -39,7 +42,7 @@ RepMap/
 │   │   └── wsgi.py
 │   ├── representatives/              # Main Django app
 │   │   ├── models.py                 # Representative, SyncStatus, UserWatchlist, Notification
-│   │   ├── views.py                  # Core API views (ViewSets + APIViews)
+│   │   ├── views.py                  # Core API views (ViewSets + APIViews, incl. StateDistrictView, HistoricalDistrictView)
 │   │   ├── views_auth.py            # Session info + logout views
 │   │   ├── views_watchlist.py       # Watchlist CRUD views (requires auth)
 │   │   ├── views_report_card.py     # Accountability report card view
@@ -61,8 +64,10 @@ RepMap/
 │   │   ├── tests_notifications.py   # Notification endpoint tests
 │   │   ├── tests_openstates.py      # OpenStates integration tests
 │   │   ├── tests_sync_state.py      # State legislator sync command tests
+│   │   ├── tests_state_district.py  # State legislative district endpoint tests
+│   │   ├── tests_historical_redistricting.py # Historical redistricting comparison tests
 │   │   ├── integrations/             # External service wrappers
-│   │   │   ├── census.py             # Census TIGER API (district GeoJSON, state boundaries)
+│   │   │   ├── census.py             # Census TIGER API (congressional, state legislative, historical district GeoJSON, state boundaries)
 │   │   │   ├── openstates.py         # OpenStates REST API v3 (state legislators)
 │   │   │   └── zip_lookup.py         # Local ZIP → (lat, lng, state, district) lookup
 │   │   ├── services/                 # Business logic
@@ -72,9 +77,15 @@ RepMap/
 │   │   ├── management/commands/      # Django management commands
 │   │   │   ├── sync_legislators.py   # Sync federal legislators from unitedstates.io YAML
 │   │   │   ├── sync_state_legislators.py # Sync state legislators from OpenStates API
-│   │   │   ├── build_district_data.py # Pre-build district GeoJSON from Census TIGER
-│   │   │   └── build_zip_data.py     # Build ZIP lookup table (Gazetteer + point-in-polygon)
-│   │   ├── district_data/            # Pre-built GeoJSON per state (committed, ~51 files)
+│   │   │   ├── build_district_data.py # Pre-build congressional district GeoJSON from Census TIGER
+│   │   │   ├── build_state_district_data.py # Pre-build state legislative district GeoJSON (SLDL/SLDU)
+│   │   │   ├── build_historical_district_data.py # Pre-build CD116 historical district GeoJSON
+│   │   │   ├── build_national_state_districts.py # Build national-level state district GeoJSON
+│   │   │   ├── build_zip_data.py     # Build ZIP lookup table (Gazetteer + point-in-polygon)
+│   │   │   └── backfill_state_legislator_coords.py # Backfill lat/lng for state legislators
+│   │   ├── district_data/            # Pre-built congressional district GeoJSON per state (~51 files)
+│   │   ├── state_district_data/      # Pre-built state legislative district GeoJSON ({STATE}_{lower|upper}.json)
+│   │   ├── historical_district_data/ # Pre-built CD116 historical congressional district GeoJSON
 │   │   ├── election_data/            # elections.json — primary/general dates + registration deadlines
 │   │   ├── zip_data/                 # zips.json.gz — compressed ZIP lookup table
 │   │   ├── fixtures/                 # initial_reps.json — seed data for fresh installs
@@ -91,17 +102,22 @@ RepMap/
 ├── frontend/                         # Vite + React project root
 │   ├── index.html
 │   ├── package.json
-│   ├── vite.config.ts                # Dev server config with /api proxy to backend
+│   ├── vite.config.ts                # Dev server config with /api proxy + PWA (vite-plugin-pwa)
 │   ├── tsconfig.json
+│   ├── tsconfig.node.json
+│   ├── public/
+│   │   ├── manifest.json             # PWA web app manifest
+│   │   ├── icons/                    # PWA app icons (multiple sizes)
+│   │   └── data/                     # Static data files served from public/
 │   ├── src/
 │   │   ├── main.tsx                  # React entry point
-│   │   ├── App.tsx                   # Root component (AuthProvider, ErrorBoundary, NavBar, Map, Panel, Search)
+│   │   ├── App.tsx                   # Root component (AuthProvider, ErrorBoundary, Router, NavBar, Map, Panel, Search)
 │   │   ├── App.css
 │   │   ├── index.css
 │   │   ├── api/                      # Backend communication layer
 │   │   │   ├── client.ts             # Axios instance (base URL from VITE_API_BASE_URL)
 │   │   │   ├── config.ts             # Fetches Mapbox token from /api/v1/config/ (cached)
-│   │   │   ├── representatives.ts    # All rep API calls (reps, ZIP, districts, votes, legislation)
+│   │   │   ├── representatives.ts    # All rep API calls (reps, ZIP, districts, votes, legislation, historical)
 │   │   │   ├── watchlist.ts          # Watchlist CRUD API calls
 │   │   │   └── notifications.ts      # Notification API calls (list, unread-count, mark-read)
 │   │   ├── contexts/
@@ -116,16 +132,25 @@ RepMap/
 │   │   ├── constants/
 │   │   │   └── index.ts              # PARTY_COLORS map
 │   │   ├── utils/
-│   │   │   └── zipFallback.ts        # Client-side ZIP → state fallback when backend is unavailable
+│   │   │   ├── zipFallback.ts        # Client-side ZIP → state fallback when backend is unavailable
+│   │   │   ├── repSearch.ts          # Client-side representative search/filter logic
+│   │   │   └── clipboard.ts          # Clipboard copy utility
 │   │   ├── styles/
 │   │   │   ├── variables.css         # Full design token system (light + dark mode CSS vars)
 │   │   │   └── components.css        # Shared component styles (cards, tabs, search)
+│   │   ├── pages/
+│   │   │   ├── EmbedPage.tsx         # Embeddable widget page (standalone route)
+│   │   │   └── EmbedPage.css
 │   │   └── components/
 │   │       ├── Map/
 │   │       │   ├── RepMap.tsx         # Main map component (Mapbox GL, markers, tooltips, overlays)
 │   │       │   ├── RepresentativePin.tsx  # Map pin with glassmorphism label
-│   │       │   ├── DistrictOverlay.tsx    # District polygon layer
-│   │       │   └── DistrictBoundary.tsx   # District boundary lines
+│   │       │   ├── DistrictOverlay.tsx    # Congressional district polygon layer
+│   │       │   ├── DistrictBoundary.tsx   # District boundary lines
+│   │       │   ├── StateDistrictOverlay.tsx # State legislative district polygon layer
+│   │       │   ├── RedistrictingOverlay.tsx # Historical vs current district comparison overlay
+│   │       │   ├── RedistrictingSlider.tsx  # Timeline slider for redistricting comparison
+│   │       │   └── RedistrictingSlider.css
 │   │       ├── Panel/
 │   │       │   ├── RepresentativePanel.tsx  # Side panel (tabbed: Bio, Legislation, How to Vote, Votes)
 │   │       │   ├── RepresentativePanel.css
@@ -141,6 +166,8 @@ RepMap/
 │   │       │   ├── ComparePanel.css
 │   │       │   ├── StateTray.tsx           # State-level representative tray
 │   │       │   ├── StateTray.css
+│   │       │   ├── EmbedSnippet.tsx        # Embeddable widget code snippet generator
+│   │       │   ├── EmbedSnippet.css
 │   │       │   └── WatchButton.tsx         # Toggle watchlist button
 │   │       ├── Search/
 │   │       │   ├── SearchBar.tsx           # Unified search (ZIP + name/state)
@@ -155,8 +182,15 @@ RepMap/
 │   │       │   ├── NotificationBell.css
 │   │       │   ├── PartyRibbon.tsx         # Party color ribbon indicator
 │   │       │   ├── PartyRibbon.css
+│   │       │   ├── LevelToggle.tsx         # Federal ↔ State level toggle control
+│   │       │   ├── LevelToggle.css
 │   │       │   ├── UserMenu.tsx            # Authenticated user dropdown menu
 │   │       │   └── UserMenu.css
+│   │       ├── Committee/
+│   │       │   ├── CommitteeGraph.tsx      # D3-powered committee network visualization
+│   │       │   ├── CommitteeGraph.css
+│   │       │   ├── CommitteeGraphModal.tsx # Full-screen modal for committee graph
+│   │       │   └── CommitteeGraphModal.css
 │   │       └── Dashboard/
 │   │           ├── MyRepsDashboard.tsx     # Personalized watched representatives dashboard
 │   │           └── MyRepsDashboard.css
@@ -164,13 +198,15 @@ RepMap/
 │   ├── Dockerfile
 │   └── .env.example
 ├── docker-compose.yml                # Full stack: PostgreSQL + Django + Vite
+├── Dockerfile                        # Root-level Docker config
 ├── DESIGN.md                         # Visual design system (color tokens, typography, glassmorphism)
+├── DOCKER.md                         # Docker deployment documentation
 ├── GEMINI.md                         # AI agent persona config
 ├── AGENTS.md                         # Agent git workflow instructions
+├── Codex_review_finding.md           # Codex code review findings
 ├── .clauderc                         # Claude agent instructions
 ├── .gitignore
 ├── .dockerignore
-├── brainstorm_features.md            # Feature ideas document
 ├── roadmap.md                        # Product roadmap
 └── tasks/                            # Task specifications organized by phase
     ├── phase1/                       # Phase 1: Core features
@@ -183,7 +219,7 @@ RepMap/
     │   ├── TASK_02_state_level_rep_tray.md
     │   ├── TASK_03_keyboard_navigation.md
     │   └── TASK_04_compare_representatives.md
-    ├── phase3/                       # Phase 3: User accounts (all done)
+    ├── phase3/                       # Phase 3: User accounts ✅ (all done)
     │   ├── PROGRESS.md
     │   ├── TASK_01_google_oauth_backend.md
     │   ├── TASK_02_frontend_auth_ui.md
@@ -194,7 +230,7 @@ RepMap/
     │   ├── TASK_07_election_countdown.md
     │   ├── TASK_08_notification_backend.md
     │   └── TASK_09_frontend_notifications.md
-    └── phase4/                       # Phase 4: State-level data (in progress)
+    └── phase4/                       # Phase 4: State-level data ✅ (all done)
         ├── PROGRESS.md
         ├── TASK_01_level_field_migration.md
         ├── TASK_02_openstates_integration.md
@@ -215,23 +251,31 @@ RepMap/
 ┌─────────────────────────────────────────────────────────────┐
 │                     Frontend (Vite + React)                  │
 │                                                             │
-│  App.tsx                                                    │
+│  App.tsx (React Router: main route + /embed/:repId)         │
 │  ├── AuthProvider (Google OAuth session context)             │
-│  ├── NavBar (SearchBar, NotificationBell, UserMenu)         │
-│  ├── RepMap (Mapbox GL + DistrictOverlay + Pins)            │
+│  ├── NavBar (SearchBar, LevelToggle, NotificationBell,      │
+│  │          UserMenu)                                        │
+│  ├── RepMap (Mapbox GL + DistrictOverlay +                   │
+│  │          StateDistrictOverlay + RedistrictingOverlay +    │
+│  │          Pins)                                            │
 │  ├── ZipSearchResults (overlay)                             │
 │  ├── StateTray (state-level rep list)                       │
 │  ├── RepresentativePanel                                    │
 │  │   ├── BioTab / LegislationTab / VotesSection / HowToVote│
 │  │   ├── ReportCard (accountability scores)                 │
 │  │   ├── ElectionCountdown                                  │
+│  │   ├── EmbedSnippet (embeddable widget code generator)    │
 │  │   └── WatchButton                                        │
 │  ├── ComparePanel (side-by-side comparison)                 │
-│  └── MyRepsDashboard (watchlist dashboard)                  │
+│  ├── CommitteeGraphModal (D3 committee network viz)         │
+│  ├── RedistrictingSlider (historical comparison timeline)   │
+│  ├── MyRepsDashboard (watchlist dashboard)                  │
+│  └── EmbedPage (/embed/:repId standalone widget)            │
 │                                                             │
 │  State: mapStore (camera) + repStore (data + sync polling)  │
 │  Auth:  AuthContext → /api/v1/auth/session/                 │
 │  Data:  TanStack React Query + Axios → backend              │
+│  PWA:   vite-plugin-pwa (Workbox service worker)            │
 └────────────────────────┬────────────────────────────────────┘
                          │ HTTP (JSON)
                          ▼
@@ -246,6 +290,10 @@ RepMap/
 │  /api/v1/representatives/<bid>/report-card/→ ReportCardView │
 │  /api/v1/districts/congressional/?state=XX → DistrictViewSet│
 │  /api/v1/districts/state-boundary/?state=XX                 │
+│  /api/v1/districts/state-legislative/?state&chamber          │
+│                                    → StateDistrictView      │
+│  /api/v1/districts/historical/?state=XX                      │
+│                                    → HistoricalDistrictView │
 │  /api/v1/config/                  → Mapbox token endpoint   │
 │  /api/v1/zip-lookup/?zipcode=     → ZipLookupView (geocode) │
 │  /api/v1/auth/session/            → SessionInfoView         │
@@ -361,8 +409,10 @@ All application endpoints are under `/api/v1/`.
 | GET | `/api/v1/representatives/<bioguide_id>/votes/` | `votes_lookup: 30/hour` | Recent 20 votes from Congress.gov |
 | GET | `/api/v1/representatives/<bioguide_id>/legislation/` | `legislation_lookup: 20/hour` | Sponsored + cosponsored bills |
 | GET | `/api/v1/representatives/<bioguide_id>/report-card/` | `report_card_lookup: 20/hour` | Computed accountability scores |
-| GET | `/api/v1/districts/congressional/?state=CA` | `anon` | District GeoJSON (local file → cache → Census fallback) |
+| GET | `/api/v1/districts/congressional/?state=CA` | `anon` | Congressional district GeoJSON (local file → cache → Census fallback) |
 | GET | `/api/v1/districts/state-boundary/?state=CA` | `anon` | State boundary GeoJSON |
+| GET | `/api/v1/districts/state-legislative/?state=CA&chamber=lower` | `anon` | State legislative district GeoJSON (SLDL/SLDU, local file → cache → Census fallback) |
+| GET | `/api/v1/districts/historical/?state=CA` | `anon` | Historical CD116 congressional district GeoJSON (for redistricting comparison) |
 | GET | `/api/v1/zip-lookup/?zipcode=12345` | `anon` | Returns `{lat, lng}` only (for map fly-to) |
 | GET | `/api/v1/elections/?state=CA` | `anon` | Election dates (primary, general, registration deadline) |
 | GET | `/api/v1/config/` | `anon` | Returns `{mapbox_token}` |
@@ -421,7 +471,7 @@ OpenStates REST API v3 (requires OPENSTATES_API_KEY)
   → results cached 24h per state
 ```
 
-### 3. District GeoJSON (`build_district_data`)
+### 3. Congressional District GeoJSON (`build_district_data`)
 
 ```
 Census TIGER API → simplified GeoJSON (0.01° offset)
@@ -429,7 +479,23 @@ Census TIGER API → simplified GeoJSON (0.01° offset)
   → committed to git (changes only after redistricting ~every 10 years)
 ```
 
-### 4. ZIP Lookup Table (`build_zip_data`)
+### 4. State Legislative District GeoJSON (`build_state_district_data`)
+
+```
+Census TIGER API → SLDL (lower) / SLDU (upper) per state
+  → backend/representatives/state_district_data/{STATE}_{lower|upper}.json
+  → committed to git (~102 files, 2 per state)
+```
+
+### 5. Historical Congressional District GeoJSON (`build_historical_district_data`)
+
+```
+Census TIGER API → CD116 (116th Congress, 2013-2023) per state
+  → backend/representatives/historical_district_data/{STATE}.json
+  → used for redistricting comparison overlay
+```
+
+### 6. ZIP Lookup Table (`build_zip_data`)
 
 ```
 Census Gazetteer (ZCTA centroids)
@@ -439,7 +505,7 @@ Census Gazetteer (ZCTA centroids)
   → No external API calls at runtime
 ```
 
-### 5. Congress.gov API (votes + legislation)
+### 7. Congress.gov API (votes + legislation)
 
 ```
 Congress.gov /v3/member/{bioguide_id}/votes       → cached 6h
@@ -448,7 +514,7 @@ Congress.gov /v3/member/{bioguide_id}/cosponsored-legislation → cached 12h
 Requires CONGRESS_API_KEY environment variable
 ```
 
-### 6. Report Card (computed, cached 6h)
+### 8. Report Card (computed, cached 6h)
 
 ```
 Fetches votes + sponsored + cosponsored legislation for a bioguide_id
@@ -458,7 +524,7 @@ Fetches votes + sponsored + cosponsored legislation for a bioguide_id
   → Cached for 6 hours
 ```
 
-### 7. Watchlist Activity Check (Celery periodic task)
+### 9. Watchlist Activity Check (Celery periodic task)
 
 ```
 check_watchlist_activity (Celery shared_task)
@@ -486,7 +552,9 @@ check_watchlist_activity (Celery shared_task)
 | `MAPBOX_TOKEN` | **Yes** | Falls back to `VITE_MAPBOX_TOKEN` | Served via `/api/v1/config/` |
 | `AUTO_SYNC_ENABLED` | No | `true` | Background data refresh |
 | `AUTO_SYNC_STALE_HOURS` | No | `24` | Staleness threshold |
-| `DISTRICT_DATA_DIR` | No | `representatives/district_data/` | Override path |
+| `DISTRICT_DATA_DIR` | No | `representatives/district_data/` | Override congressional district data path |
+| `STATE_DISTRICT_DATA_DIR` | No | `representatives/state_district_data/` | Override state legislative district data path |
+| `HISTORICAL_DISTRICT_DATA_DIR` | No | `representatives/historical_district_data/` | Override historical district data path |
 | `DISTRICT_LIVE_FALLBACK` | No | `true` | Census API fallback when local files missing |
 | `SECURE_SSL_REDIRECT` | No | `False` | Opt-in HTTPS redirect (prod only) |
 | `GOOGLE_OAUTH_CLIENT_ID` | No (dev) | — | Google OAuth client ID for user accounts |
@@ -564,17 +632,28 @@ python manage.py sync_state_legislators
 python manage.py sync_state_legislators --states CA TX NY    # specific states
 python manage.py sync_state_legislators --purge              # remove retired legislators
 
-# 3. Build district GeoJSON (fetches from Census TIGER)
+# 3. Build congressional district GeoJSON (fetches from Census TIGER)
 python manage.py build_district_data
 python manage.py build_district_data --states CA TX NY    # specific states
 python manage.py build_district_data --overwrite          # re-download
 
-# 4. Build ZIP lookup table (requires district data from step 3)
+# 4. Build state legislative district GeoJSON (fetches SLDL/SLDU from Census TIGER)
+python manage.py build_state_district_data
+python manage.py build_state_district_data --states CA TX NY
+
+# 5. Build historical congressional district GeoJSON (CD116 for redistricting comparison)
+python manage.py build_historical_district_data
+python manage.py build_historical_district_data --states CA TX NY
+
+# 6. Build ZIP lookup table (requires district data from step 3)
 python manage.py build_zip_data
 python manage.py build_zip_data --overwrite               # rebuild
+
+# 7. Backfill state legislator coordinates (optional, fills missing lat/lng)
+python manage.py backfill_state_legislator_coords
 ```
 
-**Commit the generated files** (`district_data/*.json` and `zip_data/zips.json.gz`) to version control.
+**Commit the generated files** (`district_data/*.json`, `state_district_data/*.json`, `historical_district_data/*.json`, and `zip_data/zips.json.gz`) to version control.
 
 ---
 
@@ -594,6 +673,8 @@ Test files and coverage:
 - **`tests_notifications.py`** — Notification list, unread count, mark-read, mark-all-read
 - **`tests_openstates.py`** — OpenStates API integration, normalization, caching
 - **`tests_sync_state.py`** — State legislator sync command (create, update, purge)
+- **`tests_state_district.py`** — State legislative district GeoJSON endpoints (SLDL/SLDU, caching, Census fallback)
+- **`tests_historical_redistricting.py`** — Historical redistricting comparison (CD116 GeoJSON, caching, fallback)
 
 ---
 
@@ -651,41 +732,55 @@ Served via `/api/v1/config/` backend endpoint — never baked into the JS bundle
 ### Key Behaviors
 
 - **Zoom-based view switching:** House reps appear at zoom > 7, Senators at zoom 4–7
+- **Federal / State toggle:** `LevelToggle` component switches between federal and state representative views
 - **ZIP search → fly-to:** `handleZipSearchComplete()` → `flyTo()` with cubic easing → selects House rep by default
 - **Rep selection:** Cinematic camera drop (`pitch: 45°, bearing: -10°, zoom: 9.5, duration: 2s`)
 - **Rep comparison:** Side-by-side panel comparing two representatives (via `compareRepId` in `mapStore`)
+- **Committee graph:** D3-powered force-directed network visualization of committee membership overlaps
+- **Redistricting comparison:** Historical CD116 vs current district overlay with timeline slider
+- **Embeddable widget:** Standalone `/embed/:repId` route for iframe embedding, with code snippet generator
 - **Dark mode:** Toggled in `mapStore`, applied via `.dark` class on `<html>` for CSS variable theming
 - **ZIP fallback:** `zipFallback.ts` uses a client-side ZIP range → state mapping when the backend is unavailable
 - **Sync polling:** `initSyncPolling()` fetches `/api/sync-status/` every 30s, cleans up on unmount
 - **Watchlist notifications:** Celery periodic task checks for new votes on watched reps, creates in-app notifications
+- **PWA / Offline:** Service worker caches app shell, representatives data (StaleWhileRevalidate), and static assets; Mapbox tiles excluded per TOS
 
 ### Component Hierarchy
 
 ```
-App
-├── AuthProvider
-├── ErrorBoundary
-├── NavBar
-│   ├── SearchBar → ZipcodeSearch / NameSearchDropdown
-│   ├── NotificationBell (unread badge + dropdown)
-│   └── UserMenu (auth state + logout)
-├── PartyRibbon
-├── RepMap (Mapbox GL)
-│   ├── RepresentativePin (per rep)
-│   ├── DistrictOverlay (per state)
-│   └── DistrictBoundary
-├── ZipSearchResults (overlay, conditional)
-├── StateTray (state-level rep list, conditional)
-├── ComparePanel (side-by-side comparison, conditional)
-├── MyRepsDashboard (watchlist dashboard, conditional)
-└── RepresentativePanel (side panel, conditional)
-    ├── BioTab
-    ├── LegislationTab
-    ├── VotesSection
-    ├── HowToVoteTab
-    ├── ReportCard
-    ├── ElectionCountdown
-    └── WatchButton
+App (React Router)
+├── Main Route (/)
+│   ├── AuthProvider
+│   ├── ErrorBoundary
+│   ├── NavBar
+│   │   ├── SearchBar → ZipcodeSearch / NameSearchDropdown
+│   │   ├── LevelToggle (Federal ↔ State)
+│   │   ├── NotificationBell (unread badge + dropdown)
+│   │   └── UserMenu (auth state + logout)
+│   ├── PartyRibbon
+│   ├── RepMap (Mapbox GL)
+│   │   ├── RepresentativePin (per rep)
+│   │   ├── DistrictOverlay (congressional, per state)
+│   │   ├── DistrictBoundary
+│   │   ├── StateDistrictOverlay (state legislative, per state)
+│   │   └── RedistrictingOverlay (historical vs current)
+│   ├── RedistrictingSlider (conditional)
+│   ├── ZipSearchResults (overlay, conditional)
+│   ├── StateTray (state-level rep list, conditional)
+│   ├── ComparePanel (side-by-side comparison, conditional)
+│   ├── CommitteeGraphModal (D3 network viz, conditional)
+│   ├── MyRepsDashboard (watchlist dashboard, conditional)
+│   └── RepresentativePanel (side panel, conditional)
+│       ├── BioTab
+│       ├── LegislationTab
+│       ├── VotesSection
+│       ├── HowToVoteTab
+│       ├── ReportCard
+│       ├── ElectionCountdown
+│       ├── EmbedSnippet
+│       └── WatchButton
+└── Embed Route (/embed/:repId)
+    └── EmbedPage (standalone widget)
 ```
 
 ### Design System
@@ -707,7 +802,7 @@ See `DESIGN.md` for the full token system. Key patterns:
 - **State codes:** Always 2-letter uppercase abbreviations (validated against `STATE_FIPS` dict)
 - **External IDs:** `bioguide_id` + `govtrack_id` for federal; `openstates_id` for state legislators
 - **API versioning:** All app endpoints under `/api/v1/`
-- **Cache TTLs:** District GeoJSON = 7 days, Votes = 6 hours, Legislation = 12 hours, Report card = 6 hours, Election data = 24 hours, OpenStates = 24 hours
+- **Cache TTLs:** District GeoJSON = 7 days, State legislative GeoJSON = 7 days, Historical GeoJSON = 7 days, Votes = 6 hours, Legislation = 12 hours, Report card = 6 hours, Election data = 24 hours, OpenStates = 24 hours
 - **Sync dedup:** In-process `threading.Lock` + DB `is_syncing` flag
 - **No external API calls at ZIP lookup time** — all resolved from local `zips.json.gz`
 - **Constants:** `STATE_FIPS` (abbreviation → FIPS code) + `STATE_CENTROIDS` (abbreviation → lat/lng) in `constants.py`
@@ -745,7 +840,7 @@ Mobile responsive layout, state-level rep tray, keyboard navigation, representat
 ### Phase 3 — User Accounts ✅ (All Complete)
 Google OAuth backend + frontend auth UI, watchlist backend + frontend, report card backend + frontend, election countdown, notification backend + frontend notification bell.
 
-### Phase 4 — State-Level Data (In Progress)
-Level field migration ✅, OpenStates API integration ✅, state legislator sync command ✅, state district GeoJSON pipeline ⬜, frontend state reps display ⬜, embeddable widget ⬜, committee network graph ⬜, historical redistricting ⬜, PWA + offline mode ⬜.
+### Phase 4 — State-Level Data ✅ (All Complete)
+Level field migration, OpenStates API integration, state legislator sync command, state district GeoJSON pipeline, frontend state reps display + level toggle, embeddable widget route + snippet generator, D3 committee network graph, historical redistricting comparison with slider, PWA + offline mode with Workbox service worker.
 
 See `tasks/` directory and `roadmap.md` for detailed specs.
