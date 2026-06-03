@@ -141,8 +141,8 @@ CLAUDE.md
 # AI Agents tooling
 # ============================================================
 .agents/
+.codex/
 .antigravitycli/
 skills-lock.json
 Codex_review_finding.md
-
 

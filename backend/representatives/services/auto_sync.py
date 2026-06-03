@@ -18,6 +18,7 @@ import logging
 import threading
 
 from django.conf import settings
+from django.core.cache import cache
 from django.core import management
 from django.utils import timezone
 
@@ -102,17 +103,28 @@ def _run_sync() -> None:
 
 def trigger_state_sync_if_missing() -> None:
     """
-    Non-blocking check for missing state legislators.  If OPENSTATES_API_KEY is
-    configured and the DB has no state-level representatives, spawns a background
-    thread to run sync_state_legislators once.  Safe to call on every list request
-    — after the initial population the DB count fast-paths and returns immediately.
+    Non-blocking check for missing/incomplete state legislators.  If
+    OPENSTATES_API_KEY is configured and the DB has fewer state-level
+    representatives than expected, spawns a background thread to run
+    sync_state_legislators.  Safe to call on every list request — after the
+    initial population the DB count fast-paths and returns immediately.
     """
     if not getattr(settings, 'OPENSTATES_API_KEY', ''):
         return
 
     from representatives.models import Representative
 
-    if Representative.objects.filter(level__in=['state_house', 'state_senate']).exists():
+    min_count = getattr(settings, 'STATE_SYNC_MIN_LEGISLATORS', 7000)
+    state_count = Representative.objects.filter(
+        level__in=['state_house', 'state_senate']
+    ).count()
+    if state_count >= min_count:
+        return
+
+    # Avoid hammering OpenStates if a sync fails partway through. LocMemCache
+    # keeps this per-process, which is enough to prevent request-by-request loops.
+    cooldown_key = 'state-sync:last-attempt'
+    if cache.get(cooldown_key):
         return
 
     if not _state_lock.acquire(blocking=False):
@@ -121,9 +133,21 @@ def trigger_state_sync_if_missing() -> None:
 
     try:
         # Re-check inside the lock to handle concurrent requests.
-        if Representative.objects.filter(level__in=['state_house', 'state_senate']).exists():
+        state_count = Representative.objects.filter(
+            level__in=['state_house', 'state_senate']
+        ).count()
+        if state_count >= min_count:
             return
-        logger.info('state-sync: no state legislators found — launching background sync')
+        cache.set(
+            cooldown_key,
+            True,
+            getattr(settings, 'STATE_SYNC_RETRY_COOLDOWN_SECONDS', 3600),
+        )
+        logger.info(
+            'state-sync: only %d state legislators found, expected at least %d — launching background sync',
+            state_count,
+            min_count,
+        )
         threading.Thread(target=_run_state_sync, daemon=True, name='state-sync').start()
     finally:
         _state_lock.release()
