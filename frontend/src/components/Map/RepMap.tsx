@@ -432,7 +432,11 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
       if (zoomTier <= 2) return reps.filter((rep) => rep.level === 'us_senate')
       return reps.filter((rep) => rep.level === 'us_house' || rep.level === 'us_senate')
     }
-    // State view — only show pins for the selected state to avoid rendering 7k+ Markers
+    // State view — pins are intentionally NOT mirrored to federal's always-on behavior.
+    // Federal renders ~535 DOM Marker nodes; state has 7,306. Borders are cheap GPU
+    // vector polygons; pins are expensive DOM nodes that each call map.project() in
+    // labelVisibility. Only show pins for the selected state (50–250 markers) to avoid
+    // the lag that triggered the pin-gate design.
     if (!selectedStateCode || zoom < 7) return []
     if (zoom < 9) return reps.filter((rep) => rep.level === 'state_senate' && rep.state === selectedStateCode)
     return reps.filter((rep) => (rep.level === 'state_house' || rep.level === 'state_senate') && rep.state === selectedStateCode)
@@ -526,10 +530,13 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
         onMoveEnd={handleMoveEnd}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
-        interactiveLayerIds={isDragging ? [] : [
-          ...fillLayerIds,
-          ...(viewLevel === 'state' ? stateDistrictFillIds : []),
-        ]}
+        interactiveLayerIds={isDragging ? [] : (
+          // Each view uses its own visible fill layers as the click/hover target.
+          // Federal: national CD fill (national-districts-fill).
+          // State: state legislative district fills (lower + upper).
+          // Mixing both would let State-view clicks fire on the invisible federal layer.
+          viewLevel === 'state' ? stateDistrictFillIds : fillLayerIds
+        )}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onClick={handleMapClick}
@@ -556,14 +563,15 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
           <RedistrictingOverlay stateCode={selectedStateCode} />
         )}
 
-        {/* State legislative district overlay — always mounted to avoid Mapbox removeSource
-            crashes (mapbox-gl v3 + globe projection race on terrain renderer). Sources use
-            stable IDs and swap data in-place; an empty FeatureCollection is used when no
-            state is selected or when in federal view. */}
+        {/* State legislative district overlay — mirrors federal DistrictOverlay: all borders
+            drawn immediately when State view is active, color-coded by party nationwide.
+            Lazy-loads combined national files on first State-view entry so federal-only users
+            never pay the ~4 MB cost. Sources use stable IDs + in-place setData to avoid the
+            mapbox-gl v3 / globe removeSource crash ([[project-mapbox-strictmode-bug]]). */}
         <StateDistrictOverlay
-          stateCode={viewLevel === 'state' ? (selectedStateCode ?? '') : ''}
+          active={viewLevel === 'state'}
           onLayersReady={setStateDistrictFillIds}
-          dimmed={isFlying || viewLevel !== 'state' || !selectedStateCode}
+          dimmed={isFlying || viewLevel !== 'state'}
         />
 
         {/* Highlight the selected rep's district boundary. */}
@@ -607,29 +615,8 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
           {loadError}
         </div>
       )}
-      {/* Prompt shown when state view is active but no state is selected yet */}
-      {viewLevel === 'state' && !selectedStateCode && (
-        <div style={{
-          position: 'absolute',
-          bottom: '40px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'var(--color-bg-glass)',
-          backdropFilter: 'blur(12px) saturate(1.4)',
-          WebkitBackdropFilter: 'blur(12px) saturate(1.4)',
-          border: '1px solid var(--color-bg-glass-border)',
-          color: 'var(--color-text-secondary)',
-          padding: '6px 14px',
-          borderRadius: 'var(--radius-md)',
-          fontSize: '12px',
-          pointerEvents: 'none',
-          whiteSpace: 'nowrap',
-          zIndex: 10,
-          boxShadow: 'var(--shadow-md)',
-        }}>
-          Click a state to see its legislative districts
-        </div>
-      )}
+      {/* No "click a state" prompt needed — state legislative borders are now visible
+          immediately on toggle (matching federal behavior), so the map is self-evident. */}
       {zoom < 4 && !zoomHintDismissed && (
         <div style={{
           position: 'absolute',
