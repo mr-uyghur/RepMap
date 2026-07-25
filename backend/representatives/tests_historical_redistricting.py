@@ -55,11 +55,12 @@ class HistoricalDistrictViewTests(TestCase):
         with patch('representatives.views.cache') as mock_cache, patch(
             'representatives.views.load_local_historical_districts',
             return_value=None,
-        ):
+        ), patch('representatives.views.fetch_historical_congressional_districts') as mock_fetch:
             mock_cache.get.return_value = None
             response = self.client.get('/api/v1/districts/historical/', {'state': 'CA'})
         self.assertEqual(response.status_code, 503)
         self.assertIn('error', response.data)
+        mock_fetch.assert_not_called()
 
     @override_settings(DISTRICT_LIVE_FALLBACK=True)
     def test_no_local_file_live_fallback_enabled_returns_geojson(self):

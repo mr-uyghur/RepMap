@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from representatives.models import Representative, SyncStatus
 from representatives.constants import STATE_FIPS, STATE_CENTROIDS
+from representatives.url_safety import normalize_external_url
 
 LEGISLATORS_URL = (
     'https://raw.githubusercontent.com/unitedstates/congress-legislators/main/legislators-current.yaml'
@@ -265,7 +266,7 @@ class Command(BaseCommand):
                 state=state,
                 district_number=None,
                 photo_url=f'https://bioguide.congress.gov/bioguide/photo/{bioguide_id[0]}/{bioguide_id}.jpg' if bioguide_id else '',
-                website=term.get('url', ''),
+                website=normalize_external_url(term.get('url', '')),
                 phone=term.get('phone', ''),
                 social_links=_build_social_links(person_ids),
                 term_start=term.get('start') or None,
@@ -318,7 +319,7 @@ class Command(BaseCommand):
                 state=state,
                 district_number=district if district != 0 else None,
                 photo_url=f'https://bioguide.congress.gov/bioguide/photo/{bioguide_id[0]}/{bioguide_id}.jpg' if bioguide_id else '',
-                website=term.get('url', ''),
+                website=normalize_external_url(term.get('url', '')),
                 phone=term.get('phone', ''),
                 social_links=_build_social_links(person_ids),
                 term_start=term.get('start') or None,

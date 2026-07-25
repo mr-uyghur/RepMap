@@ -3,6 +3,7 @@ import axios from 'axios'
 import { fetchRepDetail } from '../../api/representatives'
 import { PARTY_COLORS } from '../../constants'
 import type { Representative } from '../../types'
+import { safeExternalHref } from '../../utils/urlSafety'
 import './ComparePanel.css'
 
 interface Props {
@@ -114,6 +115,7 @@ function RepresentativeColumn({ state }: { state: DetailState }) {
   const rep = state.rep
   const color = PARTY_COLORS[rep.party] || '#6b7280'
   const committees = rep.committee_assignments ?? []
+  const websiteHref = safeExternalHref(rep.website)
 
   return (
     <>
@@ -141,8 +143,8 @@ function RepresentativeColumn({ state }: { state: DetailState }) {
         </div>
         <div className="compare-field">
           <span className="compare-field-label">Website</span>
-          {rep.website ? (
-            <a className="compare-field-link" href={rep.website} target="_blank" rel="noopener noreferrer">
+          {websiteHref ? (
+            <a className="compare-field-link" href={websiteHref} target="_blank" rel="noopener noreferrer">
               Official site
             </a>
           ) : (

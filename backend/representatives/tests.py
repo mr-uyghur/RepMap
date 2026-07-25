@@ -186,6 +186,11 @@ class SecuritySettingsTests(TestCase):
         from django.conf import settings
         self.assertFalse(getattr(settings, 'SECURE_SSL_REDIRECT', False))
 
+    def test_district_live_fallback_off_by_default(self):
+        """Public district endpoints must not call live Census unless explicitly opted in."""
+        from django.conf import settings
+        self.assertFalse(getattr(settings, 'DISTRICT_LIVE_FALLBACK', False))
+
     @override_settings(
         SECURE_SSL_REDIRECT=False,
         AUTO_SYNC_ENABLED=False,
@@ -202,6 +207,27 @@ class SecuritySettingsTests(TestCase):
         """With SECURE_SSL_REDIRECT=True (production opt-in), plain HTTP is redirected to HTTPS."""
         response = self.client.get('/api/v1/representatives/')
         self.assertEqual(response.status_code, 301)
+
+
+class CongressionalDistrictFallbackTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    @override_settings(
+        DISTRICT_LIVE_FALLBACK=False,
+        CACHES={'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}},
+    )
+    def test_no_local_file_and_live_fallback_disabled_returns_503_without_census_call(self):
+        with patch('representatives.views.cache') as mock_cache, patch(
+            'representatives.views.load_local_congressional_districts',
+            return_value=None,
+        ), patch('representatives.views.fetch_congressional_districts') as mock_fetch:
+            mock_cache.get.return_value = None
+            response = self.client.get('/api/v1/districts/congressional/', {'state': 'CA'})
+
+        self.assertEqual(response.status_code, 503)
+        self.assertIn('error', response.data)
+        mock_fetch.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

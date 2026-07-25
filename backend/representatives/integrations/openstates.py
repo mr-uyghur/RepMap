@@ -12,6 +12,7 @@ from django.conf import settings
 from django.core.cache import cache
 
 from representatives.constants import STATE_CENTROIDS
+from representatives.url_safety import normalize_external_url
 
 # In-process cache: (state, chamber) -> {district_number: (lat, lng)}.
 # Loaded once per management command run from local boundary files.
@@ -22,6 +23,9 @@ logger = logging.getLogger(__name__)
 _BASE_URL = 'https://v3.openstates.org'
 _PAGE_SIZE = 50   # OpenStates v3 API max is 50; values above 50 return HTTP 400
 _CACHE_TTL = 60 * 60 * 24  # 24 hours
+_DEFAULT_MAX_PAGES = 25
+_DEFAULT_MAX_RETRY_AFTER_SECONDS = 30.0
+_DEFAULT_MAX_DURATION_SECONDS = 300.0
 
 # Map OpenStates party names → Representative.PARTY_CHOICES
 _PARTY_NORMALIZE = {
@@ -45,6 +49,27 @@ _CHAMBER_TO_LEVEL = {
 
 class OpenStatesUnavailable(Exception):
     """Raised when the OpenStates API is unreachable or unconfigured."""
+
+
+def _get_positive_setting(name: str, default):
+    value = getattr(settings, name, default)
+    try:
+        parsed = type(default)(value)
+    except (TypeError, ValueError):
+        return default
+    return parsed if parsed > 0 else default
+
+
+def _retry_after_delay(raw_value, backoff: float) -> float:
+    try:
+        delay = float(raw_value)
+    except (TypeError, ValueError):
+        delay = backoff
+    max_delay = _get_positive_setting(
+        'STATE_SYNC_MAX_RETRY_AFTER_SECONDS',
+        _DEFAULT_MAX_RETRY_AFTER_SECONDS,
+    )
+    return max(0.0, min(delay, max_delay))
 
 
 # ---------------------------------------------------------------------------
@@ -152,7 +177,7 @@ def _fetch_page(jurisdiction, page, api_key):
                 timeout=30,
             )
             if resp.status_code == 429 and attempt < 3:
-                wait = float(resp.headers.get('Retry-After', backoff))
+                wait = _retry_after_delay(resp.headers.get('Retry-After'), backoff)
                 logger.warning(
                     'OpenStates rate limit hit (page %d, attempt %d/%d) — waiting %.1fs',
                     page, attempt + 1, 3, wait,
@@ -193,10 +218,10 @@ def _normalize_person(person, state):
     # Photo
     photo_url = person.get('image') or ''
 
-    # Website — first link in the links list
+    # Website — first safe http(s) link in the links list.
     website = ''
     for link in (person.get('links') or []):
-        url = link.get('url', '')
+        url = normalize_external_url(link.get('url', ''))
         if url:
             website = url
             break
@@ -259,8 +284,23 @@ def fetch_state_legislators(state):
 
     all_legislators = []
     page = 1
+    started_at = time.monotonic()
+    max_pages = _get_positive_setting('STATE_SYNC_MAX_PAGES', _DEFAULT_MAX_PAGES)
+    max_duration = _get_positive_setting(
+        'STATE_SYNC_MAX_DURATION_SECONDS',
+        _DEFAULT_MAX_DURATION_SECONDS,
+    )
 
     while True:
+        if page > max_pages:
+            raise OpenStatesUnavailable(
+                f'OpenStates pagination exceeded local cap of {max_pages} pages for {state}'
+            )
+        if time.monotonic() - started_at > max_duration:
+            raise OpenStatesUnavailable(
+                f'OpenStates sync exceeded local duration cap of {max_duration:.1f}s for {state}'
+            )
+
         data = _fetch_page(jurisdiction, page, api_key)
         pagination = data.get('pagination', {})
         results = data.get('results', [])
@@ -270,7 +310,14 @@ def fetch_state_legislators(state):
             if normalized is not None:
                 all_legislators.append(normalized)
 
-        max_page = pagination.get('max_page', 1)
+        try:
+            max_page = int(pagination.get('max_page', 1))
+        except (TypeError, ValueError):
+            raise OpenStatesUnavailable('OpenStates pagination metadata is invalid')
+        if max_page > max_pages:
+            raise OpenStatesUnavailable(
+                f'OpenStates reported {max_page} pages, exceeding local cap of {max_pages}'
+            )
         if page >= max_page:
             break
         page += 1

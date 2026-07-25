@@ -1,5 +1,6 @@
 import type { Representative } from '../../types'
 import { PARTY_COLORS } from '../../constants'
+import { externalHostname, safeExternalHref } from '../../utils/urlSafety'
 import ReportCard from './ReportCard'
 
 // ── Inline SVG Icons ──────────────────────────────────────────────────────────
@@ -190,13 +191,12 @@ export default function BioTab({ rep }: Props) {
   }
 
   if (rep.website) {
-    let domain = rep.website
-    try { domain = new URL(rep.website).hostname.replace(/^www\./, '') } catch { /* keep raw */ }
+    const href = safeExternalHref(rep.website)
     actionItems.push({
       icon: <GlobeIcon />,
       label: 'Official Site',
-      value: domain,
-      href: rep.website,
+      value: href ? externalHostname(href) : rep.website,
+      href: href ?? undefined,
       partyColor,
     })
   }

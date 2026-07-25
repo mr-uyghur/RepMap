@@ -89,13 +89,14 @@ class StateDistrictViewTests(TestCase):
         with patch('representatives.views.cache') as mock_cache, patch(
             'representatives.views.load_local_state_legislative_districts',
             return_value=None,
-        ):
+        ), patch('representatives.views.fetch_state_legislative_districts') as mock_fetch:
             mock_cache.get.return_value = None  # Prevent cross-test cache pollution
             response = self.client.get(
                 '/api/v1/districts/state-legislative/', {'state': 'CA', 'chamber': 'lower'}
             )
         self.assertEqual(response.status_code, 503)
         self.assertIn('error', response.data)
+        mock_fetch.assert_not_called()
 
     @override_settings(DISTRICT_LIVE_FALLBACK=True)
     def test_live_fallback_returns_geojson_when_no_local_file(self):
@@ -184,7 +185,7 @@ class StateDistrictCensusIntegrationTests(TestCase):
             result = fetch_state_legislative_districts('CA', 'upper')
 
         call_args = mock_get.call_args
-        self.assertIn('/4/query', call_args[0][0])
+        self.assertIn('/1/query', call_args[0][0])
         self.assertEqual(result['features'][0]['properties']['state_abbr'], 'CA')
 
     def test_fetch_state_legislative_districts_invalid_state(self):

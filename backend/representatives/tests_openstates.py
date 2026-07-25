@@ -7,6 +7,7 @@ from django.test import TestCase, override_settings
 
 def _make_response(results, page=1, max_page=1, per_page=100):
     mock = MagicMock()
+    mock.status_code = 200
     mock.raise_for_status.return_value = None
     mock.json.return_value = {
         'results': results,
@@ -58,6 +59,29 @@ class FetchStateLegislatorsTests(TestCase):
         self.assertEqual(person['website'], 'https://example.com')
         self.assertEqual(person['phone'], '555-1234')
         self.assertEqual(person['external_ids']['openstates_id'], 'ocd-person/test-123')
+
+    @patch('representatives.integrations.openstates.requests.get')
+    def test_uses_first_safe_website_link(self, mock_get):
+        mock_get.return_value = _make_response([{
+            'id': 'ocd-person/test-link',
+            'name': 'Safe Link',
+            'party': 'Democratic',
+            'image': '',
+            'current_role': {
+                'org_classification': 'lower',
+                'district': '12',
+            },
+            'links': [
+                {'url': 'javascript:alert(1)', 'note': 'unsafe'},
+                {'url': ' https://example.com/profile ', 'note': 'safe'},
+            ],
+            'offices': [],
+        }])
+
+        from representatives.integrations.openstates import fetch_state_legislators
+        result = fetch_state_legislators('CA')
+
+        self.assertEqual(result[0]['website'], 'https://example.com/profile')
 
     @patch('representatives.integrations.openstates.requests.get')
     def test_upper_chamber_returns_state_senate(self, mock_get):
@@ -151,6 +175,47 @@ class FetchStateLegislatorsTests(TestCase):
         self.assertEqual(len(result), 4)
         self.assertEqual(mock_get.call_count, 2)
 
+    @override_settings(STATE_SYNC_MAX_PAGES=2)
+    @patch('representatives.integrations.openstates.requests.get')
+    def test_rejects_upstream_pagination_above_local_cap(self, mock_get):
+        mock_get.return_value = _make_response([], page=1, max_page=1000000)
+
+        from representatives.integrations.openstates import (
+            OpenStatesUnavailable,
+            fetch_state_legislators,
+        )
+        with self.assertRaises(OpenStatesUnavailable):
+            fetch_state_legislators('FL')
+
+        self.assertEqual(mock_get.call_count, 1)
+
+    @override_settings(STATE_SYNC_MAX_RETRY_AFTER_SECONDS=30)
+    @patch('representatives.integrations.openstates.time.sleep')
+    @patch('representatives.integrations.openstates.requests.get')
+    def test_clamps_retry_after_delay(self, mock_get, mock_sleep):
+        rate_limited = MagicMock()
+        rate_limited.status_code = 429
+        rate_limited.headers = {'Retry-After': '9999'}
+        mock_get.side_effect = [rate_limited, _make_response([])]
+
+        from representatives.integrations.openstates import fetch_state_legislators
+        fetch_state_legislators('FL')
+
+        self.assertEqual(mock_sleep.call_args_list[0].args[0], 30.0)
+
+    @patch('representatives.integrations.openstates.time.sleep')
+    @patch('representatives.integrations.openstates.requests.get')
+    def test_malformed_retry_after_uses_backoff(self, mock_get, mock_sleep):
+        rate_limited = MagicMock()
+        rate_limited.status_code = 429
+        rate_limited.headers = {'Retry-After': 'not-a-number'}
+        mock_get.side_effect = [rate_limited, _make_response([])]
+
+        from representatives.integrations.openstates import fetch_state_legislators
+        fetch_state_legislators('FL')
+
+        self.assertEqual(mock_sleep.call_args_list[0].args[0], 5.0)
+
     @patch('representatives.integrations.openstates.requests.get')
     def test_caches_result(self, mock_get):
         mock_get.return_value = _make_response([])
@@ -180,7 +245,8 @@ class FetchStateLegislatorsTests(TestCase):
             fetch_state_legislators('CA')
 
     @patch('representatives.integrations.openstates.requests.get')
-    def test_falls_back_to_state_centroid_for_coordinates(self, mock_get):
+    @patch('representatives.integrations.census.load_local_state_legislative_districts', return_value=None)
+    def test_falls_back_to_state_centroid_for_coordinates(self, _mock_load_local, mock_get):
         mock_get.return_value = _make_response([{
             'id': 'ocd-person/test-coord',
             'name': 'Rep Geo',
