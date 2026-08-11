@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { badRequest, cached, isValidBioguide, isValidGovtrack, queryParam } from './_lib/http'
-import { fetchRecentVotes } from './_lib/govtrack'
+import { badRequest, cached, isValidBioguide, isValidGovtrack, queryParam } from './_lib/http.js'
+import { fetchRecentVotes } from './_lib/govtrack.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const bioguide = queryParam(req.query.bioguide)

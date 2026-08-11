@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { badRequest, cached, isValidBioguide, isValidGovtrack, queryParam } from './_lib/http'
-import { fetchRecentVotes, type Vote } from './_lib/govtrack'
-import { fetchLegislation, type Bill } from './_lib/congress'
+import { badRequest, cached, isValidBioguide, isValidGovtrack, queryParam } from './_lib/http.js'
+import { fetchRecentVotes, type Vote } from './_lib/govtrack.js'
+import { fetchLegislation, type Bill } from './_lib/congress.js'
 
 // Ported from backend/representatives/services/report_card.py
 

@@ -1,4 +1,4 @@
-import { fetchJson } from './http'
+import { fetchJson } from './http.js'
 
 // Ported from backend/representatives/services/congress_api.py:fetch_recent_votes
 // Source: GovTrack API (govtrack.us/api/v2) — no API key required.

@@ -1,4 +1,4 @@
-import { fetchJson } from './http'
+import { fetchJson } from './http.js'
 
 // Ported from backend/representatives/services/congress_api.py
 // Source: Congress.gov API v3 — requires CONGRESS_API_KEY.

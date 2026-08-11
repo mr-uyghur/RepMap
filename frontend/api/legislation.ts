@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { badRequest, cached, isValidBioguide, queryParam } from './_lib/http'
-import { fetchLegislation } from './_lib/congress'
+import { badRequest, cached, isValidBioguide, queryParam } from './_lib/http.js'
+import { fetchLegislation } from './_lib/congress.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const bioguide = queryParam(req.query.bioguide)
