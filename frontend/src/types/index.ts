@@ -21,7 +21,7 @@ export interface Representative {
   office_room?: string
   office_address?: string
   committee_assignments?: string[]
-  external_ids?: Record<string, string>
+  external_ids?: Record<string, string | number>
   district_label?: string
   congress_gov_url?: string
   bioguide_url?: string

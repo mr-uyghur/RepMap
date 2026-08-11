@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
 import { getRepLegislation } from '../../api/representatives'
+import { ApiError } from '../../api/apiError'
 import type { Bill, LegislationResponse } from '../../types'
 
 interface Props {
@@ -121,14 +121,8 @@ export default function LegislationTab({ bioguide_id, congressUrl }: Props) {
     getRepLegislation(bioguide_id)
       .then((response) => setData(response))
       .catch((err) => {
-        if (axios.isAxiosError(err) && err.response?.data) {
-          const message = err.response.data.detail ?? err.response.data.error
-          if (message) {
-            setError(message)
-            return
-          }
-        }
-        setError('Failed to load legislation. Please try again.')
+        const message = err instanceof ApiError ? err.body?.detail ?? err.body?.error : undefined
+        setError(message ?? 'Failed to load legislation. Please try again.')
       })
       .finally(() => setLoading(false))
   }, [bioguide_id])

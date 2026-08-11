@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
 import { getRepVotes } from '../../api/representatives'
+import { ApiError } from '../../api/apiError'
 import type { Vote } from '../../types'
 
 interface Props {
   bioguide_id: string
+  govtrack_id?: string | number
   congressUrl?: string
 }
 
@@ -106,7 +107,7 @@ function VoteRow({ vote }: { vote: Vote }) {
   )
 }
 
-export default function VotesSection({ bioguide_id, congressUrl }: Props) {
+export default function VotesSection({ bioguide_id, govtrack_id, congressUrl }: Props) {
   const [votes, setVotes] = useState<Vote[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -118,17 +119,14 @@ export default function VotesSection({ bioguide_id, congressUrl }: Props) {
     }
     setLoading(true)
     setError(null)
-    getRepVotes(bioguide_id)
+    getRepVotes(bioguide_id, govtrack_id)
       .then((data) => setVotes(data))
       .catch((err) => {
-        if (axios.isAxiosError(err) && err.response?.data) {
-          const message = err.response.data.detail ?? err.response.data.error
-          if (message) { setError(message); return }
-        }
-        setError('Failed to load votes. Please try again.')
+        const message = err instanceof ApiError ? err.body?.detail ?? err.body?.error : undefined
+        setError(message ?? 'Failed to load votes. Please try again.')
       })
       .finally(() => setLoading(false))
-  }, [bioguide_id])
+  }, [bioguide_id, govtrack_id])
 
   return (
     <div style={{ padding: '16px 0' }}>

@@ -316,7 +316,9 @@ export default function BioTab({ rep }: Props) {
           </div>
         )}
 
-        {rep.bioguide_id && <ReportCard bioguideId={rep.bioguide_id} />}
+        {rep.bioguide_id && (
+          <ReportCard bioguideId={rep.bioguide_id} govtrackId={rep.external_ids?.govtrack_id} />
+        )}
 
       </div>
     </div>

@@ -5,6 +5,7 @@ import './ReportCard.css'
 
 interface Props {
   bioguideId: string
+  govtrackId?: string | number
 }
 
 function scoreColor(value: number | null, thresholds: [number, number] = [70, 90]): string {
@@ -38,7 +39,7 @@ function ScoreGauge({ label, value, subtitle }: { label: string; value: number |
   )
 }
 
-export default function ReportCard({ bioguideId }: Props) {
+export default function ReportCard({ bioguideId, govtrackId }: Props) {
   const [data, setData] = useState<ReportCardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -50,11 +51,11 @@ export default function ReportCard({ bioguideId }: Props) {
     }
     setLoading(true)
     setError(false)
-    getReportCard(bioguideId)
+    getReportCard(bioguideId, govtrackId)
       .then(setData)
       .catch(() => setError(true))
       .finally(() => setLoading(false))
-  }, [bioguideId])
+  }, [bioguideId, govtrackId])
 
   if (error || (!loading && !data)) return null
 
