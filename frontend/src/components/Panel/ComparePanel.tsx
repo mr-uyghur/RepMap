@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import axios from 'axios'
-import { fetchRepDetail } from '../../api/representatives'
+import { useEffect, useRef } from 'react'
+import { useRepresentative } from '../../hooks/useRepresentative'
 import { PARTY_COLORS } from '../../constants'
 import type { Representative } from '../../types'
 import { safeExternalHref } from '../../utils/urlSafety'
@@ -15,7 +14,6 @@ interface Props {
 interface DetailState {
   rep: Representative | null
   loading: boolean
-  error: string | null
 }
 
 const PARTY_LABELS: Record<string, string> = {
@@ -23,35 +21,6 @@ const PARTY_LABELS: Record<string, string> = {
   republican: 'Republican',
   independent: 'Independent',
   other: 'Other',
-}
-
-function useRepresentativeDetail(repId: number): DetailState {
-  const [state, setState] = useState<DetailState>({
-    rep: null,
-    loading: true,
-    error: null,
-  })
-
-  useEffect(() => {
-    let cancelled = false
-    setState({ rep: null, loading: true, error: null })
-
-    fetchRepDetail(repId)
-      .then((rep) => {
-        if (!cancelled) setState({ rep, loading: false, error: null })
-      })
-      .catch((error) => {
-        if (cancelled) return
-        const message = axios.isAxiosError(error) && !error.response
-          ? 'Unable to reach the server.'
-          : 'Unable to load representative details.'
-        setState({ rep: null, loading: false, error: message })
-      })
-
-    return () => { cancelled = true }
-  }, [repId])
-
-  return state
 }
 
 function getChamberLabel(rep: Representative) {
@@ -109,8 +78,7 @@ function ColumnSkeleton() {
 
 function RepresentativeColumn({ state }: { state: DetailState }) {
   if (state.loading) return <ColumnSkeleton />
-  if (state.error) return <p className="compare-column-error">{state.error}</p>
-  if (!state.rep) return null
+  if (!state.rep) return <p className="compare-column-error">Representative not found.</p>
 
   const rep = state.rep
   const color = PARTY_COLORS[rep.party] || '#6b7280'
@@ -170,8 +138,8 @@ function RepresentativeColumn({ state }: { state: DetailState }) {
 }
 
 export default function ComparePanel({ repIdA, repIdB, onClose }: Props) {
-  const left = useRepresentativeDetail(repIdA)
-  const right = useRepresentativeDetail(repIdB)
+  const left = useRepresentative(repIdA)
+  const right = useRepresentative(repIdB)
   const panelRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)

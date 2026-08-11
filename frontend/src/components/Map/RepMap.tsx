@@ -5,14 +5,16 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 
 import { useMapStore } from '../../store/mapStore'
 import { useRepStore } from '../../store/repStore'
-import { fetchAllReps } from '../../api/representatives'
-import { fetchAppConfig } from '../../api/config'
+import { fetchAllReps, fetchCommittees } from '../../api/representatives'
 import RepresentativePin from './RepresentativePin'
 import DistrictBoundary from './DistrictBoundary'
 import DistrictOverlay, { getCachedDistrictGeoJSON, subscribeToDistrictGeoJSON } from './DistrictOverlay'
 import StateDistrictOverlay from './StateDistrictOverlay'
 import RedistrictingOverlay from './RedistrictingOverlay'
 import type { Representative, FeatureGeometry, Ring, Polygon } from '../../types'
+
+// Mapbox public token baked in at build time; must be URL-restricted at mapbox.com.
+const MAPBOX_TOKEN: string = import.meta.env.VITE_MAPBOX_TOKEN ?? ''
 
 // Fog/atmosphere settings for dark and light themes — defined at module level
 // so the object references are stable and never cause spurious effect re-runs.
@@ -146,8 +148,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     setSelectedStateCode,
     setCompareRepId,
   } = useMapStore()
-  const { reps, allReps, loading: repsLoading, setReps, setLoading } = useRepStore()
-  const [mapboxToken, setMapboxToken] = useState<string>('')
+  const { reps, allReps, loading: repsLoading, setReps, setLoading, mergeCommittees } = useRepStore()
   const [loadError, setLoadError] = useState<string | null>(null)
   const [districtGeoVersion, setDistrictGeoVersion] = useState(0)
   const [fillLayerIds, setFillLayerIds] = useState<string[]>([])
@@ -165,19 +166,19 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
   const cameraSaveRef = useRef<{ pitch: number; bearing: number }>({ pitch: 0, bearing: 0 })
 
   useEffect(() => {
-    // Fetch the Mapbox token from the backend config endpoint on mount.
-    fetchAppConfig()
-      .then((cfg) => setMapboxToken(cfg.mapbox_token))
-      .catch(() => setLoadError('Could not load map configuration. Is the backend running?'))
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
     // Load the full representative dataset once when the map mounts.
     setLoading(true)
     fetchAllReps()
       .then(setReps)
-      .catch(() => setLoadError('Could not load representatives. Is the backend running at http://localhost:8000?'))
+      .catch(() => setLoadError('Could not load representative data.'))
       .finally(() => setLoading(false))
+
+    // Committee assignments load separately and merge in once ready — kept
+    // off the initial payload since they're only needed once a panel or the
+    // committee graph is opened, not for the map's first paint.
+    fetchCommittees()
+      .then(mergeCommittees)
+      .catch(() => { /* non-critical: committee lists simply stay empty */ })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => subscribeToDistrictGeoJSON(() => {
@@ -493,22 +494,20 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zoom, center, pinsToShow, pinPositions, selectedRepId, zoomTier, mapRef])
 
-  // Don't render the Map until the token arrives — an empty token causes
-  // Mapbox GL to throw an authentication error in the console.
-  if (!mapboxToken) {
+  // An empty token causes Mapbox GL to throw an authentication error in the
+  // console — only happens when VITE_MAPBOX_TOKEN is missing from the build env.
+  if (!MAPBOX_TOKEN) {
     return (
       <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
-        {loadError && (
-          <div style={{
-            position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
-            background: 'var(--color-error-bg)', color: 'var(--color-error)',
-            padding: '10px 16px', border: '1px solid var(--color-error)',
-            borderRadius: 'var(--radius-md)', zIndex: 20, fontSize: 13, maxWidth: 420,
-            textAlign: 'center', pointerEvents: 'none',
-          }}>
-            {loadError}
-          </div>
-        )}
+        <div style={{
+          position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
+          background: 'var(--color-error-bg)', color: 'var(--color-error)',
+          padding: '10px 16px', border: '1px solid var(--color-error)',
+          borderRadius: 'var(--radius-md)', zIndex: 20, fontSize: 13, maxWidth: 420,
+          textAlign: 'center', pointerEvents: 'none',
+        }}>
+          Map configuration is missing (VITE_MAPBOX_TOKEN not set at build time).
+        </div>
       </div>
     )
   }
@@ -517,7 +516,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
       <Map
         ref={mapRef}
-        mapboxAccessToken={mapboxToken}
+        mapboxAccessToken={MAPBOX_TOKEN}
         initialViewState={{
           longitude: center[0],
           latitude: center[1],

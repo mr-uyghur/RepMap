@@ -1,6 +1,5 @@
 import { useId, useState } from 'react'
-import axios from 'axios'
-import { fetchRepsByZipcode, lookupZip } from '../../api/representatives'
+import { resolveZip } from '../../utils/zipLookup'
 import { searchReps } from '../../utils/repSearch'
 import { resolveZipSearchFallback } from '../../utils/zipFallback'
 import type { Representative, ZipSearchResult } from '../../types'
@@ -116,32 +115,14 @@ export default function SearchBar({
 
     if (/^\d{5}$/.test(trimmed)) {
       try {
-        const [locationResult, repsResult] = await Promise.allSettled([
-          lookupZip(trimmed),
-          fetchRepsByZipcode(trimmed),
-        ])
+        const resolved = await resolveZip(trimmed, allRepresentatives).catch(() => null)
+        const fallback = resolved ? null : resolveZipSearchFallback(trimmed, allRepresentatives)
 
-        const liveLocation =
-          locationResult.status === 'fulfilled' ? locationResult.value : null
-        const liveRepresentatives =
-          repsResult.status === 'fulfilled' ? repsResult.value : []
-        const fallback = resolveZipSearchFallback(trimmed, allRepresentatives)
-
-        const representatives = liveRepresentatives.length
-          ? liveRepresentatives
-          : fallback?.representatives ?? []
-        const defaultRep =
-          representatives.find((rep) => rep.level === 'us_house') ?? representatives[0]
-        const location = liveLocation ?? fallback ?? (defaultRep
-          ? { lat: defaultRep.latitude, lng: defaultRep.longitude }
-          : null)
+        const representatives = resolved?.representatives ?? fallback?.representatives ?? []
+        const location = resolved ?? fallback ?? null
 
         if (!location || !representatives.length) {
-          throw repsResult.status === 'rejected'
-            ? repsResult.reason
-            : locationResult.status === 'rejected'
-              ? locationResult.reason
-              : new Error('ZIP code not found')
+          throw new Error('ZIP code not found')
         }
 
         onZipSearchComplete({
@@ -149,21 +130,11 @@ export default function SearchBar({
           lat: location.lat,
           lng: location.lng,
           representatives,
-          isApproximate: !liveLocation || !liveRepresentatives.length || fallback?.isApproximate,
-          note: !liveLocation || !liveRepresentatives.length ? fallback?.note : undefined,
+          isApproximate: !resolved,
+          note: !resolved ? fallback?.note : undefined,
         })
-      } catch (err) {
-        if (axios.isAxiosError(err)) {
-          if (!err.response) {
-            setError('Unable to reach the server. Make sure Django is running on port 8000.')
-          } else if (err.response.status === 404) {
-            setError('ZIP code not found.')
-          } else {
-            setError(err.response.data?.error ?? 'ZIP code not found.')
-          }
-        } else {
-          setError('ZIP code not found.')
-        }
+      } catch {
+        setError('ZIP code not found.')
       }
     } else {
       setError('Enter a 5-digit ZIP code to navigate the map.')

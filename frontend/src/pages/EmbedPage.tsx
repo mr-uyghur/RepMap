@@ -4,8 +4,8 @@ import type { MapRef } from 'react-map-gl'
 import RepMap from '../components/Map/RepMap'
 import BioTab from '../components/Panel/BioTab'
 import { useMapStore } from '../store/mapStore'
-import { useRepStore, initSyncPolling, teardownSyncPolling } from '../store/repStore'
-import { fetchRepDetail } from '../api/representatives'
+import { useRepStore } from '../store/repStore'
+import { useRepresentative } from '../hooks/useRepresentative'
 import type { Representative } from '../types'
 import { PARTY_COLORS } from '../constants'
 import './EmbedPage.css'
@@ -45,19 +45,7 @@ interface EmbedPanelProps {
 }
 
 function EmbedPanel({ repId, onClose }: EmbedPanelProps) {
-  const [rep, setRep] = useState<Representative | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    setRep(null)
-    fetchRepDetail(repId)
-      .then((data) => { if (!cancelled) setRep(data) })
-      .catch(() => { /* silently fail — panel won't render body */ })
-      .finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
-  }, [repId])
+  const { rep, loading } = useRepresentative(repId)
 
   const color = rep ? PARTY_COLORS[rep.party] ?? '#6b7280' : '#6b7280'
 
@@ -151,11 +139,6 @@ export default function EmbedPage() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode)
   }, [darkMode])
-
-  useEffect(() => {
-    initSyncPolling()
-    return teardownSyncPolling
-  }, [])
 
   const handleRepSelect = useCallback((rep: Representative) => {
     setSelectedRepId(rep.id)

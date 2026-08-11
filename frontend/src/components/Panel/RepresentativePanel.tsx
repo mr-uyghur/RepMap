@@ -1,14 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
-import axios from 'axios'
-import { fetchRepDetail } from '../../api/representatives'
 import { useMapStore } from '../../store/mapStore'
-import { useRepStore } from '../../store/repStore'
+import { useRepresentative } from '../../hooks/useRepresentative'
 import type { Representative } from '../../types'
 import LegislationTab from './LegislationTab'
 import BioTab from './BioTab'
 import HowToVoteTab from './HowToVoteTab'
 import VotesSection from './VotesSection'
-import WatchButton from './WatchButton'
 import EmbedSnippet from './EmbedSnippet'
 import { PARTY_COLORS } from '../../constants'
 import { copyToClipboard } from '../../utils/clipboard'
@@ -106,8 +103,6 @@ interface Props {
   onClose: () => void
   compareMode: boolean
   onCompareModeChange: (active: boolean) => void
-  isWatched?: (id: number) => boolean
-  onToggleWatch?: (id: number) => Promise<void>
 }
 
 export default function RepresentativePanel({
@@ -115,17 +110,12 @@ export default function RepresentativePanel({
   onClose,
   compareMode,
   onCompareModeChange,
-  isWatched,
-  onToggleWatch,
 }: Props) {
-  const [rep, setRep] = useState<Representative | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [fetchError, setFetchError] = useState<string | null>(null)
+  const { rep, loading } = useRepresentative(repId)
   const [activeTab, setActiveTab] = useState<TabKey>('biography')
   const [copied, setCopied] = useState(false)
   const [showEmbed, setShowEmbed] = useState(false)
   const dm = useMapStore((s) => s.darkMode)
-  const isSyncing = useRepStore((s) => s.isSyncing)
   const panelRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
@@ -152,26 +142,6 @@ export default function RepresentativePanel({
     })
     return () => cancelAnimationFrame(raf)
   }, [activeTab])
-
-  useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    setRep(null)
-    setFetchError(null)
-    fetchRepDetail(repId)
-      .then((data) => { if (!cancelled) setRep(data) })
-      .catch((err) => {
-        if (!cancelled) {
-          if (axios.isAxiosError(err) && !err.response) {
-            setFetchError('Unable to reach the server. Check your connection.')
-          } else {
-            setFetchError('Unable to load representative details. Please try again.')
-          }
-        }
-      })
-      .finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
-  }, [repId])
 
   // Reset to first tab whenever a new representative is opened.
   useEffect(() => { setActiveTab('biography') }, [repId])
@@ -255,12 +225,6 @@ export default function RepresentativePanel({
           side-by-side comparison.
         </div>
       )}
-      {isSyncing && (
-        <div className="panel-sync-banner" aria-live="polite">
-          Data refreshing…
-        </div>
-      )}
-
       <div className="panel-header" style={{ borderTop: `3px solid ${color}` }}>
         <div
           className="panel-photo-aura"
@@ -286,8 +250,6 @@ export default function RepresentativePanel({
               <div className="panel-skeleton panel-skeleton--wide" />
               <div className="panel-skeleton panel-skeleton--narrow" />
             </>
-          ) : fetchError ? (
-            <p className="panel-error">{fetchError}</p>
           ) : rep ? (
             <>
               <h2 className="panel-name">{rep.name}</h2>
@@ -302,7 +264,9 @@ export default function RepresentativePanel({
                 <p className="panel-district" style={{ margin: 0 }}>{getDistrictLabel(rep)}</p>
               </div>
             </>
-          ) : null}
+          ) : (
+            <p className="panel-error">Representative not found.</p>
+          )}
         </div>
 
         {rep && (
@@ -316,13 +280,6 @@ export default function RepresentativePanel({
             <CompareIcon />
             <span>{compareMode ? 'Cancel' : 'Compare'}</span>
           </button>
-        )}
-        {rep && isWatched && onToggleWatch && (
-          <WatchButton
-            repId={rep.id}
-            isWatched={isWatched(rep.id)}
-            onToggle={onToggleWatch}
-          />
         )}
         {rep && (rep.bioguide_id || isStateLevel(rep)) && (
           <button
@@ -413,6 +370,7 @@ export default function RepresentativePanel({
             {activeTab === 'votes' && (
               <VotesSection
                 bioguide_id={rep.bioguide_id ?? ''}
+                govtrack_id={rep.external_ids?.govtrack_id}
                 congressUrl={rep.congress_gov_url}
               />
             )}

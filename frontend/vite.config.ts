@@ -19,30 +19,48 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api/],
         runtimeCaching: [
           {
-            // Representatives list — stale-while-revalidate so offline shows cached data
-            urlPattern: /\/api\/v1\/representatives\/$/,
+            // Core dataset (representatives, committees, elections, meta) — a
+            // weekly CI job regenerates these, so prefer network freshness but
+            // fall back to the cached copy when offline. Cache name is versioned
+            // so old CacheFirst entries from the pre-static-migration SW are
+            // abandoned rather than served stale forever.
+            urlPattern: /\/data\/(representatives|committees|elections|meta)\.json$/,
             handler: 'StaleWhileRevalidate',
             options: {
-              cacheName: 'api-representatives',
+              cacheName: 'data-core-v2',
               expiration: { maxAgeSeconds: 60 * 60 * 24 }, // 24h
             },
           },
           {
-            // National districts GeoJSON — rarely changes, cache aggressively
-            urlPattern: /\/data\/national_districts\.json$/,
-            handler: 'CacheFirst',
+            // ZIP lookup table — large and changes rarely; still SWR (never
+            // CacheFirst) so a data refresh is picked up within a session.
+            urlPattern: /\/data\/zips\.json$/,
+            handler: 'StaleWhileRevalidate',
             options: {
-              cacheName: 'district-geojson',
-              expiration: { maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
+              cacheName: 'data-zips-v2',
+              expiration: { maxAgeSeconds: 60 * 60 * 24 * 7 }, // 7 days
             },
           },
           {
-            // Config endpoint (Mapbox token) — prefer network, fall back to cache
-            urlPattern: /\/api\/v1\/config\/$/,
+            // District/state-legislative/historical GeoJSON — all static files
+            // under /data/, refreshed by the same weekly export.
+            urlPattern: /\/data\/(national_districts|national_state_lower|national_state_upper)\.json$|\/data\/(districts|state_district|historical)\//,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'district-geojson-v2',
+              expiration: { maxAgeSeconds: 60 * 60 * 24 * 7 }, // 7 days
+            },
+          },
+          {
+            // Votes/legislation/report-card serverless functions — prefer the
+            // network (data is time-sensitive) but fall back to the last
+            // successful response when offline.
+            urlPattern: /\/api\/(votes|legislation|report-card)(\?|$)/,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'api-config',
-              expiration: { maxAgeSeconds: 60 * 60 * 24 }, // 24h
+              cacheName: 'api-proxy-v1',
+              expiration: { maxAgeSeconds: 60 * 60 * 6 }, // 6h
+              networkTimeoutSeconds: 8,
             },
           },
           {
@@ -94,8 +112,11 @@ export default defineConfig({
       usePolling: true,
     },
     proxy: {
+      // Proxies to `vercel dev` (see frontend/api/*.ts), which serves the
+      // votes/legislation/report-card functions locally. Run `vercel dev`
+      // on port 3000 alongside `npm run dev` for local development.
       '/api': {
-        target: process.env.API_TARGET ?? 'http://localhost:8000',
+        target: process.env.API_TARGET ?? 'http://localhost:3000',
         changeOrigin: true,
       }
     }
