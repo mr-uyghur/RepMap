@@ -1,9 +1,6 @@
 import { useMapStore } from '../../store/mapStore'
 import SearchBar from '../Search/SearchBar'
-import UserMenu from './UserMenu'
-import NotificationBell from './NotificationBell'
 import LevelToggle from './LevelToggle'
-import { useAuth } from '../../contexts/AuthContext'
 import type { Representative, ZipSearchResult } from '../../types'
 import './NavBar.css'
 
@@ -12,7 +9,6 @@ interface Props {
   onZipSearchComplete: (result: ZipSearchResult) => void
   onZipSearchReset: () => void
   onRepSelect: (rep: Representative) => void
-  onMyRepsClick?: () => void
   onCommitteesClick?: () => void
   onRedistrictingClick?: () => void
 }
@@ -39,14 +35,12 @@ export default function NavBar({
   onZipSearchComplete,
   onZipSearchReset,
   onRepSelect,
-  onMyRepsClick,
   onCommitteesClick,
   onRedistrictingClick,
 }: Props) {
   const darkMode = useMapStore((s) => s.darkMode)
   const toggleDarkMode = useMapStore((s) => s.toggleDarkMode)
   const redistrictingMode = useMapStore((s) => s.redistrictingMode)
-  const { isAuthenticated } = useAuth()
 
   return (
     <nav className="navbar" role="navigation" aria-label="Primary navigation">
@@ -86,15 +80,6 @@ export default function NavBar({
             Redistricting
           </button>
         )}
-        {isAuthenticated && onMyRepsClick && (
-          <button
-            onClick={onMyRepsClick}
-            className="navbar-theme-btn"
-            aria-label="Open My Representatives dashboard"
-          >
-            My Reps
-          </button>
-        )}
         <button
           onClick={toggleDarkMode}
           aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -103,8 +88,6 @@ export default function NavBar({
           {darkMode ? <SunIcon /> : <MoonIcon />}
           <span className="navbar-theme-label">{darkMode ? 'Light' : 'Dark'}</span>
         </button>
-        {isAuthenticated && <NotificationBell onSelectRep={onRepSelect} />}
-        <UserMenu />
       </div>
     </nav>
   )
