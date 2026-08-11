@@ -1,0 +1,84 @@
+name: Update Static Data
+
+# Regenerates frontend/public/data/ from the Django-managed dataset and
+# commits it if anything changed. Vercel auto-deploys on the resulting push.
+# Part of the frontend-only migration — the Django backend is data tooling
+# only now, not a deployed service.
+
+on:
+  schedule:
+    # Weekly, Monday 06:00 UTC. Legislator membership changes slowly; this
+    # balances freshness against unnecessary Vercel redeploys / edge-cache resets.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      rebuild_geo:
+        description: 'Also rebuild district/ZIP GeoJSON from Census TIGER (slow, heavy Census API usage — normally the committed files are reused as-is)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY || 'ci-only-non-production-key' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements/base.txt
+
+      - name: Migrate (fresh SQLite — no DATABASE_URL set)
+        working-directory: backend
+        run: python manage.py migrate --noinput
+
+      - name: Sync federal legislators
+        working-directory: backend
+        run: python manage.py sync_legislators
+
+      - name: Rebuild geo/ZIP data from Census TIGER (manual opt-in only)
+        if: ${{ inputs.rebuild_geo }}
+        working-directory: backend
+        run: |
+          python manage.py build_zip_data --overwrite
+          python manage.py build_district_data --overwrite
+          python manage.py build_state_district_data --overwrite
+          python manage.py build_historical_district_data --overwrite
+          python manage.py build_national_state_districts --overwrite
+          python scripts/merge_districts.py
+
+      - name: Export static data
+        working-directory: backend
+        run: python manage.py export_static_data
+
+      - name: Commit and push if data changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add frontend/public/data
+
+          # meta.json always changes (fresh generated_at timestamp). If nothing
+          # else changed, drop meta.json's change too so this is a true no-op —
+          # avoids a pointless Vercel redeploy and edge-cache reset every week.
+          if git diff --cached --quiet -- . ':!frontend/public/data/meta.json'; then
+            git restore --staged --worktree frontend/public/data/meta.json
+          fi
+
+          if git diff --cached --quiet; then
+            echo "No data changes — skipping commit."
+          else
+            git commit -m "chore(data): weekly data refresh"
+            git push
+          fi
