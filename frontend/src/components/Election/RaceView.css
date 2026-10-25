@@ -10,7 +10,7 @@
 .race-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 28px; font-weight: 400; line-height: 1.15; letter-spacing: -0.01em;
+  font-size: 26px; font-weight: 700; line-height: 1.15; letter-spacing: -0.015em;
   overflow-wrap: anywhere;
 }
 /* Focus lands here programmatically (tabIndex -1) for screen readers; it isn't a control. */
@@ -23,7 +23,7 @@
   padding: 10px 12px;
   border-radius: var(--radius-md);
   background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
+  border: 0;
   font-size: 13px; line-height: 1.5; color: var(--color-text-secondary);
 }
 .race-from-zip strong { color: var(--color-text-primary); }
@@ -42,9 +42,11 @@
   background: var(--color-bg-surface);
   font-size: 13px; line-height: 1.5; color: var(--color-text-secondary);
 }
-.race-note { border-left: 3px solid var(--color-accent); }
-.race-rule { border-left: 3px solid var(--color-text-subtle); }
-.race-note strong, .race-rule strong { color: var(--color-text-primary); font-weight: 700; }
+.race-rule { border-left: 3px solid var(--color-border-control); }
+.race-rule strong { color: var(--color-text-primary); font-weight: 700; }
+/* The data note ("Who filed with the FEC, not the official ballot") is the one amber box. */
+.race-note { border-left: 3px solid var(--color-note-border); background: var(--color-note-bg); color: var(--color-note-text); }
+.race-note strong { color: var(--color-note-text); font-weight: 700; }
 
 /* ── Candidates ─────────────────────────────────────────────────────────── */
 .race-candidates { display: flex; flex-direction: column; gap: 8px; }
@@ -76,7 +78,7 @@
   color: var(--color-text-primary);
   font: inherit; text-align: left; cursor: pointer;
 }
-.race-fold-btn:hover { border-color: var(--color-accent); border-style: solid; }
+.race-fold-btn:hover { border-color: var(--color-accent); border-style: solid; background: var(--color-bg-surface); }
 .race-fold-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .race-fold-title { font-size: 14px; font-weight: 700; color: var(--color-link); }
 .race-fold-sub { font-size: 12px; line-height: 1.4; color: var(--color-text-muted); }
@@ -93,13 +95,13 @@
   padding: 10px 12px 10px 14px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-bg-surface);
+  background: var(--color-bg-primary);
   color: var(--color-text-primary);
   font: inherit; text-align: left;
   cursor: pointer;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
 }
-button.race-row:hover { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-glow); }
+button.race-row:hover { border-color: var(--color-border-control); background: var(--color-bg-surface); }
 .race-row > svg { flex: none; color: var(--color-text-muted); }
 .race-row--compact { min-height: 48px; }
 .race-row--empty { cursor: default; border-style: dashed; background: transparent; min-height: 48px; }

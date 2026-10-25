@@ -6,8 +6,6 @@
   border-radius: var(--radius-md);
   padding: 2px;
   gap: 0;
-  backdrop-filter: blur(8px) saturate(1.4);
-  -webkit-backdrop-filter: blur(8px) saturate(1.4);
   box-shadow: var(--shadow-sm);
   flex-shrink: 0;
 }
@@ -36,10 +34,10 @@
 
 .level-toggle-btn--active {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
 }
 
 .level-toggle-btn--active:hover {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
 }

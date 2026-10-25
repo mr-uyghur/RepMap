@@ -16,12 +16,9 @@
 
 /* ── Card Base ────────────────────────────────────────────────────────────── */
 .card {
-  background: var(--color-bg-glass);
-  border: 1px solid var(--color-bg-glass-border);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 /* ── Search Bar ───────────────────────────────────────────────────────────── */
@@ -44,12 +41,12 @@
   min-width: 0;
   height: 44px;
   padding: 0 12px;
-  border: 1.5px solid #94a3b8;
-  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-full);
   font-family: var(--font-body);
-  font-size: 14px;
-  background: #ffffff;
-  color: #0f172a;
+  font-size: 15px;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
   outline: none;
   -webkit-appearance: none;
   appearance: none;
@@ -57,18 +54,12 @@
 }
 
 .searchbar-input::placeholder {
-  color: #64748b;
+  color: var(--color-text-muted);
   opacity: 1;
 }
 
 :root.dark .searchbar-input {
-  border-color: rgba(148, 163, 184, 0.32);
-  background: #162235;
-  color: #e2e8f0;
-}
-
-:root.dark .searchbar-input::placeholder {
-  color: #94a3b8;
+  background: var(--color-bg-surface);
 }
 
 .searchbar-input:focus {
@@ -76,14 +67,20 @@
   box-shadow: 0 0 0 3px var(--color-accent-glow);
 }
 
+/* The submit button sits inside the pill as a quiet icon (Enter also submits). */
+.searchbar-input { padding: 0 48px 0 16px; }
+
 .searchbar-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
   height: 44px;
   width: 44px;
   padding: 0;
-  background: var(--color-accent);
-  color: white;
+  background: transparent;
+  color: var(--color-text-secondary);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   cursor: pointer;
   flex-shrink: 0;
   display: flex;
@@ -93,9 +90,8 @@
 }
 
 .searchbar-btn:hover {
-  opacity: 0.9;
-  box-shadow: 0 0 12px var(--color-accent-glow);
-  transform: scale(1.05);
+  background: var(--color-bg-elevated);
+  color: var(--color-accent-text);
 }
 
 .searchbar-btn:disabled {
@@ -121,8 +117,8 @@
   right: 0;
   font-size: 12px;
   color: var(--color-error);
-  background: var(--color-bg-glass);
-  border: 1px solid var(--color-bg-glass-border);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: 4px 8px;
   z-index: 1;
@@ -130,8 +126,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 /* ── BioTab ─────────────────────────────────────────────────────────────── */
@@ -148,12 +142,10 @@
   padding: 4px;
   overflow-y: auto;
   list-style: none;
-  background: var(--color-bg-glass);
-  border: 1px solid var(--color-bg-glass-border);
-  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(16px) saturate(1.6);
-  -webkit-backdrop-filter: blur(16px) saturate(1.6);
 }
 
 .searchbar-dropdown-item {
@@ -169,8 +161,8 @@
 }
 
 .searchbar-dropdown-item--active {
-  background: var(--color-bg-elevated);
-  box-shadow: inset 0 0 0 1px var(--color-accent);
+  background: var(--color-bg-surface);
+  box-shadow: inset 3px 0 0 var(--color-accent);
 }
 
 @media (max-width: 768px) {

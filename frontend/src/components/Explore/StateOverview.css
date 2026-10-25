@@ -19,18 +19,18 @@
   padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-bg-surface);
+  background: var(--color-bg-primary);
   color: var(--color-text-primary);
   font: inherit;
   text-align: left;
   text-decoration: none;
   cursor: pointer;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
 :is(.state-ov-race, .state-ov-member, .state-ov-link):hover {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-accent-glow);
+  border-color: var(--color-border-control);
+  background: var(--color-bg-surface);
 }
 
 :is(.state-ov-race, .state-ov-member) > svg {
@@ -43,7 +43,7 @@
   border-style: dashed;
   background: transparent;
 }
-.state-ov-race--empty:hover { border-color: var(--color-border); box-shadow: none; }
+.state-ov-race--empty:hover { border-color: var(--color-border); background: transparent; }
 
 .state-ov-race-text,
 .state-ov-member-text,
