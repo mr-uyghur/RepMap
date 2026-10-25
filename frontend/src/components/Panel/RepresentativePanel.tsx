@@ -6,8 +6,7 @@ import { getElectionIndex } from '../../api/representatives'
 import { cycleForSeat, isSpecialSeat } from '../../utils/elections'
 import LegislationTab from './LegislationTab'
 import BioTab from './BioTab'
-import HowToVoteTab, { STATE_VOTING_RESOURCES } from './HowToVoteTab'
-import ElectionTab from './ElectionTab'
+import BallotCard from './BallotCard'
 import VotesSection from './VotesSection'
 import EmbedSnippet from './EmbedSnippet'
 import { PARTY_COLORS } from '../../constants'
@@ -53,7 +52,7 @@ function EmbedIcon() {
   )
 }
 
-type TabKey = 'biography' | 'voting_record' | 'votes' | 'election' | 'how_to_vote'
+type TabKey = 'biography' | 'voting_record' | 'votes' | 'ballot'
 
 const PARTY_LABELS: Record<string, string> = {
   democrat: 'Democrat',
@@ -66,13 +65,12 @@ const FEDERAL_TABS: { key: TabKey; label: string }[] = [
   { key: 'biography',     label: 'Bio'          },
   { key: 'voting_record', label: 'Legislation'  },
   { key: 'votes',         label: 'Votes'        },
-  { key: 'election',      label: 'Election'     },
-  { key: 'how_to_vote',   label: 'How to Vote'  },
+  { key: 'ballot',        label: 'Ballot'       },
 ]
 
 const STATE_TABS: { key: TabKey; label: string }[] = [
   { key: 'biography',   label: 'Bio'         },
-  { key: 'how_to_vote', label: 'How to Vote' },
+  { key: 'ballot',      label: 'How to Vote' },
 ]
 
 function isStateLevel(rep: Representative) {
@@ -109,6 +107,8 @@ interface Props {
   onCompareModeChange: (active: boolean) => void
   onCommitteeClick?: (committee: string) => void
   onOpenBallot?: () => void
+  /** Opens the race level for a race id. Until the shell wires it, falls back to onOpenBallot. */
+  onOpenRace?: (raceId: string) => void
 }
 
 export default function RepresentativePanel({
@@ -118,6 +118,7 @@ export default function RepresentativePanel({
   onCompareModeChange,
   onCommitteeClick,
   onOpenBallot,
+  onOpenRace,
 }: Props) {
   const { rep, loading } = useRepresentative(repId)
   const [seatCycle, setSeatCycle] = useState<ElectionCycleSummary | null>(null)
@@ -287,7 +288,7 @@ export default function RepresentativePanel({
                 <button
                   type="button"
                   className="panel-election-badge"
-                  onClick={() => setActiveTab('election')}
+                  onClick={() => setActiveTab('ballot')}
                 >
                   <span className="panel-election-badge-status">
                     {isSpecialSeat(rep.term_end, seatCycle.cycle) ? 'Special election' : 'Up for election'} {seatCycle.cycle}
@@ -406,14 +407,9 @@ export default function RepresentativePanel({
                 congressUrl={rep.congress_gov_url}
               />
             )}
-            {activeTab === 'election' && (
-              <ElectionTab
-                rep={rep}
-                boardUrl={STATE_VOTING_RESOURCES[rep.state]?.boardUrl}
-                onOpenBallot={onOpenBallot}
-              />
+            {activeTab === 'ballot' && (
+              <BallotCard rep={rep} onOpenRace={onOpenRace ?? (() => onOpenBallot?.())} />
             )}
-            {activeTab === 'how_to_vote' && <HowToVoteTab rep={rep} />}
           </div>
         </>
       )}
