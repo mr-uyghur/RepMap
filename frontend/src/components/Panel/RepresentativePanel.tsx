@@ -109,6 +109,8 @@ interface Props {
   onOpenBallot?: () => void
   /** Opens the race level for a race id. Until the shell wires it, falls back to onOpenBallot. */
   onOpenRace?: (raceId: string) => void
+  /** Rendered inside the level shell (ExplorePanel): a labelled region, not a modal. */
+  embedded?: boolean
 }
 
 export default function RepresentativePanel({
@@ -119,6 +121,7 @@ export default function RepresentativePanel({
   onCommitteeClick,
   onOpenBallot,
   onOpenRace,
+  embedded = false,
 }: Props) {
   const { rep, loading } = useRepresentative(repId)
   const [seatCycle, setSeatCycle] = useState<ElectionCycleSummary | null>(null)
@@ -170,7 +173,8 @@ export default function RepresentativePanel({
   const tabs = rep && isStateLevel(rep) ? STATE_TABS : FEDERAL_TABS
 
   useEffect(() => {
-    if (compareMode) return
+    // Embedded in the level shell the map and search stay usable: no focus trap (R-44).
+    if (compareMode || embedded) return
 
     previousFocusRef.current = document.activeElement instanceof HTMLElement
       ? document.activeElement
@@ -227,7 +231,7 @@ export default function RepresentativePanel({
         previousFocusRef.current.focus()
       }
     }
-  }, [compareMode])
+  }, [compareMode, embedded])
 
   const color = rep ? PARTY_COLORS[rep.party] : '#6b7280'
 
@@ -235,8 +239,8 @@ export default function RepresentativePanel({
     <div
       className="panel"
       ref={panelRef}
-      role="dialog"
-      aria-modal={!compareMode}
+      role={embedded ? 'region' : 'dialog'}
+      aria-modal={embedded ? undefined : !compareMode}
       aria-label={compareMode ? 'Select another representative to compare' : 'Representative details'}
     >
       <div className="panel-drag-handle" aria-hidden="true" />

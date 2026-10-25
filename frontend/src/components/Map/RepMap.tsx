@@ -12,9 +12,12 @@ import DistrictOverlay, { getCachedDistrictGeoJSON, subscribeToDistrictGeoJSON }
 import StateDistrictOverlay from './StateDistrictOverlay'
 import RedistrictingOverlay from './RedistrictingOverlay'
 import type { Representative, FeatureGeometry, Ring, Polygon } from '../../types'
+import { mapClickTarget, type MapClickTarget } from '../../utils/searchParse'
 
 // Mapbox public token baked in at build time; must be URL-restricted at mapbox.com.
 const MAPBOX_TOKEN: string = import.meta.env.VITE_MAPBOX_TOKEN ?? ''
+/** False in builds without a token: the map shows a notice and map-only hints are hidden. */
+export const MAP_AVAILABLE = MAPBOX_TOKEN.length > 0
 
 // Fog/atmosphere settings for dark and light themes — defined at module level
 // so the object references are stable and never cause spurious effect re-runs.
@@ -127,12 +130,51 @@ function getDistrictAnchor(geometry: FeatureGeometry | undefined): Position | nu
   return largestRing ? pointOnSurface(largestRing) : null
 }
 
-interface Props {
-  mapRef: React.RefObject<MapRef>
-  onRepSelect: (rep: Representative) => void
+/** What the camera should frame for the current level. */
+export type MapFocus =
+  | { kind: 'us' }
+  | { kind: 'state'; state: string }
+  | { kind: 'district'; state: string; district: number }
+  | { kind: 'rep'; repId: number }
+
+const US_VIEW = { center: [-98.5795, 39.8283] as [number, number], zoom: 3.4 }
+
+type Bounds = [[number, number], [number, number]]
+
+/** Bounding box of a set of (Multi)Polygon features. Alaska's Aleutians cross the
+ *  antimeridian, so when the box would span >180° the eastern-hemisphere points are dropped. */
+function featuresBounds(features: Array<{ geometry?: FeatureGeometry }>): Bounds | null {
+  const points: [number, number][] = []
+  const walk = (c: unknown) => {
+    if (!Array.isArray(c)) return
+    if (typeof c[0] === 'number' && typeof c[1] === 'number') points.push([c[0], c[1]])
+    else for (const child of c) walk(child)
+  }
+  for (const f of features) walk(f.geometry?.coordinates)
+  if (!points.length) return null
+  let lngs = points.map((p) => p[0])
+  if (Math.max(...lngs) - Math.min(...lngs) > 180) lngs = lngs.filter((x) => x < 0)
+  const lats = points.map((p) => p[1])
+  return [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]]
 }
 
-export default function RepMap({ mapRef, onRepSelect }: Props) {
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+}
+
+interface Props {
+  mapRef: React.RefObject<MapRef>
+  /** A pin was activated: open that member. */
+  onRepSelect: (rep: Representative) => void
+  /** Shift+click on a pin while a member is open: compare the two. */
+  onRepCompare?: (rep: Representative) => void
+  /** A district polygon was clicked: go one level deeper (see mapClickTarget). */
+  onMapTarget?: (target: MapClickTarget) => void
+  /** Camera framing for the current level. */
+  focus?: MapFocus | null
+}
+
+export default function RepMap({ mapRef, onRepSelect, onRepCompare, onMapTarget, focus = null }: Props) {
   const {
     zoom,
     center,
@@ -144,9 +186,6 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     redistrictingSliderValue,
     setZoom,
     setCenter,
-    setSelectedRepId,
-    setSelectedStateCode,
-    setCompareRepId,
   } = useMapStore()
   const { reps, allReps, loading: repsLoading, setReps, setLoading, mergeCommittees } = useRepStore()
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -159,6 +198,8 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
   const [isFlying, setIsFlying] = useState(false)
   const [districtsLoaded, setDistrictsLoaded] = useState(false)
   const [loadingPhase, setLoadingPhase] = useState<'loading' | 'fading' | 'done'>('loading')
+  const [mapLoaded, setMapLoaded] = useState(false)
+  const appliedFocusRef = useRef<string | null>(null)
   const lastHoverUpdateRef = useRef(0)
   const loadStartRef = useRef(Date.now())
   const containerRef = useRef<HTMLDivElement>(null)
@@ -263,7 +304,56 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
 
   const handleMapLoad = useCallback(() => {
     restorePolish()
+    setMapLoaded(true)
   }, [restorePolish])
+
+  // Frame the current level: the US, a state, a district or a member. State and
+  // district bounds come from the national district GeoJSON, so this retries once
+  // that has loaded. Reduced motion jumps instead of flying (R-24).
+  const focusKey = focus ? JSON.stringify(focus) : null
+  useEffect(() => {
+    if (!focus || !focusKey || appliedFocusRef.current === focusKey) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const map = (mapRef as React.RefObject<any>).current?.getMap?.()
+    if (!map || !mapLoaded) return
+    const reduce = prefersReducedMotion()
+
+    if (focus.kind === 'us') {
+      map.flyTo({ ...US_VIEW, pitch: 0, bearing: 0, duration: reduce ? 0 : 1400, essential: false })
+      appliedFocusRef.current = focusKey
+      return
+    }
+    if (focus.kind === 'rep') {
+      const rep = allReps.find((r) => r.id === focus.repId)
+      if (!rep) return
+      const pos = pinPositions[rep.id] ?? rep
+      // 2.5D camera drop onto the member's district.
+      map.flyTo({
+        center: [pos.longitude, pos.latitude],
+        zoom: rep.level === 'us_senate' ? 6 : 9,
+        pitch: reduce ? 0 : 45,
+        bearing: reduce ? 0 : -10,
+        duration: reduce ? 0 : 2000,
+        essential: false,
+        easing: (t: number) => t * (2 - t),
+      })
+      appliedFocusRef.current = focusKey
+      return
+    }
+    const fc = getCachedDistrictGeoJSON(focus.state) as
+      | { features?: Array<{ properties?: Record<string, unknown>; geometry?: FeatureGeometry }> }
+      | undefined
+    if (!fc?.features) return
+    const features = focus.kind === 'district'
+      ? fc.features.filter((f) => parseInt(String(f.properties?.CD119 ?? ''), 10) === focus.district)
+      : fc.features
+    const bounds = featuresBounds(features)
+    if (!bounds) return
+    map.fitBounds(bounds, { padding: 32, maxZoom: 11, pitch: 0, bearing: 0, duration: reduce ? 0 : 1400, essential: false })
+    appliedFocusRef.current = focusKey
+  // pinPositions is read for the member case only; re-running on its change is harmless (key guard).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusKey, mapLoaded, districtGeoVersion, allReps, mapRef])
 
   // Re-attach the style.load listener whenever darkMode changes so the new
   // restorePolish closure (with the correct fog theme) is registered.
@@ -334,20 +424,14 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
 
   const handleMouseLeave = useCallback(() => setHoverInfo(null), [])
 
+  // Clicking the map always goes one level deeper: another state opens that
+  // state; a district inside the state in focus opens its race. Empty water
+  // does nothing (it used to close the panel, which lost the user's place).
   const handleMapClick = useCallback(
     (e: Parameters<NonNullable<React.ComponentProps<typeof Map>['onClick']>>[0]) => {
-      const feature = e.features?.[0]
-      if (!feature?.properties) {
-        // Empty area click — dismiss the panel (triggers 2D reversion via the useEffect above).
-        setSelectedRepId(null)
-        setSelectedStateCode(null)
-        return
-      }
-      const stateAbbr = feature.properties.state_abbr as string
-      if (!stateAbbr) return
-
-      setSelectedStateCode(stateAbbr)
-      setSelectedRepId(null)
+      const target = mapClickTarget(e.features?.[0]?.properties, selectedStateCode)
+      if (!target) return
+      onMapTarget?.(target)
 
       if (redistrictingMode && zoom < 5.5) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -362,13 +446,13 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
         }
       }
     },
-    [setSelectedRepId, setSelectedStateCode, redistrictingMode, zoom, mapRef]
+    [onMapTarget, selectedStateCode, redistrictingMode, zoom, mapRef]
   )
 
   // Dims district layers during flyTo for a smoother 3D camera animation.
   const handleRepClick = useCallback((rep: Representative, event: { shiftKey: boolean }) => {
-    if (event.shiftKey && selectedRepId !== null && selectedRepId !== rep.id) {
-      setCompareRepId(rep.id)
+    if (event.shiftKey && onRepCompare && selectedRepId !== null && selectedRepId !== rep.id) {
+      onRepCompare(rep)
       return
     }
 
@@ -377,7 +461,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const map = (mapRef as React.RefObject<any>).current?.getMap?.()
     if (map) map.once('moveend', () => setIsFlying(false))
-  }, [onRepSelect, selectedRepId, setCompareRepId, mapRef])
+  }, [onRepSelect, onRepCompare, selectedRepId, mapRef])
 
   const pinPositions = useMemo(() => {
     const positions: Record<number, Position> = {}
@@ -426,6 +510,11 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
   const selectedRep = selectedRepId != null
     ? (allReps.find((r) => r.id === selectedRepId) ?? reps.find((r) => r.id === selectedRepId) ?? null)
     : null
+
+  // At the race level, outline that district (tinted by the party holding it now).
+  const focusDistrictHolder = focus?.kind === 'district'
+    ? allReps.find((r) => r.level === 'us_house' && r.state === focus.state && (r.district_number ?? 0) === focus.district)
+    : undefined
 
   // Zoom tier determines pin visual density: 0=hidden, 1=dots, 2=small avatars,
   // 3=medium+labels, 4=full detail. Progressive disclosure keeps the map clean.
@@ -586,17 +675,24 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
           dimmed={isFlying || viewLevel !== 'state'}
         />
 
-        {/* Highlight the selected rep's district boundary. */}
+        {/* Highlight the selected rep's district boundary, or the race's district. */}
         {(selectedRep?.level === 'us_house' ||
           selectedRep?.level === 'state_house' ||
-          selectedRep?.level === 'state_senate') && (
+          selectedRep?.level === 'state_senate') ? (
           <DistrictBoundary
             state={selectedRep.state}
             districtNumber={selectedRep.district_number}
             party={selectedRep.party}
             level={selectedRep.level}
           />
-        )}
+        ) : focus?.kind === 'district' ? (
+          <DistrictBoundary
+            state={focus.state}
+            districtNumber={focus.district}
+            party={focusDistrictHolder?.party}
+            level="us_house"
+          />
+        ) : null}
 
         {pinsToShow.map((rep, index) => (
           <RepresentativePin

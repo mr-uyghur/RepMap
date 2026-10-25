@@ -70,7 +70,7 @@ export default function ScrollcraftStage({ onNavigateToMap }: Props) {
       <iframe
         ref={iframeRef}
         src="/scrollcraft/index.html"
-        title="RepMap Civic Cartography Story"
+        title="RepMap Civic Story"
         style={{
           width: '100%',
           height: '100%',

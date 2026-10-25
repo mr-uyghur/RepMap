@@ -1,91 +1,37 @@
+/* "Congress now" line in the bottom-right corner of the map. */
 .party-ribbon {
-  flex-shrink: 0;
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  z-index: 5;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  background: var(--color-bg-glass);
-  backdrop-filter: blur(16px) saturate(1.6);
-  -webkit-backdrop-filter: blur(16px) saturate(1.6);
-  border-bottom: 1px solid var(--color-bg-glass-border);
-  font-size: 12px;
-  overflow: hidden;
-  transition: height 0.2s ease;
+  gap: 4px 12px;
+  max-width: calc(100% - 2 * var(--space-3));
+  margin: 0;
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
 }
 
-.party-ribbon--expanded {
-  height: 32px;
-}
+.party-ribbon-title { color: var(--color-text-primary); font-weight: 600; }
 
-.party-ribbon--collapsed {
-  height: 24px;
-  justify-content: flex-end;
-}
+.party-ribbon-group { white-space: nowrap; }
 
-.party-ribbon-groups {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 0 16px;
-  flex: 1;
-  overflow: hidden;
-  white-space: nowrap;
-}
+.party-ribbon-label { color: var(--color-text-secondary); }
 
-.party-ribbon--collapsed .party-ribbon-groups {
-  display: none;
-}
+.party-ribbon-chip { font-weight: 700; }
+.party-ribbon-chip--democrat { color: var(--color-democrat-text); }
+.party-ribbon-chip--republican { color: var(--color-republican-text); }
+.party-ribbon-chip--independent { color: var(--color-independent-text); }
 
-.party-ribbon-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-text-muted);
-}
-
-.party-ribbon-label {
-  color: var(--color-text-subtle);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.party-ribbon-chip {
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.party-ribbon-chip--democrat {
-  color: var(--color-democrat-text);
-}
-
-.party-ribbon-chip--republican {
-  color: var(--color-republican-text);
-}
-
-.party-ribbon-chip--independent {
-  color: var(--color-independent-text);
-}
-
-.party-ribbon-sep {
-  color: var(--color-text-subtle);
-  font-weight: 300;
-}
-
-.party-ribbon-toggle {
-  flex-shrink: 0;
-  width: 32px;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  border-left: 1px solid var(--color-bg-glass-border);
-  color: var(--color-text-subtle);
-  cursor: pointer;
-  transition: color var(--transition-fast);
-}
-
-.party-ribbon-toggle:hover {
-  color: var(--color-text-primary);
+/* The phone map strip is too short to share. */
+@media (max-width: 768px) {
+  .party-ribbon { display: none; }
 }
