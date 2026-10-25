@@ -514,7 +514,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
       <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
         <div style={{
           position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
-          background: 'var(--color-error-bg)', color: 'var(--color-error)',
+          background: 'var(--color-error-bg)', color: 'var(--color-error-text)',
           padding: '10px 16px', border: '1px solid var(--color-error)',
           borderRadius: 'var(--radius-md)', zIndex: 20, fontSize: 13, maxWidth: 420,
           textAlign: 'center', pointerEvents: 'none',
@@ -617,7 +617,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
       {loadError && (
         <div style={{
           position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
-          background: 'var(--color-error-bg)', color: 'var(--color-error)',
+          background: 'var(--color-error-bg)', color: 'var(--color-error-text)',
           padding: '10px 16px',
           border: '1px solid var(--color-error)',
           borderRadius: 'var(--radius-md)', zIndex: 20, fontSize: 13, maxWidth: 420, textAlign: 'center',

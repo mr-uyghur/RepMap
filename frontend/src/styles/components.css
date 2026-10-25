@@ -40,7 +40,9 @@
 
 .searchbar-input {
   flex: 1;
-  height: 36px;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
   padding: 0 12px;
   border: 1.5px solid #94a3b8;
   border-radius: var(--radius-md);
@@ -75,8 +77,8 @@
 }
 
 .searchbar-btn {
-  height: 36px;
-  width: 36px;
+  height: 44px;
+  width: 44px;
   padding: 0;
   background: var(--color-accent);
   color: white;

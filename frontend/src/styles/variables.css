@@ -46,12 +46,22 @@
   --color-accent:      #d97706;
   --color-accent-rgb:  217, 119, 6;
   --color-accent-glow: rgba(245, 158, 11, 0.22);
+  /* Amber as TEXT on parchment: #d97706 is only 2.8:1, so text uses this darker
+     shade (>=5.2:1 on every light surface). Keep --color-accent for fills/borders. */
+  --color-accent-text: #92400e;
+  /* Text on an amber fill (5.9:1). */
+  --color-on-accent:   #0c121e;
+
+  /* Party colours as TEXT (>=4.5:1 on light surfaces). Fills keep --color-<party>. */
+  --color-democrat-text:    #1d4ed8;
+  --color-republican-text:  #b91c1c;
+  --color-independent-text: #4b5563;
 
   /* ── Text (Vellum Archival Light Mode) ─────────────────────────────────── */
   --color-text-primary:   #0c121e;
   --color-text-secondary: #1e293b;
   --color-text-muted:     #475569;
-  --color-text-subtle:    #64748b;
+  --color-text-subtle:    #505a68;
 
   /* ── Backgrounds (Warm Archival Parchment) ─────────────────────────────── */
   --color-bg-primary:      #f4f1ea;
@@ -65,9 +75,10 @@
   --color-border-subtle: rgba(12, 18, 30, 0.08);
 
   /* ── Semantic ──────────────────────────────────────────────────────────── */
-  --color-link:             #d97706;
+  --color-link:             #92400e;
   --color-error:            #e11d48;
   --color-error-bg:         #fff1f2;
+  --color-error-text:       #be123c;
   --color-success:          #0f766e;
   --color-success-bg:       #f0fdfa;
   --color-success-border:   #99f6e4;
@@ -91,12 +102,19 @@
   --color-accent:      #f59e0b;
   --color-accent-rgb:  245, 158, 11;
   --color-accent-glow: rgba(245, 158, 11, 0.22);
+  --color-accent-text: #f59e0b;
+  --color-on-accent:   #080c14;
+
+  --color-democrat-text:    #60a5fa;
+  --color-republican-text:  #f87171;
+  --color-independent-text: #a8b3c4;
 
   /* ── Text (Vellum Ink on Obsidian) ───────────────────────────────────── */
+  /* muted/subtle were #64748b/#475569 (4.0:1 / 2.6:1 on #080c14); now >=5:1 on all dark surfaces. */
   --color-text-primary:   #f4f1ea;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted:     #64748b;
-  --color-text-subtle:    #475569;
+  --color-text-secondary: #b6c2d1;
+  --color-text-muted:     #94a3b8;
+  --color-text-subtle:    #8492a6;
 
   /* ── Backgrounds (Obsidian Survey Slate) ─────────────────────────────── */
   --color-bg-primary:      #080c14;
@@ -113,6 +131,7 @@
   --color-link:             #f59e0b;
   --color-error:            #f43f5e;
   --color-error-bg:         rgba(244, 63, 94, 0.12);
+  --color-error-text:       #fb7185;
   --color-success:          #10b981;
   --color-success-bg:       rgba(16, 185, 129, 0.12);
   --color-success-border:   rgba(16, 185, 129, 0.28);

@@ -107,7 +107,7 @@ function TermProgress({
     <div className="bio-field">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <p className="bio-field-label" style={{ margin: 0 }}>Term Progress</p>
-        <span style={{ fontSize: 11, fontWeight: 700, color: partyColor }}>{Math.round(pct)}%</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-secondary)' }}>{Math.round(pct)}%</span>
       </div>
       <div className="bio-term-bar-track">
         <div

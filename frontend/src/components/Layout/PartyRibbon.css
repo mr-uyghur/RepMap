@@ -55,15 +55,15 @@
 }
 
 .party-ribbon-chip--democrat {
-  color: var(--color-democrat);
+  color: var(--color-democrat-text);
 }
 
 .party-ribbon-chip--republican {
-  color: var(--color-republican);
+  color: var(--color-republican-text);
 }
 
 .party-ribbon-chip--independent {
-  color: var(--color-independent);
+  color: var(--color-independent-text);
 }
 
 .party-ribbon-sep {

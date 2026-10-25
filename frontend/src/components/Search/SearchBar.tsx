@@ -163,7 +163,7 @@ export default function SearchBar({
           onChange={(e) => handleQueryChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
-          placeholder="Search by ZIP or name"
+          placeholder="ZIP or name"
           className="searchbar-input"
           role="combobox"
           aria-describedby={error ? 'searchbar-error' : undefined}
