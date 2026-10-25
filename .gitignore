@@ -148,3 +148,11 @@ Codex_review_finding.md
 HANDOFF_NEON_STATE_SYNC.md
 codex_review_verdict.md
 codex-security-scan*/
+
+# ----- frontend e2e / design checks (Playwright) -------------
+frontend/e2e/screenshots/
+frontend/e2e/results/
+frontend/e2e/.artifacts/
+frontend/dist-e2e/
+frontend/test-results/
+frontend/playwright-report/
