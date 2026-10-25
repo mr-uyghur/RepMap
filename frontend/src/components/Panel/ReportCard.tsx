@@ -11,7 +11,7 @@ interface Props {
 function scoreColor(value: number | null, thresholds: [number, number] = [70, 90]): string {
   if (value === null) return 'var(--color-text-muted)'
   if (value >= thresholds[1]) return 'var(--color-success)'
-  if (value >= thresholds[0]) return '#f59e0b'
+  if (value >= thresholds[0]) return 'var(--color-accent-text)'
   return 'var(--color-error)'
 }
 
