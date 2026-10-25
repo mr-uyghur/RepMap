@@ -49,17 +49,46 @@ export function record(page: Page): Recorder {
   return rec
 }
 
-/** App theme is a zustand flag -> `html.dark`, defaulting to dark (not prefers-color-scheme). */
+/** App theme is a zustand flag -> `html.dark`, defaulting to dark (not prefers-color-scheme).
+ *  The toggle sits inline on wide screens and inside the NavBar "Menu" below 1100px. */
 export async function applyAppTheme(page: Page, scheme: 'dark' | 'light') {
-  const btn = page.locator('.navbar-theme-btn', { hasText: scheme === 'light' ? /^\s*Light\s*$/ : /^\s*Dark\s*$/ })
-  if (await btn.count()) await btn.first().click()
+  const isDark = await page.evaluate(() => document.documentElement.classList.contains('dark'))
+  if (isDark !== (scheme === 'dark')) {
+    let toggle = page.locator('.navbar-theme-toggle').filter({ visible: true })
+    if (!(await toggle.count())) {
+      const menu = page.locator('.navbar-menu-btn')
+      if (await menu.count()) await menu.click()
+      toggle = page.locator('.navbar-theme-toggle').filter({ visible: true })
+    }
+    if (await toggle.count()) await toggle.first().click()
+  }
   await expect(page.locator('html')).toHaveClass(scheme === 'dark' ? /\bdark\b/ : /^(?!.*\bdark\b).*$/, {
     timeout: 3000,
   }).catch(() => undefined) // Story-only surfaces have no toggle; scheme comes from emulation alone
 }
 
+/** Interactive elements under `scope` smaller than 44x44 CSS px (RepMap standard, R-45). */
+export async function smallTargets(page: Page, scope: string): Promise<string[]> {
+  return page.evaluate((sel) => {
+    const out: string[] = []
+    for (const root of Array.from(document.querySelectorAll(sel))) {
+      for (const el of Array.from(root.querySelectorAll<HTMLElement>('button, a[href], input, [role="tab"]'))) {
+        const r = el.getBoundingClientRect()
+        if (r.width === 0 || r.height === 0) continue // hidden
+        if (r.width < 44 || r.height < 44) {
+          out.push(`${el.className || el.tagName} "${(el.textContent ?? '').trim().slice(0, 30)}" ${Math.round(r.width)}x${Math.round(r.height)}`)
+        }
+      }
+    }
+    return out
+  }, scope)
+}
+
 export async function finish(page: Page, info: TestInfo, scene: string, rec: Recorder) {
   const id = `${scene}__${info.project.name}`
+  // R-30/E: no horizontal page scroll at any width.
+  const overflowX = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+  expect.soft(overflowX, 'horizontal page overflow (px)').toBeLessThanOrEqual(0)
   await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', `${id}.png`), fullPage: true })
 
   const axe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze()
