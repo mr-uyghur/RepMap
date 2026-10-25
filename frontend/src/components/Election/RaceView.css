@@ -1,0 +1,139 @@
+/* ── Race (district) level. Lives inside whatever panel/sheet the shell provides. ── */
+.race { display: flex; flex-direction: column; gap: 14px; color: var(--color-text-primary); min-width: 0; }
+
+.race-header { display: flex; flex-direction: column; gap: 2px; }
+.race-eyebrow {
+  margin: 0;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.race-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 28px; font-weight: 400; line-height: 1.15; letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+/* Focus lands here programmatically (tabIndex -1) for screen readers; it isn't a control. */
+.race-title:focus, .race-title:focus-visible { outline: none; }
+.race-date { margin: 2px 0 0; font-size: 15px; color: var(--color-text-secondary); }
+.race-date strong { color: var(--color-text-primary); font-weight: 700; }
+
+.race-from-zip {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  font-size: 13px; line-height: 1.5; color: var(--color-text-secondary);
+}
+.race-from-zip strong { color: var(--color-text-primary); }
+
+.race-inline-link {
+  color: var(--color-link); font-weight: 600;
+  text-decoration: underline; text-underline-offset: 3px;
+  /* Inline text links get a taller hit area without changing the line box. */
+  padding: 14px 0; margin: -14px 0;
+}
+
+.race-note, .race-rule {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: var(--color-bg-surface);
+  font-size: 13px; line-height: 1.5; color: var(--color-text-secondary);
+}
+.race-note { border-left: 3px solid var(--color-accent); }
+.race-rule { border-left: 3px solid var(--color-text-subtle); }
+.race-note strong, .race-rule strong { color: var(--color-text-primary); font-weight: 700; }
+
+/* ── Candidates ─────────────────────────────────────────────────────────── */
+.race-candidates { display: flex; flex-direction: column; gap: 8px; }
+.race-subhead {
+  margin: 0;
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-body);
+  font-size: 16px; font-weight: 700; line-height: 1.3;
+}
+.race-count {
+  display: inline-grid; place-items: center;
+  min-width: 24px; height: 22px; padding: 0 6px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  font-size: 12px; font-weight: 700; color: var(--color-text-secondary);
+}
+.race-explain { margin: 0; font-size: 13px; line-height: 1.5; color: var(--color-text-muted); }
+
+.race-fold { display: flex; flex-direction: column; gap: 4px; }
+.race-fold-btn {
+  width: 100%;
+  min-height: 56px;
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 12px;
+  border: 1px dashed var(--color-text-subtle);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit; text-align: left; cursor: pointer;
+}
+.race-fold-btn:hover { border-color: var(--color-accent); border-style: solid; }
+.race-fold-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.race-fold-title { font-size: 14px; font-weight: 700; color: var(--color-link); }
+.race-fold-sub { font-size: 12px; line-height: 1.4; color: var(--color-text-muted); }
+.race-fold-icon { flex: none; color: var(--color-link); transition: transform var(--transition-fast); }
+.race-fold-btn[aria-expanded='true'] .race-fold-icon { transform: rotate(180deg); }
+
+/* ── Related rows ───────────────────────────────────────────────────────── */
+.race-related { display: flex; flex-direction: column; gap: 8px; }
+.race-row {
+  width: 100%;
+  min-height: 60px;
+  margin: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font: inherit; text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+button.race-row:hover { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-glow); }
+.race-row > svg { flex: none; color: var(--color-text-muted); }
+.race-row--compact { min-height: 48px; }
+.race-row--empty { cursor: default; border-style: dashed; background: transparent; min-height: 48px; }
+.race-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.race-row-title { font-size: 15px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.race-row--empty .race-row-title { font-weight: 600; color: var(--color-text-secondary); }
+.race-row-sub { font-size: 13px; line-height: 1.4; color: var(--color-text-muted); }
+
+.race-more { margin: 0; font-size: 14px; }
+.race-more .race-inline-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0; margin: 0; }
+.race-more .race-inline-link::after { content: '\2197'; margin-left: 4px; }
+
+/* ── Status ─────────────────────────────────────────────────────────────── */
+.race-message { margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 1.5; color: var(--color-text-secondary); }
+.race-message p { margin: 0; }
+.race-message--box {
+  padding: 12px 14px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+}
+.race-button {
+  min-height: 44px; padding: 0 18px;
+  border: 0; border-radius: var(--radius-md);
+  background: var(--color-accent); color: var(--color-on-accent);
+  font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.race-status { display: flex; flex-direction: column; gap: 10px; }
+.race-skeleton { height: 64px; border-radius: var(--radius-md); background: var(--color-bg-surface); }
+.race-skeleton--title { height: 36px; width: 70%; }
+@media (prefers-reduced-motion: no-preference) {
+  .race-skeleton {
+    background: linear-gradient(90deg, var(--color-bg-surface) 25%, var(--color-bg-elevated) 50%, var(--color-bg-surface) 75%);
+    background-size: 200% 100%;
+    animation: race-shimmer 1.6s ease-in-out infinite;
+  }
+  @keyframes race-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+}

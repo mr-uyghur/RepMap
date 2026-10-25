@@ -1,0 +1,26 @@
+/* "How to vote in <State>": shared by BallotCard (member) and RaceView (race). */
+.htv { display: flex; flex-direction: column; gap: 8px; }
+.htv-title {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 15px; font-weight: 700; line-height: 1.3;
+  color: var(--color-text-primary);
+}
+.htv-deadline { margin: 0; font-size: 13px; color: var(--color-text-secondary); }
+.htv-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.htv-link {
+  display: flex; flex-direction: column; justify-content: center; gap: 2px;
+  min-height: 44px; padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  text-decoration: none;
+  transition: border-color var(--transition-fast);
+}
+.htv-link:hover { border-color: var(--color-accent); }
+.htv-link-title {
+  font-size: 14px; font-weight: 700; color: var(--color-link);
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.htv-link-title::after { content: ' \2197'; }
+.htv-link-sub { font-size: 12px; line-height: 1.4; color: var(--color-text-muted); }

@@ -1,5 +1,6 @@
 import type { Representative } from '../../types'
 import ElectionCountdown from './ElectionCountdown'
+import './HowToVoteTab.css'
 
 interface StateResource {
   name: string
@@ -60,47 +61,69 @@ export const STATE_VOTING_RESOURCES: Record<string, StateResource> = {
   DC: { name: 'Washington D.C.', boardUrl: 'https://www.vote4dc.com' },
 }
 
+export function stateElectionsOffice(state: string): StateResource | null {
+  return STATE_VOTING_RESOURCES[state] ?? null
+}
+
 interface Props {
   rep: Representative
 }
 
+/** Legacy standalone tab; the member panel now uses BallotCard, which renders HowToVote. */
 export default function HowToVoteTab({ rep }: Props) {
-  const resource = STATE_VOTING_RESOURCES[rep.state]
-  const stateName = resource?.name ?? rep.state
-
   return (
     <div className="htv-tab-content">
       <ElectionCountdown state={rep.state} />
-      <h3 className="htv-tab-title">How to Vote in {stateName}</h3>
-      <p className="htv-resources-desc">Official resources for {stateName} voters:</p>
-      <div className="htv-links">
-        {resource && (
-          <a
-            href={resource.boardUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bio-tab-btn"
-          >
-            {stateName} Elections Website
-          </a>
-        )}
-        <a
-          href="https://vote.gov"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="bio-tab-btn"
-        >
-          vote.gov — Official U.S. Voter Info
-        </a>
-        <a
-          href="https://www.vote.org"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="bio-tab-btn"
-        >
-          Vote.org — Registration &amp; Ballot Info
-        </a>
-      </div>
+      <HowToVote state={rep.state} />
     </div>
+  )
+}
+
+interface HowToVoteProps {
+  state: string
+  /** Heading level inside the host view (default h3). */
+  headingLevel?: 'h2' | 'h3' | 'h4'
+  /** ISO date of the registration deadline, if known and still ahead. */
+  registrationDeadline?: string | null
+}
+
+/** "How to vote in <State>": official links for registration, deadlines and polling places.
+ *  We hold no per-state deadline data we can vouch for, so the state office is the primary link. */
+export function HowToVote({ state, headingLevel = 'h3', registrationDeadline }: HowToVoteProps) {
+  const resource = STATE_VOTING_RESOURCES[state]
+  const name = resource?.name ?? state
+  const Heading = headingLevel
+  return (
+    <section className="htv" aria-label={`How to vote in ${name}`}>
+      <Heading className="htv-title">How to vote in {name}</Heading>
+      {registrationDeadline && (
+        <p className="htv-deadline">Registration deadline: <strong>{registrationDeadline}</strong></p>
+      )}
+      <ul className="htv-list">
+        {resource && (
+          <li>
+            <a href={resource.boardUrl} target="_blank" rel="noopener noreferrer" className="htv-link">
+              <span className="htv-link-title">{name} elections office</span>
+              <span className="htv-link-sub">Official sample ballot, registration deadlines, polling places</span>
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
+          </li>
+        )}
+        <li>
+          <a href="https://vote.gov" target="_blank" rel="noopener noreferrer" className="htv-link">
+            <span className="htv-link-title">vote.gov</span>
+            <span className="htv-link-sub">Register or check how to register (U.S. government)</span>
+            <span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        </li>
+        <li>
+          <a href="https://www.vote.org" target="_blank" rel="noopener noreferrer" className="htv-link">
+            <span className="htv-link-title">Vote.org</span>
+            <span className="htv-link-sub">Check your registration and find your polling place (nonprofit)</span>
+            <span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        </li>
+      </ul>
+    </section>
   )
 }

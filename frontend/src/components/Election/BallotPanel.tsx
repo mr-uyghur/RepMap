@@ -13,7 +13,7 @@ import {
   upcomingCycle,
 } from '../../utils/elections'
 import { STATE_VOTING_RESOURCES } from '../Panel/HowToVoteTab'
-import CandidateFunding from './CandidateFunding'
+import RaceView from './RaceView'
 import './BallotPanel.css'
 
 interface Props {
@@ -186,6 +186,33 @@ export default function BallotPanel({
     </div>
   )
 
+  // Race detail: the race level (RaceView) loads its own data and works for any race id,
+  // whether or not it is one of this ZIP's races (e.g. "Also in Nebraska: U.S. Senate").
+  if (raceId) {
+    return (
+      <aside className="ballot" aria-label="Race details">
+        <div className="ballot-header">
+          <div className="ballot-header-text">
+            <button type="button" className="ballot-back" onClick={() => onSelectRace(null)}>
+              <ChevronIcon dir="left" /> {zip ? `All races for ${zip}` : 'Races by ZIP'}
+            </button>
+          </div>
+          <button type="button" className="ballot-close" onClick={onClose} aria-label="Close races">
+            <CloseIcon />
+          </button>
+        </div>
+        <RaceView
+          raceId={raceId}
+          fromZip={zip}
+          onSelectRep={onOpenRep}
+          onSelectRace={onSelectRace}
+          // Phase 1: there is no state level here yet; go back to this ZIP's races.
+          onSelectState={() => onSelectRace(null)}
+        />
+      </aside>
+    )
+  }
+
   let body: React.ReactNode
   if (load.status === 'idle') {
     body = (
@@ -240,7 +267,6 @@ export default function BallotPanel({
     const { summary, data, loc } = load
     const { house, senate } = racesForLocation(data, loc.state, loc.district)
     const all = [...(house ? [house] : []), ...senate]
-    const selected = raceId ? all.find((r) => r.id === raceId) ?? null : null
     const houseRep = allRepresentatives.find(
       (r) => r.level === 'us_house' && r.state === loc.state && r.district_number === loc.district,
     )
@@ -258,39 +284,7 @@ export default function BallotPanel({
       </p>
     )
 
-    if (selected) {
-      const { race } = selected
-      const incumbent = race.office === 'H' ? houseRep : senators.find((s) =>
-        race.candidates.some((c) => c.incumbent && s.external_ids?.fec_ids?.includes(c.fec_id)))
-      body = (
-        <>
-          {header(
-            race.special ? `Special election · ${summary.label}` : summary.label,
-            raceTitle(race, summary.cycle),
-            <button type="button" className="ballot-back" onClick={() => onSelectRace(null)}>
-              <ChevronIcon dir="left" /> All races for {zip}
-            </button>,
-          )}
-          {countdown}
-          {caveat}
-          {race.candidates.length > 0 ? (
-            <CandidateFunding candidates={race.candidates} />
-          ) : (
-            <p className="ballot-message">No candidates have filed with the FEC for this race yet.</p>
-          )}
-          {incumbent && (
-            <button type="button" className="ballot-row ballot-row--compact" onClick={() => onOpenRep(incumbent)}>
-              <span className="ballot-row-text">
-                <span className="ballot-row-title">{incumbent.name}&apos;s record</span>
-                <span className="ballot-row-sub">Current officeholder · votes, bills, committees</span>
-              </span>
-              <ChevronIcon />
-            </button>
-          )}
-          <ExternalLinks race={race} cycle={summary.cycle} state={loc.state} />
-        </>
-      )
-    } else {
+    {
       body = (
         <>
           {header(summary.label, `Races for ZIP ${zip}`)}
