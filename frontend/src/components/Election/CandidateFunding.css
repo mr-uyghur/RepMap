@@ -60,6 +60,7 @@
 }
 
 .cf-meta { font-size: 12px; line-height: 1.4; color: var(--color-text-muted); }
+.cf-party { font-weight: 700; color: var(--color-text-secondary); }
 
 .cf-more {
   align-self: flex-start; min-height: 44px; padding: 0 14px;

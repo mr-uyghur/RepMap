@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { applyAppTheme, finish, record, smallTargets } from './helpers/checks'
 
 // Stable deep link: ZIP 95112 (resolved from bundled zips.json, no network) + a
-// known member (Zoe Lofgren). The election tab is clicked through the UI.
+// known member (Zoe Lofgren). The Ballot tab is clicked through the UI.
 const MAP_WITH_REP = '/?mode=map&zip=95112&rep=L000397'
 
 // Election reminders depend on today's date, so date-sensitive scenes pin the clock.
@@ -50,16 +50,27 @@ test.describe('RepMap design checks', () => {
     await finish(page, info, 'panel', rec)
   })
 
-  test('S4 panel Election tab', async ({ page }, info) => {
+  test('S4 panel Ballot tab (merged Election + How to Vote)', async ({ page }, info) => {
     const rec = record(page)
+    await page.clock.setFixedTime(BEFORE_ELECTION)
     await page.goto(MAP_WITH_REP)
     await applyAppTheme(page, scheme(info))
-    await expect(page.getByRole('dialog', { name: 'Representative details' })).toBeVisible({ timeout: 20_000 })
-    const tab = page.getByRole('tab', { name: 'Election' })
+    const panel = page.getByRole('dialog', { name: 'Representative details' })
+    await expect(panel).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByRole('tab', { name: 'Election' })).toHaveCount(0)
+    await expect(page.getByRole('tab', { name: 'How to Vote' })).toHaveCount(0)
+    const tab = page.getByRole('tab', { name: 'Ballot' })
     await tab.click()
     await expect(tab).toHaveAttribute('aria-selected', 'true')
-    await page.waitForTimeout(1000)
-    await finish(page, info, 'panel-election', rec)
+    await expect(panel.getByText('On the Nov 3 ballot')).toBeVisible()
+    await expect(panel.getByText('9 days away')).toBeVisible()
+    await expect(panel.locator('.bc-filer')).toHaveCount(2)
+    await expect(panel.locator('.bc-cta')).toHaveText(/See the race/)
+    await expect(panel.getByRole('heading', { name: 'How to vote in California' })).toBeVisible()
+    await expect(panel).not.toContainText(/your ballot/i)
+    expect.soft(await smallTargets(page, '.panel-tabs, .bc'), 'targets < 44px').toEqual([])
+    await page.waitForTimeout(800)
+    await finish(page, info, 'panel-ballot', rec)
   })
 
   test('S5 races for a ZIP (deep link)', async ({ page }, info) => {
@@ -76,14 +87,23 @@ test.describe('RepMap design checks', () => {
     await finish(page, info, 'ballot', rec)
   })
 
-  test('S6 race detail with money-raised bars', async ({ page }, info) => {
+  test('S6 race detail (RaceView) with money-raised bars', async ({ page }, info) => {
     const rec = record(page)
+    await page.clock.setFixedTime(BEFORE_ELECTION)
     await page.goto('/?mode=map&view=ballot&zip=95112')
     await applyAppTheme(page, scheme(info))
     await page.getByRole('button', { name: /U\.S\. House/ }).click()
     await expect(page).toHaveURL(/race=US-HOU-CA-18/)
-    await expect(page.locator('.cf-row').first()).toBeVisible()
-    await expect(page.getByText(/Not polling or odds of winning/)).toBeVisible()
+    const race = page.locator('.race')
+    await expect(race.getByRole('heading', { level: 2 })).toHaveText('California 18th District')
+    await expect(race.getByText('From ZIP 95112')).toBeVisible()
+    await expect(race.getByText('Who filed with the FEC, not the official ballot.')).toBeVisible()
+    await expect(race.getByText('California uses a top-two primary.')).toBeVisible()
+    await expect(race.locator('.cf-row').first()).toContainText('Current member')
+    await expect(race.getByText(/not a poll or a prediction/)).toBeVisible()
+    await expect(race.getByRole('button', { name: /Zoe Lofgren holds this seat now/ })).toBeVisible()
+    await expect(race.getByText('No U.S. Senate race in California this cycle.')).toBeVisible()
+    await expect(race).not.toContainText(/your ballot/i)
     expect.soft(await smallTargets(page, '.ballot'), 'targets < 44px').toEqual([])
     await page.waitForTimeout(800)
     await finish(page, info, 'ballot-race', rec)
@@ -92,6 +112,40 @@ test.describe('RepMap design checks', () => {
     await expect(page.getByRole('heading', { name: 'Races for ZIP 95112' })).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(page.locator('.ballot')).toHaveCount(0)
+  })
+
+  test('S6b NE-02: pre-election filers first, others folded', async ({ page }, info) => {
+    const rec = record(page)
+    await page.clock.setFixedTime(BEFORE_ELECTION)
+    await page.goto('/?mode=map&view=ballot&zip=68102&race=US-HOU-NE-02')
+    await applyAppTheme(page, scheme(info))
+    const race = page.locator('.race')
+    await expect(race.getByRole('heading', { level: 2 })).toHaveText('Nebraska 2nd District', { timeout: 20_000 })
+    await expect(race.getByRole('heading', { name: /Filed a pre-election report/ })).toContainText('2')
+    const reporting = race.getByRole('list', { name: 'Candidates who filed a pre-election report' })
+    await expect(reporting.locator('.cf-row')).toHaveCount(2)
+    await expect(reporting.locator('.cf-row').nth(0)).toContainText('Denise Powell')
+    await expect(reporting.locator('.cf-row').nth(1)).toContainText('Brinker Harding')
+    const fold = race.locator('.race-fold-btn')
+    await expect(fold).toContainText('Show 7 other FEC filers')
+    await expect(fold).toHaveAttribute('aria-expanded', 'false')
+    await expect(race.getByRole('list', { name: 'Other FEC filers' })).toHaveCount(0)
+    await expect(race.getByRole('button', { name: /Don Bacon holds this seat now/ })).toBeVisible()
+    await expect(race.getByRole('button', { name: /Also in Nebraska: U\.S\. Senate/ })).toBeVisible()
+    expect.soft(await smallTargets(page, '.ballot'), 'targets < 44px').toEqual([])
+    await page.waitForTimeout(800)
+    await finish(page, info, 'race-ne02', rec)
+    await fold.click()
+    await expect(fold).toHaveAttribute('aria-expanded', 'true')
+    const others = race.getByRole('list', { name: 'Other FEC filers' })
+    await expect(others.locator('.cf-row')).toHaveCount(7)
+    await expect(others).toContainText('Don Bacon')
+    await expect(others.locator('.cf-row', { hasText: 'Don Bacon' })).toContainText('Current member')
+    await finish(page, info, 'race-ne02-open', rec)
+    // "Also in Nebraska" moves to the Senate race and keeps the ZIP context.
+    await race.getByRole('button', { name: /Also in Nebraska: U\.S\. Senate/ }).click()
+    await expect(page).toHaveURL(/race=US-SEN-NE/)
+    await expect(race.getByRole('heading', { level: 2 })).toHaveText('Nebraska U.S. Senate')
   })
 
   test('S7 first-time voter: map strip -> ZIP -> races (R-01)', async ({ page }, info) => {
@@ -158,6 +212,14 @@ test.describe('RepMap design checks', () => {
     await expect(page.locator('.ballot')).toContainText('2028')
     await expect(page.locator('.ballot')).not.toContainText(/has passed/i)
     await finish(page, info, 'ballot-after', rec)
+    // The race level shows the next cycle, with no "open seat" claim before anyone files.
+    await page.goto('/?mode=map&view=ballot&zip=95112&race=US-HOU-CA-18')
+    const race = page.locator('.race')
+    await expect(race.getByRole('heading', { level: 2 })).toHaveText('California 18th District', { timeout: 20_000 })
+    await expect(race).toContainText('2028')
+    await expect(race).toContainText('No candidates have filed with the FEC for this race yet.')
+    await expect(race).not.toContainText(/open seat|has passed/i)
+    await finish(page, info, 'race-after', rec)
     await page.goto('/')
     await page.frameLocator('iframe').locator('.zip-chip').first().waitFor()
     await page.waitForTimeout(1000)
