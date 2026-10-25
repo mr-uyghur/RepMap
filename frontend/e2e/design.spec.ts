@@ -295,26 +295,82 @@ test.describe('RepMap level content', () => {
     await finish(page, info, 'state-races', rec)
   })
 
-  test('L2 member Ballot tab (merged Election + How to Vote)', async ({ page }, info) => {
+  test('L2 member view: ballot card, 3 tabs, 2 actions', async ({ page }, info) => {
     const rec = record(page)
     await page.clock.setFixedTime(BEFORE_ELECTION)
     await page.goto('/?rep=L000397')
     await applyAppTheme(page, scheme(info))
     const panel = page.getByRole('region', { name: 'Representative details' })
     await expect(panel).toBeVisible({ timeout: 20_000 })
-    await expect(page.getByRole('tab', { name: 'Election' })).toHaveCount(0)
-    const tab = page.getByRole('tab', { name: 'Ballot' })
-    await tab.click()
-    await expect(tab).toHaveAttribute('aria-selected', 'true')
+    await expect(panel.getByRole('heading', { level: 2, name: 'Zoe Lofgren' })).toBeVisible()
+    await expect(panel).toContainText('U.S. Representative · California District 18')
+    await expect(panel).toContainText('Democrat')
+    // Proposal: 3 tabs (Overview, Votes, Bills), 2 header actions (Compare, Share).
+    await expect(panel.getByRole('tab')).toHaveText(['Overview', 'Votes', 'Bills'])
+    await expect(panel.locator('.panel-actions > * > button, .panel-actions > button')).toHaveCount(2)
+    await expect(panel.getByRole('button', { name: 'Compare' })).toBeVisible()
+    const share = panel.getByRole('button', { name: 'Share' })
+    await share.click()
+    await expect(share).toHaveAttribute('aria-expanded', 'true')
+    await expect(panel.getByRole('button', { name: /Embed on a website/ })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(share).toHaveAttribute('aria-expanded', 'false')
+    await expect(page).toHaveURL(/\?rep=L000397$/) // Esc closed the menu, not the level
+    // The "On the Nov 3 ballot" card sits above the tabs.
     await expect(panel.getByText('On the Nov 3 ballot')).toBeVisible()
     await expect(panel.locator('.bc-filer')).toHaveCount(2)
-    await expect(panel.getByRole('heading', { name: 'How to vote in California' })).toBeVisible()
     await expect(panel).not.toContainText(/your ballot/i)
-    expect.soft(await smallTargets(page, '.panel-tabs, .bc'), 'targets < 44px').toEqual([])
-    await finish(page, info, 'panel-ballot', rec)
+    // Overview: contact details and committees.
+    const overview = panel.getByRole('tabpanel', { name: 'Overview' })
+    await expect(overview).toContainText('202-225-3072')
+    await expect(overview.getByRole('heading', { name: 'Committees' })).toBeVisible()
+    expect.soft(await smallTargets(page, '.panel-header, .panel-tabs, .bc'), 'targets < 44px').toEqual([])
+    await finish(page, info, 'member-overview', rec)
     // "See the race" goes straight to the race level.
     await panel.locator('.bc-cta').click()
     await expect(page).toHaveURL(/race=US-HOU-CA-18/)
+  })
+
+  test('L2b member tabs follow the ARIA APG keyboard pattern (R-43)', async ({ page }) => {
+    await page.goto('/?rep=B001298')
+    const panel = page.getByRole('region', { name: 'Representative details' })
+    await expect(panel).toBeVisible({ timeout: 20_000 })
+    const tablist = panel.getByRole('tablist')
+    await expect(tablist).toHaveCount(1)
+    expect(await tablist.evaluate((el) => el.tagName)).toBe('DIV')
+    const tabs = panel.getByRole('tab')
+    await expect(tabs).toHaveCount(3)
+    for (let i = 0; i < 3; i++) {
+      const tab = tabs.nth(i)
+      const controls = await tab.getAttribute('aria-controls')
+      expect(controls).toBeTruthy()
+      await expect(page.locator(`[id="${controls}"]`)).toHaveAttribute('role', 'tabpanel')
+      await expect(page.locator(`[id="${controls}"]`)).toHaveAttribute('aria-labelledby', (await tab.getAttribute('id'))!)
+    }
+    const selectedIs = async (name: string) => {
+      const tab = panel.getByRole('tab', { name })
+      await expect(tab).toHaveAttribute('aria-selected', 'true')
+      await expect(tab).toHaveAttribute('tabindex', '0')
+      await expect(tab).toBeFocused()
+      await expect(panel.getByRole('tabpanel', { name })).toBeVisible()
+      await expect(panel.locator('[role="tab"][tabindex="0"]')).toHaveCount(1)
+    }
+    await tabs.first().focus()
+    await page.keyboard.press('ArrowRight')
+    await selectedIs('Votes')
+    await page.keyboard.press('ArrowRight')
+    await selectedIs('Bills')
+    await page.keyboard.press('ArrowRight') // wraps
+    await selectedIs('Overview')
+    await page.keyboard.press('ArrowLeft') // wraps back
+    await selectedIs('Bills')
+    await page.keyboard.press('Home')
+    await selectedIs('Overview')
+    await page.keyboard.press('End')
+    await selectedIs('Bills')
+    // Tab leaves the tablist for the active panel.
+    await page.keyboard.press('Tab')
+    await expect(panel.getByRole('tabpanel', { name: 'Bills' })).toBeFocused()
   })
 
   test('L3 race from a ZIP: CA-18 with ZIP note and top-two rule', async ({ page }, info) => {
