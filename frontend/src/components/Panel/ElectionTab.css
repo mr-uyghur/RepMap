@@ -1,0 +1,53 @@
+.election-tab { padding: 16px 0; display: flex; flex-direction: column; gap: 12px; }
+
+.election-status {
+  padding: 14px 16px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-md);
+}
+.election-status--idle { border-left-color: var(--color-border); }
+.election-status-kicker {
+  margin: 0 0 4px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.election-status-title { margin: 0; font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--color-text-primary); }
+.election-status-sub { margin: 4px 0 0; font-size: 13px; color: var(--color-text-secondary); }
+
+.election-race-title { margin: 4px 0 0; font-size: 14px; color: var(--color-text-primary); }
+
+.election-label {
+  margin: 0;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.election-label-count { font-weight: 600; letter-spacing: 0; }
+
+.election-cands { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.election-cand { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid var(--color-border); }
+.election-cand-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; }
+.election-cand-main { display: flex; flex-direction: column; min-width: 0; }
+.election-cand-name { font-size: 14px; font-weight: 600; color: var(--color-text-primary); overflow-wrap: anywhere; }
+.election-cand-tag {
+  margin-left: 8px; padding: 1px 6px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--color-accent); background: var(--color-accent-glow); border-radius: var(--radius-sm);
+}
+.election-cand-meta { font-size: 12px; color: var(--color-text-muted); }
+
+.election-more {
+  align-self: flex-start; padding: 4px 0;
+  background: none; border: 0; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--color-link);
+}
+.election-more:hover { text-decoration: underline; }
+
+.election-note, .election-caveat { margin: 0; font-size: 12px; line-height: 1.5; color: var(--color-text-muted); }
+.election-note {
+  padding: 10px 12px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}

@@ -6,7 +6,7 @@ interface StateResource {
   boardUrl: string
 }
 
-const STATE_VOTING_RESOURCES: Record<string, StateResource> = {
+export const STATE_VOTING_RESOURCES: Record<string, StateResource> = {
   AL: { name: 'Alabama',        boardUrl: 'https://www.sos.alabama.gov/alabama-votes' },
   AK: { name: 'Alaska',         boardUrl: 'https://www.elections.alaska.gov' },
   AZ: { name: 'Arizona',        boardUrl: 'https://azsos.gov/elections' },

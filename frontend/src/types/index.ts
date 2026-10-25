@@ -21,7 +21,13 @@ export interface Representative {
   office_room?: string
   office_address?: string
   committee_assignments?: string[]
-  external_ids?: Record<string, string | number>
+  external_ids?: {
+    bioguide_id?: string
+    govtrack_id?: string | number
+    // FEC candidate IDs (one per office/cycle run) — joins a member to election data.
+    fec_ids?: string[]
+    [key: string]: string | number | string[] | undefined
+  }
   district_label?: string
   congress_gov_url?: string
   bioguide_url?: string
@@ -72,6 +78,51 @@ export interface ElectionDates {
   next_primary: ElectionDateInfo | null
   next_general: ElectionDateInfo | null
   registration_deadline: string | null
+}
+
+// -- Elections (public/data/elections/) ---------------------------------------
+
+export interface ElectionCycleSummary {
+  cycle: number
+  general_date: string
+  label: string
+  presidential: boolean
+  data_through: string | null
+  path: string
+}
+
+export interface ElectionIndex {
+  schema_version: number
+  cycles: ElectionCycleSummary[]
+}
+
+export interface FecCandidate {
+  fec_id: string
+  name: string
+  party: Party
+  party_label: string
+  incumbent: boolean
+  receipts: number | null
+  cash: number | null
+  reports_through: string | null
+}
+
+export interface ElectionRace {
+  office: 'H' | 'S' | 'P'
+  state: string
+  district: number | null
+  special: boolean
+  candidates: FecCandidate[]
+}
+
+export interface ElectionCycleData {
+  cycle: number
+  general_date: string
+  presidential: boolean
+  label: string
+  source: { name: string; caveat: string }
+  data_through: string | null
+  races: Record<string, ElectionRace>
 }
 
 export interface ZipSearchResult {

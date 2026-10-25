@@ -1,0 +1,53 @@
+name: Update Election Data
+
+# Refreshes frontend/public/data/elections/ (cycles, races, FEC-filed candidates).
+# Separate from update-data.yml: it needs no database, no legislator sync, and runs
+# daily because FEC filings move fast near an election. Reads the committed
+# representatives.json, so it never rewrites member data.
+
+on:
+  schedule:
+    # Daily 07:00 UTC (after the Monday 06:00 UTC data refresh on Mondays).
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update-elections:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY || 'ci-only-non-production-key' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements/base.txt
+
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements/base.txt
+
+      - name: Export election data
+        working-directory: backend
+        run: python manage.py export_election_data
+
+      - name: Commit and push if data changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add frontend/public/data/elections
+          if git diff --cached --quiet; then
+            echo "No election data changes — skipping commit."
+          else
+            git commit -m "chore(data): election data refresh"
+            git push
+          fi

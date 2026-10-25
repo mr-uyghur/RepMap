@@ -1,0 +1,1 @@
+{"cycles":[{"cycle":2026,"data_through":"2026-10-22","general_date":"2026-11-03","label":"2026 General Election","path":"/data/elections/2026.json","presidential":false},{"cycle":2028,"data_through":"2026-09-30","general_date":"2028-11-07","label":"2028 Presidential Election","path":"/data/elections/2028.json","presidential":true}],"schema_version":1}

@@ -170,6 +170,12 @@ def _build_external_ids(person_ids):
         value = person_ids.get(key)
         if value:
             external_ids[f'{key}_id'] = value
+    # A member can hold several FEC candidate IDs (one per office/cycle run), so
+    # unlike the scalar IDs above this is a list. It is the join key between a
+    # sitting member and their FEC candidate records in the election data.
+    fec = person_ids.get('fec')
+    if fec:
+        external_ids['fec_ids'] = list(fec) if isinstance(fec, (list, tuple)) else [fec]
     return external_ids
 
 

@@ -1,5 +1,8 @@
 import { fetchJsonOrThrow } from './apiError'
-import type { LegislationResponse, Vote, ReportCardData, ElectionDates, Representative } from '../types'
+import type {
+  LegislationResponse, Vote, ReportCardData, ElectionDates, Representative,
+  ElectionIndex, ElectionCycleData,
+} from '../types'
 
 async function fetchStaticJson<T>(path: string): Promise<T> {
   const res = await fetch(path)
@@ -37,13 +40,40 @@ interface RawElectionData {
   registration_deadlines?: Record<string, string>
 }
 
-let electionDataPromise: Promise<RawElectionData> | null = null
-
-function loadElectionData(): Promise<RawElectionData> {
-  if (!electionDataPromise) {
-    electionDataPromise = fetchStaticJson<RawElectionData>('/data/elections.json')
+// Evict failed loads so a transient network error doesn't poison the session.
+function memoize<T>(load: () => Promise<T>): () => Promise<T> {
+  let promise: Promise<T> | null = null
+  return () => {
+    if (!promise) {
+      promise = load().catch((err) => {
+        promise = null
+        throw err
+      })
+    }
+    return promise
   }
-  return electionDataPromise
+}
+
+// Primaries, runoffs and registration deadlines are hand-curated (no authoritative
+// feed); the general election itself is computed — see getElectionIndex.
+const loadElectionData = memoize(() => fetchStaticJson<RawElectionData>('/data/elections.json'))
+
+/** Active election cycles, generated daily by `export_election_data`. */
+export const getElectionIndex = memoize(() => fetchStaticJson<ElectionIndex>('/data/elections/index.json'))
+
+const cycleCache = new Map<string, Promise<ElectionCycleData>>()
+
+/** Races + FEC-filed candidates for one cycle. Loaded on demand (≈0.5 MB). */
+export function getElectionCycle(path: string): Promise<ElectionCycleData> {
+  let cached = cycleCache.get(path)
+  if (!cached) {
+    cached = fetchStaticJson<ElectionCycleData>(path).catch((err) => {
+      cycleCache.delete(path)
+      throw err
+    })
+    cycleCache.set(path, cached)
+  }
+  return cached
 }
 
 export async function getElectionDates(state: string): Promise<ElectionDates> {
@@ -52,15 +82,21 @@ export async function getElectionDates(state: string): Promise<ElectionDates> {
     return { next_primary: null, next_general: null, registration_deadline: null }
   }
 
-  const data = await loadElectionData()
-  const general = data.general ?? {}
+  const [data, index] = await Promise.all([
+    loadElectionData(),
+    getElectionIndex().catch(() => null),
+  ])
+  const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD, local
+  const nextCycle = index?.cycles.find((c) => c.general_date >= today) ?? null
   const primary = data.primaries?.[upper] ?? null
   const deadlines = data.registration_deadlines ?? {}
   const deadline = deadlines[upper] ?? deadlines._default ?? ''
 
+  // If the generated index is unavailable, fall back to the curated general date.
+  const fallback = data.general?.date ? { date: data.general.date, label: data.general.label ?? '' } : null
   return {
     next_primary: primary,
-    next_general: general.date ? { date: general.date, label: general.label ?? '' } : null,
+    next_general: nextCycle ? { date: nextCycle.general_date, label: nextCycle.label } : (index ? null : fallback),
     registration_deadline: deadline,
   }
 }

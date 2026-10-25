@@ -90,6 +90,14 @@ export default function ElectionCountdown({ state }: Props) {
 
   if (!nextElection || !countdown) return null
 
+  // Curated deadlines are ISO dates; hide ones already past (they would be misleading
+  // after the deadline) and any free-text placeholder.
+  const rawDeadline = electionData?.registration_deadline
+  const deadline = /^\d{4}-\d{2}-\d{2}$/.test(rawDeadline ?? '')
+    && new Date(rawDeadline + 'T23:59:59').getTime() > Date.now()
+    ? rawDeadline
+    : null
+
   return (
     <div className="election-countdown">
       <p className="election-countdown-label">{nextElection.label}</p>
@@ -109,10 +117,8 @@ export default function ElectionCountdown({ state }: Props) {
           <span className="election-countdown-unit-label">min</span>
         </div>
       </div>
-      {electionData?.registration_deadline && typeof electionData.registration_deadline === 'string' && !electionData.registration_deadline.startsWith('Check') && (
-        <p className="election-countdown-deadline">
-          Registration deadline: {electionData.registration_deadline}
-        </p>
+      {deadline && (
+        <p className="election-countdown-deadline">Registration deadline: {deadline}</p>
       )}
       <button
         className="election-countdown-ics"

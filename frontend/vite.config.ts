@@ -69,12 +69,25 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api/],
         runtimeCaching: [
           {
-            // Core dataset (representatives, committees, elections, meta) — a
+            // Election calendar, races and candidates change daily and are
+            // time-critical around election day: always try the network first
+            // (short timeout so offline/slow connections fall back fast) and
+            // only serve the cached copy when the network fails.
+            urlPattern: /\/data\/(elections\.json|elections\/.+\.json)$/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'data-elections-v1',
+              networkTimeoutSeconds: 4,
+              expiration: { maxAgeSeconds: 60 * 60 * 24 * 7 }, // 7 days offline fallback
+            },
+          },
+          {
+            // Core dataset (representatives, committees, meta) — a
             // weekly CI job regenerates these, so prefer network freshness but
             // fall back to the cached copy when offline. Cache name is versioned
             // so old CacheFirst entries from the pre-static-migration SW are
             // abandoned rather than served stale forever.
-            urlPattern: /\/data\/(representatives|committees|elections|meta)\.json$/,
+            urlPattern: /\/data\/(representatives|committees|meta)\.json$/,
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'data-core-v2',

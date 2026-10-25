@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useMapStore } from '../../store/mapStore'
 import { useRepresentative } from '../../hooks/useRepresentative'
-import type { Representative } from '../../types'
+import type { Representative, ElectionCycleSummary } from '../../types'
+import { getElectionIndex } from '../../api/representatives'
+import { cycleForSeat, isSpecialSeat } from '../../utils/elections'
 import LegislationTab from './LegislationTab'
 import BioTab from './BioTab'
-import HowToVoteTab from './HowToVoteTab'
+import HowToVoteTab, { STATE_VOTING_RESOURCES } from './HowToVoteTab'
+import ElectionTab from './ElectionTab'
 import VotesSection from './VotesSection'
 import EmbedSnippet from './EmbedSnippet'
 import { PARTY_COLORS } from '../../constants'
@@ -50,7 +53,7 @@ function EmbedIcon() {
   )
 }
 
-type TabKey = 'biography' | 'voting_record' | 'votes' | 'how_to_vote'
+type TabKey = 'biography' | 'voting_record' | 'votes' | 'election' | 'how_to_vote'
 
 const PARTY_LABELS: Record<string, string> = {
   democrat: 'Democrat',
@@ -63,6 +66,7 @@ const FEDERAL_TABS: { key: TabKey; label: string }[] = [
   { key: 'biography',     label: 'Biography'    },
   { key: 'voting_record', label: 'Legislation'  },
   { key: 'votes',         label: 'Votes'        },
+  { key: 'election',      label: 'Election'     },
   { key: 'how_to_vote',   label: 'How to Vote'  },
 ]
 
@@ -114,6 +118,7 @@ export default function RepresentativePanel({
   onCommitteeClick,
 }: Props) {
   const { rep, loading } = useRepresentative(repId)
+  const [seatCycle, setSeatCycle] = useState<ElectionCycleSummary | null>(null)
   const [activeTab, setActiveTab] = useState<TabKey>('biography')
   const [copied, setCopied] = useState(false)
   const [showEmbed, setShowEmbed] = useState(false)
@@ -144,6 +149,17 @@ export default function RepresentativePanel({
     })
     return () => cancelAnimationFrame(raf)
   }, [activeTab])
+
+  // Whether this member's seat is on a published ballot cycle (drives the header badge).
+  useEffect(() => {
+    let cancelled = false
+    setSeatCycle(null)
+    if (!rep) return
+    getElectionIndex()
+      .then((index) => { if (!cancelled) setSeatCycle(cycleForSeat(rep, index.cycles)) })
+      .catch(() => {}) // Badge is optional; hide silently if election data is unavailable.
+    return () => { cancelled = true }
+  }, [rep])
 
   // Reset to first tab whenever a new representative is opened.
   useEffect(() => { setActiveTab('biography') }, [repId])
@@ -265,6 +281,16 @@ export default function RepresentativePanel({
                 </span>
                 <p className="panel-district" style={{ margin: 0 }}>{getDistrictLabel(rep)}</p>
               </div>
+              {seatCycle && (
+                <button
+                  type="button"
+                  className="panel-election-badge"
+                  onClick={() => setActiveTab('election')}
+                  title="See the race and candidates"
+                >
+                  {isSpecialSeat(rep.term_end, seatCycle.cycle) ? 'Special election' : 'Up for election'} · {seatCycle.cycle}
+                </button>
+              )}
             </>
           ) : (
             <p className="panel-error">Representative not found.</p>
@@ -377,6 +403,9 @@ export default function RepresentativePanel({
                 govtrack_id={rep.external_ids?.govtrack_id}
                 congressUrl={rep.congress_gov_url}
               />
+            )}
+            {activeTab === 'election' && (
+              <ElectionTab rep={rep} boardUrl={STATE_VOTING_RESOURCES[rep.state]?.boardUrl} />
             )}
             {activeTab === 'how_to_vote' && <HowToVoteTab rep={rep} />}
           </div>

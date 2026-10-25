@@ -704,3 +704,16 @@
   flex-direction: column;
   gap: 8px;
 }
+
+
+.panel-election-badge {
+  margin-top: 6px;
+  padding: 2px 8px;
+  font: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+  color: var(--color-accent);
+  background: var(--color-accent-glow);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.panel-election-badge:hover { background: var(--color-accent); color: var(--color-bg-primary); }

@@ -63,6 +63,10 @@ jobs:
         working-directory: backend
         run: python manage.py export_static_data
 
+      - name: Export election data (cycles, races, FEC candidates)
+        working-directory: backend
+        run: python manage.py export_election_data
+
       - name: Commit and push if data changed
         run: |
           git config user.name "github-actions[bot]"
