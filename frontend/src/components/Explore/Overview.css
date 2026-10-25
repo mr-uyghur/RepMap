@@ -1,0 +1,181 @@
+/* ── Shared styles for the United States and State levels (UsOverview, StateOverview).
+   Tokens only (variables.css); Phase 2 restyles by swapping tokens. ──────────── */
+.overview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+}
+
+.overview :is(button, a):focus-visible {
+  /* The global ring uses --color-accent, which is under 3:1 on light parchment. */
+  outline: 2px solid var(--color-accent-text);
+  outline-offset: 2px;
+}
+
+.overview-purpose {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.overview-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+/* Focus can be moved here programmatically (tabIndex -1); it isn't a control. */
+.overview-title:focus { outline: none; }
+
+.overview-subtitle {
+  margin: var(--space-1) 0 0;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.overview-lede,
+.overview-hint {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.overview-hint-group { display: flex; flex-direction: column; align-items: flex-start; }
+
+.overview-subhead {
+  margin: var(--space-2) 0 calc(-1 * var(--space-2));
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+}
+
+.overview-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.overview-section > .overview-subhead { margin: var(--space-2) 0 0; }
+
+.overview-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+/* ── Buttons and links ───────────────────────────────────────────────────── */
+.overview-button {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.overview-button:hover { filter: brightness(1.06); }
+
+.overview-text-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-link);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* ── Election Day card ───────────────────────────────────────────────────── */
+.election-day {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+}
+.election-day--loading { flex-direction: column; align-items: flex-start; min-height: 76px; }
+.election-day-text { min-width: 0; }
+.election-day-kicker {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.election-day-date {
+  margin: 2px 0 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.election-day-note {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.election-day-countdown {
+  flex: none;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ── Status: loading, errors ─────────────────────────────────────────────── */
+.overview-message {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+.overview-message p { margin: 0; }
+
+.overview-status { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.overview-skeleton {
+  display: block;
+  height: 72px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+}
+.overview-skeleton--line { height: 12px; width: 40%; }
+.overview-skeleton--title { height: 22px; width: 65%; margin-top: var(--space-2); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .overview-skeleton {
+    background: linear-gradient(90deg, var(--color-bg-surface) 25%, var(--color-bg-elevated) 50%, var(--color-bg-surface) 75%);
+    background-size: 200% 100%;
+    animation: repmap-shimmer 1.6s ease-in-out infinite;
+  }
+}
