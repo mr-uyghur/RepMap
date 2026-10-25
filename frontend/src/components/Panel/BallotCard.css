@@ -4,10 +4,9 @@
 .bc-card {
   display: flex; flex-direction: column; gap: 6px;
   padding: 14px 16px;
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border);
-  border-left: 3px solid var(--color-accent);
-  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-accent) 7%, var(--color-bg-primary));
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-lg);
 }
 .bc-card--idle { border-left-color: var(--color-text-subtle); }
 
@@ -51,12 +50,24 @@
 
 .bc-cta {
   align-self: flex-start;
-  min-height: 44px; margin-top: 4px; padding: 0 16px;
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 44px; margin-top: 2px; padding: 0 16px;
   border: 0; border-radius: var(--radius-md);
   background: var(--color-accent); color: var(--color-on-accent);
-  font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
 }
 .bc-cta:hover { filter: brightness(1.06); }
+
+/* Summary variant: sits under the member header (no How to vote block). */
+.bc--summary { padding: 0; gap: 0; }
+.bc--summary .bc-skeleton { height: 96px; }
+.bc--summary .bc-title { font-size: 16px; }
+.bc-next {
+  margin: 0;
+  font-size: 14px; line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+.bc-next strong { color: var(--color-text-primary); font-weight: 600; }
 
 .bc-message { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; font-size: 14px; color: var(--color-text-secondary); }
 .bc-message p { margin: 0; }

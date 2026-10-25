@@ -21,6 +21,9 @@ import './BallotCard.css'
 interface Props {
   rep: Representative
   onOpenRace: (raceId: string) => void
+  /** 'summary' (member header): the race card or a one-line "next up" note, without
+   *  the How to vote block, and nothing for state legislators. Default 'full'. */
+  variant?: 'full' | 'summary'
 }
 
 type Load =
@@ -55,7 +58,8 @@ function nextContestYear(rep: Representative, upcoming: ElectionCycleSummary | n
 
 /** One "On the Nov 3 ballot" card for a member: is the seat up, who reported for it,
  *  a link to the race, then how to vote in the member's state. */
-export default function BallotCard({ rep, onOpenRace }: Props) {
+export default function BallotCard({ rep, onOpenRace, variant = 'full' }: Props) {
+  const summary = variant === 'summary'
   const [load, setLoad] = useState<Load>({ status: 'loading' })
   const [attempt, setAttempt] = useState(0)
   const headingId = useId()
@@ -82,29 +86,31 @@ export default function BallotCard({ rep, onOpenRace }: Props) {
     [load, rep],
   )
 
+  if (summary && !federal) return null
+
   if (load.status === 'loading') {
     return (
-      <div className="bc" role="status">
+      <div className={`bc${summary ? ' bc--summary' : ''}`} role="status">
         <span className="sr-only">Loading election information…</span>
         <div className="bc-skeleton" aria-hidden="true" />
-        <div className="bc-skeleton bc-skeleton--short" aria-hidden="true" />
+        {!summary && <div className="bc-skeleton bc-skeleton--short" aria-hidden="true" />}
       </div>
     )
   }
   if (load.status === 'error') {
     return (
-      <div className="bc">
+      <div className={`bc${summary ? ' bc--summary' : ''}`}>
         <div className="bc-message" role="status">
           <p>Election data couldn&apos;t be loaded. Check your connection and try again.</p>
           <button type="button" className="bc-button" onClick={() => setAttempt((n) => n + 1)}>Retry</button>
         </div>
-        <HowToVote state={rep.state} />
+        {!summary && <HowToVote state={rep.state} />}
       </div>
     )
   }
 
   const { upcoming, seatCycle, data, deadline } = load
-  const howToVote = <HowToVote state={rep.state} registrationDeadline={deadline ? formatDate(deadline) : null} />
+  const howToVote = summary ? null : <HowToVote state={rep.state} registrationDeadline={deadline ? formatDate(deadline) : null} />
   const lastName = rep.name.split(' ').slice(-1)[0]
 
   // State legislators: no federal race data, just how to vote.
@@ -115,6 +121,16 @@ export default function BallotCard({ rep, onOpenRace }: Props) {
   // Seat not on the next ballot: say when it is next up.
   if (!seatCycle || !data) {
     const next = nextContestYear(rep, upcoming)
+    if (summary) {
+      return (
+        <div className="bc bc--summary">
+          <p className="bc-next">
+            <strong>{upcoming ? `Not on the ${monthDay(upcoming.general_date)} ballot.` : 'No upcoming election in our data yet.'}</strong>
+            {next && <> {rep.level === 'us_senate' ? 'This Senate seat' : 'This seat'} is next up for election in {next}.</>}
+          </p>
+        </div>
+      )
+    }
     return (
       <div className="bc">
         <section className="bc-card bc-card--idle" aria-labelledby={headingId}>
@@ -155,7 +171,7 @@ export default function BallotCard({ rep, onOpenRace }: Props) {
   else status = ''
 
   return (
-    <div className="bc">
+    <div className={`bc${summary ? ' bc--summary' : ''}`}>
       <section className="bc-card" aria-labelledby={headingId}>
         <p className="bc-eyebrow">
           {special ? 'Special election · ' : ''}On the {monthDay(seatCycle.general_date)} ballot
@@ -203,7 +219,7 @@ export default function BallotCard({ rep, onOpenRace }: Props) {
 
         {found && (
           <button type="button" className="bc-cta" onClick={() => onOpenRace(found.id)}>
-            See the race <span aria-hidden="true">→</span>
+            See the race <span aria-hidden="true">›</span>
           </button>
         )}
       </section>

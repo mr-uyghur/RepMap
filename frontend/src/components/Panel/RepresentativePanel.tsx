@@ -1,15 +1,13 @@
-import { useState, useEffect, useRef } from 'react'
-import { useMapStore } from '../../store/mapStore'
+import { useState, useEffect, useRef, useId, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { useRepresentative } from '../../hooks/useRepresentative'
-import type { Representative, ElectionCycleSummary } from '../../types'
-import { getElectionIndex } from '../../api/representatives'
-import { cycleForSeat, isSpecialSeat } from '../../utils/elections'
+import type { Representative } from '../../types'
+import { isFederalSeat, stateName } from '../../utils/elections'
 import LegislationTab from './LegislationTab'
 import BioTab from './BioTab'
 import BallotCard from './BallotCard'
 import VotesSection from './VotesSection'
+import ReportCard from './ReportCard'
 import EmbedSnippet from './EmbedSnippet'
-import { PARTY_COLORS } from '../../constants'
 import { copyToClipboard } from '../../utils/clipboard'
 import './RepresentativePanel.css'
 
@@ -24,7 +22,7 @@ function CloseIcon() {
 
 function ShareIcon() {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
       <polyline points="16 6 12 2 8 6"/>
       <line x1="12" y1="2" x2="12" y2="15"/>
@@ -34,70 +32,71 @@ function ShareIcon() {
 
 function CompareIcon() {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="8" cy="8" r="3" />
-      <circle cx="16" cy="8" r="3" />
-      <path d="M3 20a5 5 0 0 1 10 0" />
-      <path d="M11 20a5 5 0 0 1 10 0" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="4" width="7" height="16" rx="1.5" />
+      <rect x="14" y="4" width="7" height="16" rx="1.5" />
     </svg>
   )
 }
 
-function EmbedIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="16 18 22 12 16 6" />
-      <polyline points="8 6 2 12 8 18" />
-    </svg>
-  )
-}
-
-type TabKey = 'biography' | 'voting_record' | 'votes' | 'ballot'
+type TabKey = 'overview' | 'votes' | 'bills'
 
 const PARTY_LABELS: Record<string, string> = {
   democrat: 'Democrat',
   republican: 'Republican',
   independent: 'Independent',
-  other: 'Other',
+  other: 'Other party',
 }
 
 const FEDERAL_TABS: { key: TabKey; label: string }[] = [
-  { key: 'biography',     label: 'Bio'          },
-  { key: 'voting_record', label: 'Legislation'  },
-  { key: 'votes',         label: 'Votes'        },
-  { key: 'ballot',        label: 'Ballot'       },
+  { key: 'overview', label: 'Overview' },
+  { key: 'votes',    label: 'Votes'    },
+  { key: 'bills',    label: 'Bills'    },
 ]
 
+// State legislators have no congressional votes or bills in our data.
 const STATE_TABS: { key: TabKey; label: string }[] = [
-  { key: 'biography',   label: 'Bio'         },
-  { key: 'ballot',      label: 'How to Vote' },
+  { key: 'overview', label: 'Overview' },
 ]
 
 function isStateLevel(rep: Representative) {
   return rep.level === 'state_house' || rep.level === 'state_senate'
 }
 
-function getDistrictLabel(rep: Representative) {
-  if (rep.district_label) return rep.district_label
-  if (rep.level === 'us_senate') return rep.state
-  if (rep.level === 'state_senate') return `${rep.state} State Senate`
-  if (rep.level === 'state_house') {
-    if (rep.district_number == null) return `${rep.state} State House`
-    return `${rep.state} State House – District ${rep.district_number}`
-  }
-  if (rep.district_number == null) return `${rep.state} – At-Large`
-  return `${rep.state} – District ${rep.district_number}`
+function partyKey(party: string) {
+  return party in PARTY_LABELS ? party : 'other'
 }
 
 function getChamberLabel(rep: Representative) {
   switch (rep.level) {
-    case 'us_senate':    return 'US Senator'
-    case 'us_house':     return 'US Representative'
+    case 'us_senate':    return 'U.S. Senator'
+    case 'us_house':     return 'U.S. Representative'
     case 'state_senate': return 'State Senator'
     case 'state_house':  return 'State Representative'
     case 'governor':     return 'Governor'
     default:             return rep.level
   }
+}
+
+/** "California District 18", "Alaska at-large", "California". */
+function getSeatLabel(rep: Representative) {
+  const state = stateName(rep.state)
+  if (rep.level === 'us_senate') return state
+  if (rep.level === 'us_house') {
+    return rep.district_number == null || rep.district_number === 0
+      ? `${state} at-large`
+      : `${state} District ${rep.district_number}`
+  }
+  if (rep.district_label) return rep.district_label
+  if (rep.district_number != null) return `${state} District ${rep.district_number}`
+  return state
+}
+
+function initials(name: string) {
+  const parts = name.replace(/\b(Jr|Sr|II|III|IV)\.?$/i, '').trim().split(/\s+/)
+  const first = parts[0]?.[0] ?? ''
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : ''
+  return (first + last).toUpperCase()
 }
 
 interface Props {
@@ -124,14 +123,33 @@ export default function RepresentativePanel({
   embedded = false,
 }: Props) {
   const { rep, loading } = useRepresentative(repId)
-  const [seatCycle, setSeatCycle] = useState<ElectionCycleSummary | null>(null)
-  const [activeTab, setActiveTab] = useState<TabKey>('biography')
+  const [activeTab, setActiveTab] = useState<TabKey>('overview')
   const [copied, setCopied] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
   const [showEmbed, setShowEmbed] = useState(false)
-  const dm = useMapStore((s) => s.darkMode)
+  const [photoFailed, setPhotoFailed] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const shareButtonRef = useRef<HTMLButtonElement>(null)
+  const shareMenuRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
+  const tabRefs = useRef<Partial<Record<TabKey, HTMLButtonElement | null>>>({})
+  const uid = useId()
+  const tabId = (key: TabKey) => `${uid}-tab-${key}`
+  const tabPanelId = (key: TabKey) => `${uid}-panel-${key}`
+  const shareMenuId = `${uid}-share`
+  const headingId = `${uid}-name`
+
+  const openRace = onOpenRace ?? (() => onOpenBallot?.())
+
+  // Reset per member.
+  useEffect(() => {
+    setActiveTab('overview')
+    setPhotoFailed(false)
+    setShareOpen(false)
+  }, [repId])
+
+  const tabs = rep && isStateLevel(rep) ? STATE_TABS : FEDERAL_TABS
 
   const handleCopy = async () => {
     const ok = await copyToClipboard(window.location.href)
@@ -141,39 +159,46 @@ export default function RepresentativePanel({
     }
   }
 
-  // Segmented control pill position
-  const tabStripRef = useRef<HTMLDivElement>(null)
-  const [pillStyle, setPillStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 })
-
+  // Share menu: closes on outside click and on Escape (Escape is consumed so the
+  // shell doesn't also go up a level).
   useEffect(() => {
-    const strip = tabStripRef.current
-    if (!strip) return
-    // Measure on next paint so the DOM is ready
-    const raf = requestAnimationFrame(() => {
-      const btn = strip.querySelector<HTMLButtonElement>('[aria-selected="true"]')
-      if (btn) setPillStyle({ left: btn.offsetLeft, width: btn.offsetWidth })
-    })
-    return () => cancelAnimationFrame(raf)
-  }, [activeTab])
+    if (!shareOpen) return
+    function onDown(e: PointerEvent) {
+      const t = e.target as Node
+      if (shareMenuRef.current?.contains(t) || shareButtonRef.current?.contains(t)) return
+      setShareOpen(false)
+    }
+    document.addEventListener('pointerdown', onDown)
+    return () => document.removeEventListener('pointerdown', onDown)
+  }, [shareOpen])
 
-  // Whether this member's seat is on a published ballot cycle (drives the header badge).
+  const onShareKeyDown = (e: ReactKeyboardEvent) => {
+    if (e.key === 'Escape' && shareOpen) {
+      e.preventDefault()
+      e.stopPropagation()
+      setShareOpen(false)
+      shareButtonRef.current?.focus()
+    }
+  }
+
+  // ARIA APG tabs: arrows / Home / End move focus and activate (R-43).
+  const onTabKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    const keys = tabs.map((t) => t.key)
+    const index = keys.indexOf(activeTab)
+    let next: number | null = null
+    if (e.key === 'ArrowRight') next = (index + 1) % keys.length
+    else if (e.key === 'ArrowLeft') next = (index - 1 + keys.length) % keys.length
+    else if (e.key === 'Home') next = 0
+    else if (e.key === 'End') next = keys.length - 1
+    if (next === null) return
+    e.preventDefault()
+    const key = keys[next]
+    setActiveTab(key)
+    tabRefs.current[key]?.focus()
+  }
+
+  // Standalone (non-embedded) mode is a modal dialog with a focus trap (R-44).
   useEffect(() => {
-    let cancelled = false
-    setSeatCycle(null)
-    if (!rep) return
-    getElectionIndex()
-      .then((index) => { if (!cancelled) setSeatCycle(cycleForSeat(rep, index.cycles)) })
-      .catch(() => {}) // Badge is optional; hide silently if election data is unavailable.
-    return () => { cancelled = true }
-  }, [rep])
-
-  // Reset to first tab whenever a new representative is opened.
-  useEffect(() => { setActiveTab('biography') }, [repId])
-
-  const tabs = rep && isStateLevel(rep) ? STATE_TABS : FEDERAL_TABS
-
-  useEffect(() => {
-    // Embedded in the level shell the map and search stay usable: no focus trap (R-44).
     if (compareMode || embedded) return
 
     previousFocusRef.current = document.activeElement instanceof HTMLElement
@@ -194,26 +219,16 @@ export default function RepresentativePanel({
 
     function handleTabKey(event: KeyboardEvent) {
       if (event.key !== 'Tab') return
-
       const focusables = getFocusableElements()
-      if (focusables.length === 0) {
-        event.preventDefault()
-        return
-      }
-
-      const first = focusables[0]
-      const activeIndex = focusables.indexOf(document.activeElement as HTMLElement)
       event.preventDefault()
-
+      if (focusables.length === 0) return
+      const activeIndex = focusables.indexOf(document.activeElement as HTMLElement)
       if (activeIndex === -1) {
-        const destination = event.shiftKey ? focusables[focusables.length - 1] : first
-        destination.focus()
+        focusables[event.shiftKey ? focusables.length - 1 : 0].focus()
         return
       }
-
       const direction = event.shiftKey ? -1 : 1
-      const nextIndex = (activeIndex + direction + focusables.length) % focusables.length
-      focusables[nextIndex].focus()
+      focusables[(activeIndex + direction + focusables.length) % focusables.length].focus()
     }
 
     function keepFocusInPanel(event: FocusEvent) {
@@ -227,17 +242,15 @@ export default function RepresentativePanel({
     return () => {
       window.removeEventListener('keydown', handleTabKey)
       document.removeEventListener('focusin', keepFocusInPanel)
-      if (previousFocusRef.current?.isConnected) {
-        previousFocusRef.current.focus()
-      }
+      if (previousFocusRef.current?.isConnected) previousFocusRef.current.focus()
     }
   }, [compareMode, embedded])
 
-  const color = rep ? PARTY_COLORS[rep.party] : '#6b7280'
+  const party = rep ? partyKey(rep.party) : 'other'
 
   return (
     <div
-      className="panel"
+      className={`panel${embedded ? ' panel--embedded' : ''}`}
       ref={panelRef}
       role={embedded ? 'region' : 'dialog'}
       aria-modal={embedded ? undefined : !compareMode}
@@ -246,104 +259,12 @@ export default function RepresentativePanel({
       <div className="panel-drag-handle" aria-hidden="true" />
       {compareMode && (
         <div className="panel-compare-banner" role="status">
-          <strong>Compare Mode:</strong> Click another pin or search a representative to select
-          side-by-side comparison.
+          <strong>Compare:</strong> pick a second member from the map or the search box.
         </div>
       )}
-      <div className="panel-header" style={{ borderTop: `3px solid ${color}` }}>
-        <div
-          className="panel-photo-aura"
-          style={{ '--party-color': color } as React.CSSProperties}
-        >
-          {rep?.photo_url && (
-            <img
-              src={rep.photo_url}
-              alt=""
-              className="panel-header-photo"
-              style={{ borderColor: color }}
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-            />
-          )}
-          {!rep && loading && (
-            <div className="panel-header-photo-skeleton" />
-          )}
-        </div>
 
-        <div className="panel-identity">
-          {loading ? (
-            <>
-              <div className="panel-skeleton panel-skeleton--wide" />
-              <div className="panel-skeleton panel-skeleton--narrow" />
-            </>
-          ) : rep ? (
-            <>
-              <h2 className="panel-name">{rep.name}</h2>
-              <p className="panel-chamber">{getChamberLabel(rep)}</p>
-              <div className="panel-meta-row">
-                <span
-                  className="panel-party-badge"
-                  style={{ background: color }}
-                >
-                  {PARTY_LABELS[rep.party] ?? rep.party}
-                </span>
-                <p className="panel-district">{getDistrictLabel(rep)}</p>
-              </div>
-              {seatCycle && (
-                <button
-                  type="button"
-                  className="panel-election-badge"
-                  onClick={() => setActiveTab('ballot')}
-                >
-                  <span className="panel-election-badge-status">
-                    {isSpecialSeat(rep.term_end, seatCycle.cycle) ? 'Special election' : 'Up for election'} {seatCycle.cycle}
-                  </span>
-                  <span className="panel-election-badge-cta">See the race →</span>
-                </button>
-              )}
-            </>
-          ) : (
-            <p className="panel-error">Representative not found.</p>
-          )}
-        </div>
-
-        <div className="panel-header-actions">
-          {rep && (
-            <button
-              type="button"
-              onClick={() => onCompareModeChange(!compareMode)}
-              aria-label={compareMode ? 'Cancel comparison selection' : 'Compare with another representative'}
-              aria-pressed={compareMode}
-              className={`panel-action-btn${compareMode ? ' panel-action-btn--active' : ''}`}
-            >
-              <CompareIcon />
-              <span>{compareMode ? 'Cancel' : 'Compare'}</span>
-            </button>
-          )}
-          {rep && (rep.bioguide_id || isStateLevel(rep)) && (
-            <button
-              type="button"
-              onClick={handleCopy}
-              aria-label="Copy link to this representative"
-              className="panel-close-btn"
-            >
-              {copied ? (
-                <span className="panel-copied" role="status">Copied!</span>
-              ) : (
-                <ShareIcon />
-              )}
-            </button>
-          )}
-          {rep && (
-            <button
-              type="button"
-              onClick={() => setShowEmbed(true)}
-              aria-label="Get embed code"
-              className="panel-close-btn"
-              title="Embed this representative"
-            >
-              <EmbedIcon />
-            </button>
-          )}
+      <div className="panel-header">
+        {!embedded && (
           <button
             type="button"
             ref={closeButtonRef}
@@ -353,68 +274,172 @@ export default function RepresentativePanel({
           >
             <CloseIcon />
           </button>
+        )}
+
+        <div className="panel-who">
+          <div className={`panel-avatar panel-avatar--${party}`} aria-hidden="true">
+            {loading && !rep ? null : <span className="panel-avatar-initials">{rep ? initials(rep.name) : ''}</span>}
+            {rep?.photo_url && !photoFailed && (
+              <img
+                src={rep.photo_url}
+                alt=""
+                className="panel-avatar-photo"
+                onError={() => setPhotoFailed(true)}
+              />
+            )}
+          </div>
+
+          <div className="panel-identity">
+            {loading ? (
+              <div role="status">
+                <span className="sr-only">Loading member…</span>
+                <div className="panel-skeleton panel-skeleton--wide" aria-hidden="true" />
+                <div className="panel-skeleton panel-skeleton--narrow" aria-hidden="true" />
+              </div>
+            ) : rep ? (
+              <>
+                <h2 className="panel-name" id={headingId}>{rep.name}</h2>
+                <p className="panel-seat">
+                  {getChamberLabel(rep)} · {getSeatLabel(rep)}
+                </p>
+                <p className="panel-party">
+                  <span className={`panel-party-letter panel-party-letter--${party}`} aria-hidden="true">
+                    {(PARTY_LABELS[party] ?? 'O')[0]}
+                  </span>
+                  {PARTY_LABELS[party] ?? rep.party}
+                </p>
+              </>
+            ) : (
+              <p className="panel-error" role="status">Representative not found.</p>
+            )}
+          </div>
         </div>
+
+        {rep && (
+          <div className="panel-actions">
+            <button
+              type="button"
+              onClick={() => onCompareModeChange(!compareMode)}
+              aria-pressed={compareMode}
+              className={`panel-action-btn${compareMode ? ' panel-action-btn--active' : ''}`}
+            >
+              <CompareIcon />
+              <span>{compareMode ? 'Cancel compare' : 'Compare'}</span>
+            </button>
+            <div className="panel-share" onKeyDown={onShareKeyDown}>
+              <button
+                type="button"
+                ref={shareButtonRef}
+                className="panel-action-btn"
+                aria-expanded={shareOpen}
+                aria-controls={shareMenuId}
+                onClick={() => setShareOpen((v) => !v)}
+              >
+                <ShareIcon />
+                <span>Share</span>
+              </button>
+              <div
+                id={shareMenuId}
+                ref={shareMenuRef}
+                className="panel-share-menu"
+                hidden={!shareOpen}
+              >
+                <button type="button" className="panel-share-item" onClick={handleCopy}>
+                  Copy link
+                  <span className="panel-share-item-sub">A link straight to this page</span>
+                </button>
+                <button
+                  type="button"
+                  className="panel-share-item"
+                  onClick={() => { setShareOpen(false); setShowEmbed(true) }}
+                >
+                  Embed on a website
+                  <span className="panel-share-item-sub">Copy an iframe snippet</span>
+                </button>
+                <p className="panel-share-status" role="status">{copied ? 'Link copied.' : ''}</p>
+              </div>
+            </div>
+          </div>
+        )}
         {showEmbed && rep && (
-          <EmbedSnippet rep={rep} onClose={() => setShowEmbed(false)} />
+          <EmbedSnippet rep={rep} onClose={() => { setShowEmbed(false); shareButtonRef.current?.focus() }} />
         )}
       </div>
 
       {rep && (
         <>
-          {/* Segmented control with sliding pill */}
-          <nav
-            ref={tabStripRef}
-            className="panel-tabs"
-            role="tablist"
-            aria-label="Representative information"
-          >
-            {/* Sliding pill — positioned absolutely behind the active tab */}
-            <div
-              className="panel-tab-pill"
-              style={{ left: pillStyle.left, width: pillStyle.width }}
-              aria-hidden="true"
-            />
-            {tabs.map(({ key, label }) => (
-              <button
-                key={key}
-                role="tab"
-                aria-selected={activeTab === key}
-                aria-controls={`panel-tabpanel-${key}`}
-                className={`panel-tab${activeTab === key ? ' panel-tab--active' : ''}`}
-                onClick={() => setActiveTab(key)}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
-          <div className="panel-tabs-divider" />
+          {isFederalSeat(rep) && (
+            <div className="panel-ballot">
+              <BallotCard rep={rep} onOpenRace={openRace} variant="summary" />
+            </div>
+          )}
 
-          <div
-            id={`panel-tabpanel-${activeTab}`}
-            role="tabpanel"
-            className="panel-body"
-          >
-            {activeTab === 'biography' && (
-              <BioTab rep={rep} onCommitteeClick={onCommitteeClick} />
-            )}
-            {activeTab === 'voting_record' && (
-              <LegislationTab
-                bioguide_id={rep.bioguide_id ?? ''}
-                congressUrl={rep.congress_gov_url}
-                darkMode={dm}
-              />
-            )}
-            {activeTab === 'votes' && (
-              <VotesSection
-                bioguide_id={rep.bioguide_id ?? ''}
-                govtrack_id={rep.external_ids?.govtrack_id}
-                congressUrl={rep.congress_gov_url}
-              />
-            )}
-            {activeTab === 'ballot' && (
-              <BallotCard rep={rep} onOpenRace={onOpenRace ?? (() => onOpenBallot?.())} />
-            )}
-          </div>
+          {tabs.length > 1 && (
+            <div
+              className="panel-tabs"
+              role="tablist"
+              aria-label={`About ${rep.name}`}
+              onKeyDown={onTabKeyDown}
+            >
+              {tabs.map(({ key, label }) => (
+                <button
+                  key={key}
+                  ref={(el) => { tabRefs.current[key] = el }}
+                  type="button"
+                  role="tab"
+                  id={tabId(key)}
+                  aria-selected={activeTab === key}
+                  aria-controls={tabPanelId(key)}
+                  tabIndex={activeTab === key ? 0 : -1}
+                  className={`panel-tab${activeTab === key ? ' panel-tab--active' : ''}`}
+                  onClick={() => setActiveTab(key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {tabs.map(({ key }) => {
+            const selected = activeTab === key
+            const single = tabs.length === 1
+            return (
+              <div
+                key={key}
+                id={tabPanelId(key)}
+                role={single ? undefined : 'tabpanel'}
+                aria-labelledby={single ? undefined : tabId(key)}
+                tabIndex={single ? undefined : 0}
+                hidden={!selected}
+                className="panel-body"
+              >
+                {selected && key === 'overview' && (
+                  <>
+                    <BioTab rep={rep} onCommitteeClick={onCommitteeClick} />
+                    {isStateLevel(rep) && <BallotCard rep={rep} onOpenRace={openRace} />}
+                  </>
+                )}
+                {selected && key === 'votes' && (
+                  <>
+                    <VotesSection
+                      bioguide_id={rep.bioguide_id ?? ''}
+                      govtrack_id={rep.external_ids?.govtrack_id}
+                      congressUrl={rep.congress_gov_url}
+                    />
+                    {rep.bioguide_id && (
+                      <ReportCard bioguideId={rep.bioguide_id} govtrackId={rep.external_ids?.govtrack_id} />
+                    )}
+                  </>
+                )}
+                {selected && key === 'bills' && (
+                  <LegislationTab
+                    bioguide_id={rep.bioguide_id ?? ''}
+                    congressUrl={rep.congress_gov_url}
+                  />
+                )}
+              </div>
+            )
+          })}
         </>
       )}
     </div>
