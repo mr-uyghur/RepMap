@@ -5,6 +5,11 @@ import { applyAppTheme, finish, record, smallTargets } from './helpers/checks'
 // known member (Zoe Lofgren). The election tab is clicked through the UI.
 const MAP_WITH_REP = '/?mode=map&zip=95112&rep=L000397'
 
+// Election reminders depend on today's date, so date-sensitive scenes pin the clock.
+const BEFORE_ELECTION = new Date('2026-10-25T12:00:00')
+const ELECTION_DAY = new Date('2026-11-03T09:00:00')
+const DAY_AFTER = new Date('2026-11-04T12:00:00')
+
 function scheme(info: { project: { name: string } }) {
   return info.project.name.endsWith('light') ? ('light' as const) : ('dark' as const)
 }
@@ -91,6 +96,7 @@ test.describe('RepMap design checks', () => {
 
   test('S7 first-time voter: map strip -> ZIP -> races (R-01)', async ({ page }, info) => {
     const rec = record(page)
+    await page.clock.setFixedTime(BEFORE_ELECTION)
     await page.goto('/?mode=map')
     await expect(page.locator('.app-shell')).toBeVisible()
     await applyAppTheme(page, scheme(info))
@@ -115,5 +121,46 @@ test.describe('RepMap design checks', () => {
     await expect(page.getByRole('heading', { name: 'See the races for a ZIP code' })).toBeVisible()
     await expect(page.getByLabel('ZIP code', { exact: true })).toBeFocused()
     await finish(page, info, 'ballot-entry', rec)
+  })
+
+  test('S9 Civic Story election link -> races for the chosen ZIP', async ({ page }, info) => {
+    const rec = record(page)
+    await page.clock.setFixedTime(BEFORE_ELECTION)
+    await page.goto('/')
+    const story = page.frameLocator('iframe')
+    const chip = story.locator('#hero-election-chip')
+    await expect(chip).toBeVisible({ timeout: 20_000 })
+    await expect(chip).toContainText('Tue, Nov 3 · 9 days away')
+    await story.locator('.zip-chip[data-zip="27701"]').click()
+    await expect(chip).toContainText('See races for ZIP 27701')
+    await finish(page, info, 'story-election', rec)
+    await chip.click()
+    await expect(page.getByRole('heading', { name: 'Races for ZIP 27701' })).toBeVisible({ timeout: 20_000 })
+  })
+
+  test('S10 election day: reminders say today', async ({ page }) => {
+    await page.clock.setFixedTime(ELECTION_DAY)
+    await page.goto('/?mode=map')
+    await expect(page.locator('.election-strip')).toContainText('Election Day is today', { timeout: 20_000 })
+  })
+
+  test('S11 day after the election: reminders retire, races view moves on (R-61)', async ({ page }, info) => {
+    const rec = record(page)
+    await page.clock.setFixedTime(DAY_AFTER)
+    await page.goto('/?mode=map')
+    await expect(page.locator('.app-shell')).toBeVisible()
+    await applyAppTheme(page, scheme(info))
+    await page.waitForTimeout(1500) // the strip would have appeared by now
+    await expect(page.locator('.election-strip')).toHaveCount(0)
+    await expect(page.locator('.navbar-races-btn')).toBeVisible()
+    await page.goto('/?mode=map&view=ballot&zip=95112')
+    await expect(page.getByRole('heading', { name: 'Races for ZIP 95112' })).toBeVisible({ timeout: 20_000 })
+    await expect(page.locator('.ballot')).toContainText('2028')
+    await expect(page.locator('.ballot')).not.toContainText(/has passed/i)
+    await finish(page, info, 'ballot-after', rec)
+    await page.goto('/')
+    await page.frameLocator('iframe').locator('.zip-chip').first().waitFor()
+    await page.waitForTimeout(1000)
+    await expect(page.frameLocator('iframe').locator('#hero-election-chip')).toBeHidden()
   })
 })
