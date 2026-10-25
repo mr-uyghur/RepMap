@@ -48,7 +48,14 @@ test.describe('RepMap navigation shell', () => {
     const rec = record(page)
     await page.goto('/story')
     await expect(page.locator('iframe[title="RepMap Civic Story"]')).toBeVisible()
-    await page.frameLocator('iframe').locator('body').waitFor()
+    const story = page.frameLocator('iframe')
+    await story.locator('body').waitFor()
+    // Data-bound from story-data.js (R-16): links use the new URL scheme and bioguide IDs.
+    await expect(story.locator('#chrome-launch-cta')).toHaveText('Open the map')
+    await expect(story.locator('#chrome-launch-cta')).toHaveAttribute('href', '/')
+    await expect(story.locator('#beat2-globe-link')).toHaveAttribute('href', '/?zip=95112')
+    await expect(story.locator('.dossier-link').first()).toHaveAttribute('href', /^\/\?rep=[A-Z]\d{6}$/)
+    await expect(story.locator('body')).not.toContainText('3D Globe')
     await page.waitForTimeout(1500)
     await finish(page, info, 'story', rec)
   })
@@ -234,7 +241,7 @@ test.describe('RepMap navigation shell', () => {
   })
 
   test('S11 compare and redistricting deep links still work', async ({ page }) => {
-    // The Story's own compare link uses stale IDs; these are Lofgren and Bacon.
+    // Legacy numeric IDs still resolve; these are Lofgren and Bacon.
     await page.goto('/?mode=map&compare=145,268')
     await expect(page).toHaveURL(/\/\?compare=145,268$/)
     const compare = page.locator('.compare-panel')
