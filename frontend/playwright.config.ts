@@ -32,6 +32,8 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         viewport: { width: v.width, height: v.height },
         colorScheme: scheme,
+        // Optional: point at a pre-installed Chromium when the bundled revision is absent.
+        launchOptions: process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : {},
       },
     })),
   ),
