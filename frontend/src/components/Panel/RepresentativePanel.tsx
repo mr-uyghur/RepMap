@@ -103,6 +103,7 @@ interface Props {
   onClose: () => void
   compareMode: boolean
   onCompareModeChange: (active: boolean) => void
+  onCommitteeClick?: (committee: string) => void
 }
 
 export default function RepresentativePanel({
@@ -110,6 +111,7 @@ export default function RepresentativePanel({
   onClose,
   compareMode,
   onCompareModeChange,
+  onCommitteeClick,
 }: Props) {
   const { rep, loading } = useRepresentative(repId)
   const [activeTab, setActiveTab] = useState<TabKey>('biography')
@@ -359,7 +361,9 @@ export default function RepresentativePanel({
             role="tabpanel"
             className="panel-body"
           >
-            {activeTab === 'biography' && <BioTab rep={rep} />}
+            {activeTab === 'biography' && (
+              <BioTab rep={rep} onCommitteeClick={onCommitteeClick} />
+            )}
             {activeTab === 'voting_record' && (
               <LegislationTab
                 bioguide_id={rep.bioguide_id ?? ''}

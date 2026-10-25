@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRepresentative } from '../../hooks/useRepresentative'
+import { getReportCard, getRepVotes } from '../../api/representatives'
 import { PARTY_COLORS } from '../../constants'
-import type { Representative } from '../../types'
+import type { Representative, ReportCardData, Vote } from '../../types'
 import { safeExternalHref } from '../../utils/urlSafety'
 import './ComparePanel.css'
 
@@ -9,6 +10,7 @@ interface Props {
   repIdA: number
   repIdB: number
   onClose: () => void
+  onCommitteeClick?: (committee: string) => void
 }
 
 interface DetailState {
@@ -32,6 +34,20 @@ function getDistrictLabel(rep: Representative) {
   if (rep.level === 'us_senate') return rep.state
   if (rep.district_number == null) return `${rep.state} - At-Large`
   return `${rep.state} - District ${rep.district_number}`
+}
+
+function getBioguideId(rep: Representative | null): string | undefined {
+  if (!rep) return undefined
+  if (rep.bioguide_id) return rep.bioguide_id
+  if (rep.external_ids?.bioguide_id) return String(rep.external_ids.bioguide_id)
+  return undefined
+}
+
+function scoreColor(value: number | null, thresholds: [number, number] = [70, 90]): string {
+  if (value === null) return 'var(--color-text-muted)'
+  if (value >= thresholds[1]) return 'var(--color-success)'
+  if (value >= thresholds[0]) return '#f59e0b'
+  return 'var(--color-error)'
 }
 
 function TermProgress({ rep, color }: { rep: Representative; color: string }) {
@@ -61,6 +77,94 @@ function TermProgress({ rep, color }: { rep: Representative; color: string }) {
   )
 }
 
+function AccountabilityScores({
+  reportCard,
+  loading,
+}: {
+  reportCard: ReportCardData | null
+  loading: boolean
+}) {
+  if (loading) {
+    return (
+      <div className="compare-field compare-field--scores" aria-label="Loading accountability scores">
+        <span className="compare-field-label">Accountability Scores</span>
+        <div className="compare-scores-grid">
+          <div className="compare-score-skeleton" />
+          <div className="compare-score-skeleton" />
+          <div className="compare-score-skeleton" />
+        </div>
+      </div>
+    )
+  }
+
+  if (!reportCard) return null
+
+  const hasAnyScore =
+    reportCard.attendance_pct !== null ||
+    reportCard.effectiveness_score !== null ||
+    reportCard.bipartisanship_score !== null
+
+  if (!hasAnyScore) return null
+
+  const metrics: { label: string; value: number | null; thresholds?: [number, number] }[] = [
+    { label: 'Attendance', value: reportCard.attendance_pct, thresholds: [75, 90] },
+    { label: 'Effectiveness', value: reportCard.effectiveness_score, thresholds: [50, 75] },
+    { label: 'Bipartisan', value: reportCard.bipartisanship_score, thresholds: [40, 70] },
+  ]
+
+  return (
+    <div className="compare-field compare-field--scores">
+      <span className="compare-field-label">Accountability Scores</span>
+      <div className="compare-scores-grid">
+        {metrics.map(({ label, value, thresholds }) => {
+          const color = scoreColor(value, thresholds)
+          return (
+            <div key={label} className="compare-score-item">
+              <div className="compare-score-header">
+                <span className="compare-score-name">{label}</span>
+                <span className="compare-score-value" style={{ color }}>
+                  {value !== null ? `${Math.round(value)}%` : '—'}
+                </span>
+              </div>
+              <div className="compare-score-track">
+                <div
+                  className="compare-score-fill"
+                  style={{
+                    width: value !== null ? `${Math.max(0, Math.min(100, value))}%` : '0%',
+                    background: color,
+                  }}
+                />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function CommitteePill({
+  committee,
+  onCommitteeClick,
+}: {
+  committee: string
+  onCommitteeClick?: (committee: string) => void
+}) {
+  if (onCommitteeClick) {
+    return (
+      <button
+        type="button"
+        className="compare-committee-pill compare-committee-pill--clickable"
+        onClick={() => onCommitteeClick(committee)}
+        title={`View ${committee} in Committee Network`}
+      >
+        {committee}
+      </button>
+    )
+  }
+  return <span className="compare-committee-pill">{committee}</span>
+}
+
 function ColumnSkeleton() {
   return (
     <div className="compare-column-skeleton" aria-label="Loading representative details">
@@ -76,7 +180,17 @@ function ColumnSkeleton() {
   )
 }
 
-function RepresentativeColumn({ state }: { state: DetailState }) {
+function RepresentativeColumn({
+  state,
+  reportCard,
+  reportLoading,
+  onCommitteeClick,
+}: {
+  state: DetailState
+  reportCard: ReportCardData | null
+  reportLoading: boolean
+  onCommitteeClick?: (committee: string) => void
+}) {
   if (state.loading) return <ColumnSkeleton />
   if (!state.rep) return <p className="compare-column-error">Representative not found.</p>
 
@@ -104,6 +218,8 @@ function RepresentativeColumn({ state }: { state: DetailState }) {
 
       <TermProgress rep={rep} color={color} />
 
+      <AccountabilityScores reportCard={reportCard} loading={reportLoading} />
+
       <div className="compare-contact-grid">
         <div className="compare-field">
           <span className="compare-field-label">Phone</span>
@@ -126,7 +242,11 @@ function RepresentativeColumn({ state }: { state: DetailState }) {
         {committees.length > 0 ? (
           <div className="compare-committee-list">
             {committees.map((committee) => (
-              <span key={committee} className="compare-committee-pill">{committee}</span>
+              <CommitteePill
+                key={committee}
+                committee={committee}
+                onCommitteeClick={onCommitteeClick}
+              />
             ))}
           </div>
         ) : (
@@ -137,12 +257,108 @@ function RepresentativeColumn({ state }: { state: DetailState }) {
   )
 }
 
-export default function ComparePanel({ repIdA, repIdB, onClose }: Props) {
+export default function ComparePanel({ repIdA, repIdB, onClose, onCommitteeClick }: Props) {
   const left = useRepresentative(repIdA)
   const right = useRepresentative(repIdB)
   const panelRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
+
+  const repA = left.rep
+  const repB = right.rep
+
+  const [reportA, setReportA] = useState<ReportCardData | null>(null)
+  const [reportLoadingA, setReportLoadingA] = useState(false)
+  const [votesA, setVotesA] = useState<Vote[] | null>(null)
+
+  const [reportB, setReportB] = useState<ReportCardData | null>(null)
+  const [reportLoadingB, setReportLoadingB] = useState(false)
+  const [votesB, setVotesB] = useState<Vote[] | null>(null)
+
+  const bioguideA = getBioguideId(repA)
+  const govtrackA = repA?.external_ids?.govtrack_id
+  const bioguideB = getBioguideId(repB)
+  const govtrackB = repB?.external_ids?.govtrack_id
+
+  useEffect(() => {
+    if (!bioguideA) {
+      setReportA(null)
+      setReportLoadingA(false)
+      setVotesA(null)
+      return
+    }
+    let cancelled = false
+    setReportLoadingA(true)
+    setVotesA(null)
+
+    getReportCard(bioguideA, govtrackA)
+      .then((data) => { if (!cancelled) setReportA(data) })
+      .catch(() => { if (!cancelled) setReportA(null) })
+      .finally(() => { if (!cancelled) setReportLoadingA(false) })
+
+    getRepVotes(bioguideA, govtrackA)
+      .then((data) => { if (!cancelled) setVotesA(data) })
+      .catch(() => { if (!cancelled) setVotesA([]) })
+
+    return () => { cancelled = true }
+  }, [bioguideA, govtrackA])
+
+  useEffect(() => {
+    if (!bioguideB) {
+      setReportB(null)
+      setReportLoadingB(false)
+      setVotesB(null)
+      return
+    }
+    let cancelled = false
+    setReportLoadingB(true)
+    setVotesB(null)
+
+    getReportCard(bioguideB, govtrackB)
+      .then((data) => { if (!cancelled) setReportB(data) })
+      .catch(() => { if (!cancelled) setReportB(null) })
+      .finally(() => { if (!cancelled) setReportLoadingB(false) })
+
+    getRepVotes(bioguideB, govtrackB)
+      .then((data) => { if (!cancelled) setVotesB(data) })
+      .catch(() => { if (!cancelled) setVotesB([]) })
+
+    return () => { cancelled = true }
+  }, [bioguideB, govtrackB])
+
+  const voteAlignment = useMemo(() => {
+    if (!votesA || !votesB) return null
+    const mapA = new Map<string, 'yes' | 'no'>()
+    for (const v of votesA) {
+      const title = v.bill_title?.trim()
+      if (!title || !v.vote_date) continue
+      const pos = v.vote_position?.trim().toLowerCase()
+      if (pos === 'yes' || pos === 'no') {
+        mapA.set(`${v.vote_date}::${title}`, pos)
+      }
+    }
+
+    let sharedCount = 0
+    let agreedCount = 0
+    const seen = new Set<string>()
+    for (const v of votesB) {
+      const title = v.bill_title?.trim()
+      if (!title || !v.vote_date) continue
+      const posB = v.vote_position?.trim().toLowerCase()
+      if (posB !== 'yes' && posB !== 'no') continue
+      const key = `${v.vote_date}::${title}`
+      if (seen.has(key)) continue
+      const posA = mapA.get(key)
+      if (posA) {
+        seen.add(key)
+        sharedCount++
+        if (posA === posB) agreedCount++
+      }
+    }
+
+    const pct = sharedCount > 0 ? Math.round((agreedCount / sharedCount) * 100) : null
+    return { sharedCount, agreedCount, pct }
+  }, [votesA, votesB])
 
   useEffect(() => {
     previousFocusRef.current = document.activeElement instanceof HTMLElement
@@ -192,8 +408,6 @@ export default function ComparePanel({ repIdA, repIdB, onClose }: Props) {
     }
   }, [onClose])
 
-  const repA = left.rep
-  const repB = right.rep
   const sharedCommittees = repA && repB
     ? [...new Set((repA.committee_assignments ?? []).filter(
       (committee) => repB.committee_assignments?.includes(committee)
@@ -203,6 +417,8 @@ export default function ComparePanel({ repIdA, repIdB, onClose }: Props) {
     .filter((rep): rep is Representative => !!rep)
     .map(getChamberLabel)
     .join(' vs ')
+
+  const differentChambers = !!(repA && repB && repA.level !== repB.level)
 
   return (
     <>
@@ -234,10 +450,20 @@ export default function ComparePanel({ repIdA, repIdB, onClose }: Props) {
 
         <div className="compare-panel-grid">
           <section className="compare-column" aria-label="First representative">
-            <RepresentativeColumn state={left} />
+            <RepresentativeColumn
+              state={left}
+              reportCard={reportA}
+              reportLoading={reportLoadingA}
+              onCommitteeClick={onCommitteeClick}
+            />
           </section>
           <section className="compare-column" aria-label="Second representative">
-            <RepresentativeColumn state={right} />
+            <RepresentativeColumn
+              state={right}
+              reportCard={reportB}
+              reportLoading={reportLoadingB}
+              onCommitteeClick={onCommitteeClick}
+            />
           </section>
         </div>
 
@@ -248,6 +474,31 @@ export default function ComparePanel({ repIdA, repIdB, onClose }: Props) {
               {repA.state === repB.state && (
                 <p className="compare-insight-pill">
                   Both represent <strong>{repA.state}</strong>.
+                </p>
+              )}
+              {voteAlignment && voteAlignment.sharedCount > 0 && voteAlignment.pct !== null && (
+                <div className="compare-insight-pill compare-insight-pill--alignment">
+                  <span>
+                    Voting Alignment:{' '}
+                    <strong style={{ color: scoreColor(voteAlignment.pct, [50, 75]) }}>
+                      {voteAlignment.pct}%
+                    </strong>{' '}
+                    (Agreed on {voteAlignment.agreedCount} of {voteAlignment.sharedCount} shared roll-call vote{voteAlignment.sharedCount !== 1 ? 's' : ''})
+                  </span>
+                  <span className="compare-alignment-bar" aria-hidden="true">
+                    <span
+                      className="compare-alignment-bar-fill"
+                      style={{
+                        width: `${voteAlignment.pct}%`,
+                        background: scoreColor(voteAlignment.pct, [50, 75]),
+                      }}
+                    />
+                  </span>
+                </div>
+              )}
+              {voteAlignment && voteAlignment.sharedCount === 0 && differentChambers && (
+                <p className="compare-insight-pill">
+                  Different chambers (House vs. Senate) — floor votes are separate
                 </p>
               )}
               {sharedCommittees.length === 0 && (
@@ -261,7 +512,11 @@ export default function ComparePanel({ repIdA, repIdB, onClose }: Props) {
                 </p>
                 <div className="compare-committee-list">
                   {sharedCommittees.map((committee) => (
-                    <span key={committee} className="compare-committee-pill">{committee}</span>
+                    <CommitteePill
+                      key={committee}
+                      committee={committee}
+                      onCommitteeClick={onCommitteeClick}
+                    />
                   ))}
                 </div>
               </div>
@@ -272,3 +527,4 @@ export default function ComparePanel({ repIdA, repIdB, onClose }: Props) {
     </>
   )
 }
+

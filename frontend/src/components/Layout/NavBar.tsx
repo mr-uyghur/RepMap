@@ -11,6 +11,7 @@ interface Props {
   onRepSelect: (rep: Representative) => void
   onCommitteesClick?: () => void
   onRedistrictingClick?: () => void
+  onStoryClick?: () => void
 }
 
 function SunIcon() {
@@ -37,15 +38,26 @@ export default function NavBar({
   onRepSelect,
   onCommitteesClick,
   onRedistrictingClick,
+  onStoryClick,
 }: Props) {
   const darkMode = useMapStore((s) => s.darkMode)
   const toggleDarkMode = useMapStore((s) => s.toggleDarkMode)
   const redistrictingMode = useMapStore((s) => s.redistrictingMode)
 
+  const hasStateReps = allRepresentatives.some(
+    (r) => r.level === 'state_house' || r.level === 'state_senate' || r.level === 'governor'
+  )
+
   return (
     <nav className="navbar" role="navigation" aria-label="Primary navigation">
       <a href="#main-content" className="skip-link">Skip to main content</a>
-      <span className="navbar-brand" aria-label="RepMap — Find Your Representatives">
+      <span
+        className="navbar-brand"
+        aria-label="RepMap — Find Your Representatives"
+        onClick={onStoryClick}
+        style={onStoryClick ? { cursor: 'pointer' } : undefined}
+        title="Return to Civic Cartography Story"
+      >
         RepMap
       </span>
       <div className="navbar-search">
@@ -58,7 +70,17 @@ export default function NavBar({
         />
       </div>
       <div className="navbar-right">
-        <LevelToggle />
+        {hasStateReps && <LevelToggle />}
+        {onStoryClick && (
+          <button
+            onClick={onStoryClick}
+            className="navbar-theme-btn navbar-theme-btn--active"
+            aria-label="Open Civic Cartography Story"
+            title="Civic Cartography Story"
+          >
+            ✦ Civic Story
+          </button>
+        )}
         {onCommitteesClick && (
           <button
             onClick={onCommitteesClick}

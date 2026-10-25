@@ -227,10 +227,10 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
   useEffect(() => {
     if (!districtsLoaded || repsLoading) return
     const elapsed = Date.now() - loadStartRef.current
-    const delay = Math.max(0, 1200 - elapsed)
+    const delay = Math.max(0, 150 - elapsed)
     const t = setTimeout(() => {
       setLoadingPhase('fading')
-      setTimeout(() => setLoadingPhase('done'), 400)
+      setTimeout(() => setLoadingPhase('done'), 250)
     }, delay)
     return () => clearTimeout(t)
   }, [districtsLoaded, repsLoading])
@@ -348,8 +348,21 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
 
       setSelectedStateCode(stateAbbr)
       setSelectedRepId(null)
+
+      if (redistrictingMode && zoom < 5.5) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const map = (mapRef as React.RefObject<any>).current?.getMap?.()
+        if (map) {
+          map.flyTo({
+            center: [e.lngLat.lng, e.lngLat.lat],
+            zoom: Math.max(zoom, 6),
+            duration: 900,
+            essential: true,
+          })
+        }
+      }
     },
-    [setSelectedRepId, setSelectedStateCode]
+    [setSelectedRepId, setSelectedStateCode, redistrictingMode, zoom, mapRef]
   )
 
   // Dims district layers during flyTo for a smoother 3D camera animation.
@@ -708,7 +721,7 @@ export default function RepMap({ mapRef, onRepSelect }: Props) {
             justifyContent: 'center',
             gap: 0,
             opacity: loadingPhase === 'fading' ? 0 : 1,
-            transition: 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: 'opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
             pointerEvents: loadingPhase === 'fading' ? 'none' : 'auto',
           }}>
             {/* Logo */}

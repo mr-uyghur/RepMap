@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { badRequest, cached, isValidBioguide, isValidGovtrack, queryParam } from './_lib/http.js'
 import { fetchRecentVotes, type Vote } from './_lib/govtrack.js'
-import { fetchLegislation, type Bill } from './_lib/congress.js'
+import { fetchLegislationWithCount, type LegislationBatch } from './_lib/congress.js'
 
 // Ported from backend/representatives/services/report_card.py
 
@@ -25,12 +25,17 @@ async function safeVotes(govtrack: string | undefined): Promise<Vote[]> {
   }
 }
 
-async function safeLegislation(bioguide: string, kind: 'sponsored' | 'cosponsored', apiKey: string | undefined): Promise<Bill[]> {
-  if (!apiKey) return []
+async function safeLegislation(
+  bioguide: string,
+  kind: 'sponsored' | 'cosponsored',
+  apiKey: string | undefined,
+  limit: number = 100
+): Promise<LegislationBatch> {
+  if (!apiKey) return { bills: [], totalCount: 0 }
   try {
-    return await fetchLegislation(bioguide, kind, apiKey)
+    return await fetchLegislationWithCount(bioguide, kind, apiKey, limit)
   } catch {
-    return []
+    return { bills: [], totalCount: 0 }
   }
 }
 
@@ -48,11 +53,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const apiKey = process.env.CONGRESS_API_KEY
-  const [votes, sponsored, cosponsored] = await Promise.all([
+  const [votes, sponsoredBatch, cosponsoredBatch] = await Promise.all([
     safeVotes(govtrack),
-    safeLegislation(bioguide, 'sponsored', apiKey),
-    safeLegislation(bioguide, 'cosponsored', apiKey),
+    safeLegislation(bioguide, 'sponsored', apiKey, 100),
+    safeLegislation(bioguide, 'cosponsored', apiKey, 100),
   ])
+
+  const sponsored = sponsoredBatch.bills
 
   const result: ReportCardData = {
     attendance_pct: null,
@@ -76,11 +83,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     result.effectiveness_score = round1((becameLaw / sponsored.length) * 100)
   }
 
-  if (cosponsored.length) {
-    result.cross_party_cosponsors = cosponsored.length
-    const totalActivity = sponsored.length + cosponsored.length
+  if (cosponsoredBatch.totalCount > 0) {
+    result.cross_party_cosponsors = cosponsoredBatch.totalCount
+    const totalActivity = sponsoredBatch.totalCount + cosponsoredBatch.totalCount
     if (totalActivity > 0) {
-      result.bipartisanship_score = round1((cosponsored.length / totalActivity) * 100)
+      result.bipartisanship_score = round1((cosponsoredBatch.totalCount / totalActivity) * 100)
     }
   }
 

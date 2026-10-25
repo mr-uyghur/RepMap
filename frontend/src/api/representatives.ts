@@ -69,18 +69,51 @@ export async function getElectionDates(state: string): Promise<ElectionDates> {
 // Same-origin Vercel serverless functions (frontend/api/*.ts) proxy these to
 // GovTrack and Congress.gov, keeping CONGRESS_API_KEY server-side.
 
-export async function getRepLegislation(bioguide_id: string): Promise<LegislationResponse> {
-  return fetchJsonOrThrow(`/api/legislation?bioguide=${encodeURIComponent(bioguide_id)}`)
+const legislationCache = new Map<string, Promise<LegislationResponse>>()
+const votesCache = new Map<string, Promise<Vote[]>>()
+const reportCardCache = new Map<string, Promise<ReportCardData>>()
+
+export function getRepLegislation(bioguide_id: string): Promise<LegislationResponse> {
+  const key = bioguide_id
+  let cached = legislationCache.get(key)
+  if (!cached) {
+    cached = fetchJsonOrThrow<LegislationResponse>(
+      `/api/legislation?bioguide=${encodeURIComponent(bioguide_id)}`
+    ).catch((err) => {
+      legislationCache.delete(key)
+      throw err
+    })
+    legislationCache.set(key, cached)
+  }
+  return cached
 }
 
-export async function getRepVotes(bioguide_id: string, govtrack_id?: string | number): Promise<Vote[]> {
+export function getRepVotes(bioguide_id: string, govtrack_id?: string | number): Promise<Vote[]> {
   const params = new URLSearchParams({ bioguide: bioguide_id })
   if (govtrack_id != null) params.set('govtrack', String(govtrack_id))
-  return fetchJsonOrThrow(`/api/votes?${params.toString()}`)
+  const key = params.toString()
+  let cached = votesCache.get(key)
+  if (!cached) {
+    cached = fetchJsonOrThrow<Vote[]>(`/api/votes?${key}`).catch((err) => {
+      votesCache.delete(key)
+      throw err
+    })
+    votesCache.set(key, cached)
+  }
+  return cached
 }
 
-export async function getReportCard(bioguide_id: string, govtrack_id?: string | number): Promise<ReportCardData> {
+export function getReportCard(bioguide_id: string, govtrack_id?: string | number): Promise<ReportCardData> {
   const params = new URLSearchParams({ bioguide: bioguide_id })
   if (govtrack_id != null) params.set('govtrack', String(govtrack_id))
-  return fetchJsonOrThrow(`/api/report-card?${params.toString()}`)
+  const key = params.toString()
+  let cached = reportCardCache.get(key)
+  if (!cached) {
+    cached = fetchJsonOrThrow<ReportCardData>(`/api/report-card?${key}`).catch((err) => {
+      reportCardCache.delete(key)
+      throw err
+    })
+    reportCardCache.set(key, cached)
+  }
+  return cached
 }

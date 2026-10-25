@@ -15,8 +15,18 @@ function scoreColor(value: number | null, thresholds: [number, number] = [70, 90
   return 'var(--color-error)'
 }
 
-function ScoreGauge({ label, value, subtitle }: { label: string; value: number | null; subtitle?: string }) {
-  const color = scoreColor(value)
+function ScoreGauge({
+  label,
+  value,
+  subtitle,
+  thresholds = [70, 90],
+}: {
+  label: string
+  value: number | null
+  subtitle?: string
+  thresholds?: [number, number]
+}) {
+  const color = scoreColor(value, thresholds)
   const displayValue = value !== null ? `${value}%` : '—'
 
   return (
@@ -92,11 +102,13 @@ export default function ReportCard({ bioguideId, govtrackId }: Props) {
         <ScoreGauge
           label="Attendance"
           value={data!.attendance_pct}
+          thresholds={[75, 90]}
           subtitle={data!.votes_analyzed > 0 ? `${data!.votes_analyzed} votes analyzed` : undefined}
         />
         <ScoreGauge
           label="Effectiveness"
           value={data!.effectiveness_score}
+          thresholds={data!.bills_became_law >= 1 ? [1, 8] : [2, 8]}
           subtitle={data!.bills_became_law > 0
             ? `${data!.bills_became_law} of ${data!.bills_analyzed} bills became law`
             : data!.bills_analyzed > 0 ? `0 of ${data!.bills_analyzed} bills became law` : undefined
@@ -105,8 +117,9 @@ export default function ReportCard({ bioguideId, govtrackId }: Props) {
         <ScoreGauge
           label="Bipartisanship"
           value={data!.bipartisanship_score}
+          thresholds={[35, 60]}
           subtitle={data!.cross_party_cosponsors > 0
-            ? `${data!.cross_party_cosponsors} cross-party cosponsorships`
+            ? `${data!.cross_party_cosponsors} cosponsored bills (${data!.bills_analyzed} sponsored)`
             : undefined
           }
         />

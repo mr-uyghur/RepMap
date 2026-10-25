@@ -18,9 +18,9 @@
 /* ── Brand ────────────────────────────────────────────────────────────────── */
 .navbar-brand {
   font-family: var(--font-display);
-  font-size: 1.125rem;
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  font-size: 1.45rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
   color: var(--color-text-primary);
   white-space: nowrap;
   flex-shrink: 0;
@@ -31,13 +31,13 @@
 .navbar-brand::after {
   content: '';
   display: inline-block;
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--color-accent);
-  margin-left: 3px;
+  margin-left: 5px;
   vertical-align: middle;
-  box-shadow: 0 0 6px var(--color-accent);
+  box-shadow: 0 0 8px var(--color-accent);
 }
 
 /* ── Search slot ──────────────────────────────────────────────────────────── */

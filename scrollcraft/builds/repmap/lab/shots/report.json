@@ -1,0 +1,1575 @@
+{
+  "doc": {
+    "height": 10508,
+    "vh": 900,
+    "acts": [
+      "pin",
+      "flow",
+      "pin",
+      "pan",
+      "flow",
+      "pin"
+    ],
+    "world": null
+  },
+  "report": [
+    {
+      "i": 0,
+      "y": 25,
+      "pct": 0,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "Civic Cartography · 119th Congress Democ",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "Civic Cartography · 119th Congress Democracy h",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        0
+      ],
+      "wipes": [
+        "none"
+      ],
+      "act": "pin",
+      "stages": [
+        0,
+        2800,
+        5860,
+        9043
+      ],
+      "segs": [],
+      "custom": [
+        "hero:2:95112",
+        "nc:caliper:2",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 1,
+      "y": 267,
+      "pct": 3,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "Civic Cartography · 119th Congress Democ",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "Civic Cartography · 119th Congress Democracy h",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        0
+      ],
+      "wipes": [
+        "none"
+      ],
+      "act": "pin",
+      "stages": [
+        0,
+        2558,
+        5618,
+        8801
+      ],
+      "segs": [],
+      "custom": [
+        "hero:21:95112",
+        "nc:caliper:2",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 2,
+      "y": 509,
+      "pct": 5,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "Civic Cartography · 119th Congress Democ",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "Civic Cartography · 119th Congress Democracy h",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        0
+      ],
+      "wipes": [
+        "none"
+      ],
+      "act": "pin",
+      "stages": [
+        0,
+        2316,
+        5376,
+        8559
+      ],
+      "segs": [],
+      "custom": [
+        "hero:40:95112",
+        "nc:caliper:2",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 3,
+      "y": 751,
+      "pct": 8,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "One postal code. Three federal ballots. ",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "One postal code. Three federal ballots. ZIP 95",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        0
+      ],
+      "wipes": [
+        "none"
+      ],
+      "act": "pin",
+      "stages": [
+        0,
+        2074,
+        5134,
+        8317
+      ],
+      "segs": [],
+      "custom": [
+        "hero:60:95112",
+        "nc:caliper:2",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 4,
+      "y": 993,
+      "pct": 10,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "One postal code. Three federal ballots. ",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "One postal code. Three federal ballots. ZIP 95",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        0
+      ],
+      "wipes": [
+        "none"
+      ],
+      "act": "pin",
+      "stages": [
+        0,
+        1832,
+        4892,
+        8075
+      ],
+      "segs": [],
+      "custom": [
+        "hero:79:95112",
+        "nc:caliper:2",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 5,
+      "y": 1235,
+      "pct": 13,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "One postal code. Three federal ballots. ",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "One postal code. Three federal ballots. ZIP 95",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        0
+      ],
+      "wipes": [
+        "inset(0px 0px 100%)"
+      ],
+      "act": "pin",
+      "stages": [
+        0,
+        1590,
+        4650,
+        7833
+      ],
+      "segs": [],
+      "custom": [
+        "hero:98:95112",
+        "nc:caliper:2",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 6,
+      "y": 1291,
+      "pct": 13,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "One postal code. Three federal ballots. ",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "One postal code. Three federal ballots. ZIP 95",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        0
+      ],
+      "wipes": [
+        "inset(0px 0px 99.54%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -31,
+        1534,
+        4594,
+        7777
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:2",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 7,
+      "y": 1592,
+      "pct": 17,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "One postal code. Three federal ballots. ",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "One postal code. Three federal ballots. ZIP 95",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        0
+      ],
+      "wipes": [
+        "inset(0px 0px 61.29%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -332,
+        1233,
+        4293,
+        7476
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:2",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 8,
+      "y": 1892,
+      "pct": 20,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "One postal code. Three federal ballots. ",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "One postal code. Three federal ballots. ZIP 95",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        0
+      ],
+      "wipes": [
+        "inset(0px 0px 9.7%)"
+      ],
+      "act": "flow",
+      "stages": [
+        -632,
+        933,
+        3993,
+        7176
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:2",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 9,
+      "y": 2193,
+      "pct": 23,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [
+        0
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "flow",
+      "stages": [
+        -933,
+        632,
+        3692,
+        6875
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:2",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 10,
+      "y": 2493,
+      "pct": 26,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "Boundary Forensics · North Carolina Befo",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "Boundary Forensics · North Carolina Before a s",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        0
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -1233,
+        332,
+        3392,
+        6575
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:2",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 11,
+      "y": 2794,
+      "pct": 29,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "Boundary Forensics · North Carolina Befo",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "Boundary Forensics · North Carolina Before a s",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        0
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -1534,
+        31,
+        3091,
+        6274
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:2",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 12,
+      "y": 2869,
+      "pct": 30,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "Boundary Forensics · North Carolina Befo",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "Boundary Forensics · North Carolina Before a s",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        0
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -1609,
+        0,
+        3016,
+        6199
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:2",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 13,
+      "y": 3283,
+      "pct": 34,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "Boundary Forensics · North Carolina Befo",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "Boundary Forensics · North Carolina Before a s",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        0
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -2023,
+        0,
+        2602,
+        5785
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:21",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 14,
+      "y": 3698,
+      "pct": 38,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "One census adds a fourteenth seat and re",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "One census adds a fourteenth seat and redraws ",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        0
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -2438,
+        0,
+        2187,
+        5370
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:40",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 15,
+      "y": 4113,
+      "pct": 43,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "One census adds a fourteenth seat and re",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "One census adds a fourteenth seat and redraws ",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        0
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -2853,
+        0,
+        1772,
+        4955
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:60",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 16,
+      "y": 4528,
+      "pct": 47,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "Ten Republican seats. Four Democratic se",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "Ten Republican seats. Four Democratic seats. I",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        0
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -3268,
+        0,
+        1357,
+        4540
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:79",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 17,
+      "y": 4942,
+      "pct": 51,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "Ten Republican seats. Four Democratic se",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "Ten Republican seats. Four Democratic seats. I",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        0
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -3682,
+        0,
+        943,
+        4126
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:98",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 18,
+      "y": 5911,
+      "pct": 62,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [
+        -25
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pan",
+      "stages": [
+        -4651,
+        -926,
+        0,
+        3157
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:98",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 19,
+      "y": 6153,
+      "pct": 64,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [
+        -263
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pan",
+      "stages": [
+        -4893,
+        -1168,
+        0,
+        2915
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:98",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 20,
+      "y": 6394,
+      "pct": 67,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [
+        -500
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pan",
+      "stages": [
+        -5134,
+        -1409,
+        0,
+        2674
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:98",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 21,
+      "y": 6636,
+      "pct": 69,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [
+        -739
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pan",
+      "stages": [
+        -5376,
+        -1651,
+        0,
+        2432
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:98",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 22,
+      "y": 6878,
+      "pct": 72,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [
+        -977
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pan",
+      "stages": [
+        -5618,
+        -1893,
+        0,
+        2190
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:98",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 23,
+      "y": 7120,
+      "pct": 74,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [
+        -1215
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pan",
+      "stages": [
+        -5860,
+        -2135,
+        0,
+        1948
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:98",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 24,
+      "y": 7184,
+      "pct": 75,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [
+        -1240
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pan",
+      "stages": [
+        -5924,
+        -2199,
+        -39,
+        1884
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:98",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 25,
+      "y": 7553,
+      "pct": 79,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [
+        -1240
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pan",
+      "stages": [
+        -6293,
+        -2568,
+        -408,
+        1515
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:98",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 26,
+      "y": 7922,
+      "pct": 82,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [
+        -1240
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "flow",
+      "stages": [
+        -6662,
+        -2937,
+        -777,
+        1146
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:98",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 27,
+      "y": 8292,
+      "pct": 86,
+      "settled": true,
+      "contrast": [],
+      "cues": [],
+      "clips": [],
+      "rails": [
+        -1240
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "flow",
+      "stages": [
+        -7032,
+        -3307,
+        -1147,
+        776
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:98",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 28,
+      "y": 8661,
+      "pct": 90,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "Step into the full 3D Civic Atlas. Your ",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "Step into the full 3D Civic Atlas. Your select",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        -1240
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -7401,
+        -3676,
+        -1516,
+        407
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:98",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 29,
+      "y": 9030,
+      "pct": 94,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "Step into the full 3D Civic Atlas. Your ",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "Step into the full 3D Civic Atlas. Your select",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        -1240
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -7770,
+        -4045,
+        -1885,
+        38
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:98",
+        "enter:0"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 30,
+      "y": 9079,
+      "pct": 94,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "Step into the full 3D Civic Atlas. Your ",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "Step into the full 3D Civic Atlas. Your select",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        -1240
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -7819,
+        -4094,
+        -1934,
+        0
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:98",
+        "enter:2"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 31,
+      "y": 9183,
+      "pct": 96,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "Step into the full 3D Civic Atlas. Your ",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        },
+        {
+          "t": "Redistricting Time Slider ↗ Overlay 2013",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "Step into the full 3D Civic Atlas. Your select",
+          "o": 1
+        },
+        {
+          "t": "Redistricting Time Slider ↗ Overlay 2013 (CD11",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        -1240
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -7923,
+        -4198,
+        -2038,
+        0
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:98",
+        "enter:21"
+      ],
+      "customHold": false,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 32,
+      "y": 9287,
+      "pct": 97,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "Step into the full 3D Civic Atlas. Your ",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        },
+        {
+          "t": "Redistricting Time Slider ↗ Overlay 2013",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "Step into the full 3D Civic Atlas. Your select",
+          "o": 1
+        },
+        {
+          "t": "Redistricting Time Slider ↗ Overlay 2013 (CD11",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        -1240
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -8027,
+        -4302,
+        -2142,
+        0
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:98",
+        "enter:100"
+      ],
+      "customHold": true,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 33,
+      "y": 9390,
+      "pct": 98,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "Step into the full 3D Civic Atlas. Your ",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        },
+        {
+          "t": "Redistricting Time Slider ↗ Overlay 2013",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "Step into the full 3D Civic Atlas. Your select",
+          "o": 1
+        },
+        {
+          "t": "Redistricting Time Slider ↗ Overlay 2013 (CD11",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        -1240
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -8130,
+        -4405,
+        -2245,
+        0
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:98",
+        "enter:100"
+      ],
+      "customHold": true,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 34,
+      "y": 9494,
+      "pct": 99,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "Step into the full 3D Civic Atlas. Your ",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        },
+        {
+          "t": "Redistricting Time Slider ↗ Overlay 2013",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "Step into the full 3D Civic Atlas. Your select",
+          "o": 1
+        },
+        {
+          "t": "Redistricting Time Slider ↗ Overlay 2013 (CD11",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        -1240
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -8234,
+        -4509,
+        -2349,
+        0
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:98",
+        "enter:100"
+      ],
+      "customHold": true,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 35,
+      "y": 9598,
+      "pct": 100,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "Step into the full 3D Civic Atlas. Your ",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        },
+        {
+          "t": "Redistricting Time Slider ↗ Overlay 2013",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "Step into the full 3D Civic Atlas. Your select",
+          "o": 1
+        },
+        {
+          "t": "Redistricting Time Slider ↗ Overlay 2013 (CD11",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        -1240
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -8338,
+        -4613,
+        -2453,
+        0
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:98",
+        "enter:100"
+      ],
+      "customHold": true,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    },
+    {
+      "i": 36,
+      "y": 9608,
+      "pct": 100,
+      "settled": true,
+      "contrast": [
+        {
+          "t": "Step into the full 3D Civic Atlas. Your ",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        },
+        {
+          "t": "Redistricting Time Slider ↗ Overlay 2013",
+          "dir": "own-fill",
+          "worst": 17.35,
+          "mean": 17.35
+        }
+      ],
+      "cues": [
+        {
+          "t": "Step into the full 3D Civic Atlas. Your select",
+          "o": 1
+        },
+        {
+          "t": "Redistricting Time Slider ↗ Overlay 2013 (CD11",
+          "o": 1
+        }
+      ],
+      "clips": [],
+      "rails": [
+        -1240
+      ],
+      "wipes": [
+        "inset(0px 0px 0%)"
+      ],
+      "act": "pin",
+      "stages": [
+        -8348,
+        -4623,
+        -2463,
+        0
+      ],
+      "segs": [],
+      "custom": [
+        "hero:100:95112",
+        "nc:caliper:98",
+        "enter:100"
+      ],
+      "customHold": true,
+      "seg": null,
+      "segp": null,
+      "bg": "#080c14"
+    }
+  ],
+  "consoleErrors": [],
+  "failed": []
+}

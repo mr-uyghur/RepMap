@@ -1,10 +1,60 @@
-import { defineConfig } from 'vite'
+import path from 'node:path'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+
+function localVercelApiPlugin(): Plugin {
+  return {
+    name: 'local-vercel-api',
+    configureServer(server) {
+      const frontendEnv = loadEnv('development', process.cwd(), '')
+      const backendEnv = loadEnv('development', path.resolve(process.cwd(), '../backend'), '')
+      const congressKey = frontendEnv.CONGRESS_API_KEY || backendEnv.CONGRESS_API_KEY
+      if (congressKey && !process.env.CONGRESS_API_KEY) {
+        process.env.CONGRESS_API_KEY = congressKey
+      }
+      server.middlewares.use(async (req, res, next) => {
+        if (!req.url?.startsWith('/api/')) return next()
+        const parsed = new URL(req.url, 'http://localhost:5173')
+        const route = parsed.pathname.replace(/^\/api\//, '').replace(/\/$/, '')
+        if (!['votes', 'legislation', 'report-card'].includes(route)) return next()
+
+        try {
+          const mod = await server.ssrLoadModule(`/api/${route}.ts`)
+          const query: Record<string, string> = {}
+          parsed.searchParams.forEach((v, k) => { query[k] = v })
+          const vercelReq = Object.assign(req, { query })
+          const vercelRes = Object.assign(res, {
+            status(code: number) {
+              res.statusCode = code
+              return vercelRes
+            },
+            json(body: unknown) {
+              if (!res.getHeader('Content-Type')) {
+                res.setHeader('Content-Type', 'application/json; charset=utf-8')
+              }
+              res.end(JSON.stringify(body))
+              return vercelRes
+            },
+          })
+          await mod.default(vercelReq, vercelRes)
+        } catch (err) {
+          console.error(`[/api/${route}] Error:`, err)
+          if (!res.headersSent) {
+            res.statusCode = 500
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ detail: 'Internal dev server error' }))
+          }
+        }
+      })
+    },
+  }
+}
 
 export default defineConfig({
   plugins: [
     react(),
+    localVercelApiPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       // Only activate in production builds, not dev server
@@ -111,14 +161,13 @@ export default defineConfig({
     watch: {
       usePolling: true,
     },
-    proxy: {
-      // Proxies to `vercel dev` (see frontend/api/*.ts), which serves the
-      // votes/legislation/report-card functions locally. Run `vercel dev`
-      // on port 3000 alongside `npm run dev` for local development.
-      '/api': {
-        target: process.env.API_TARGET ?? 'http://localhost:3000',
-        changeOrigin: true,
-      }
-    }
+    proxy: process.env.API_TARGET
+      ? {
+          '/api': {
+            target: process.env.API_TARGET,
+            changeOrigin: true,
+          },
+        }
+      : undefined,
   }
 })

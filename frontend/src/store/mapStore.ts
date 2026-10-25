@@ -7,7 +7,7 @@ export const useMapStore = create<MapState>((set) => ({
   selectedRepId: null,
   selectedStateCode: null,
   compareRepId: null,
-  darkMode: false,
+  darkMode: true,
   viewLevel: 'federal',
   redistrictingMode: false,
   redistrictingSliderValue: 100,

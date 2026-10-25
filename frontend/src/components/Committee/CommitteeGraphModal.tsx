@@ -5,6 +5,8 @@ import './CommitteeGraphModal.css'
 
 interface Props {
   representatives: Representative[]
+  initialCommittee?: string | null
+  onSelectCommittee?: (committee: string) => void
   onClose: () => void
   onNodeClick: (rep: Representative) => void
 }
@@ -18,9 +20,19 @@ function CloseIcon() {
   )
 }
 
-export default function CommitteeGraphModal({ representatives, onClose, onNodeClick }: Props) {
-  const [committeeFilter, setCommitteeFilter] = useState<string | null>(null)
+export default function CommitteeGraphModal({
+  representatives,
+  initialCommittee = null,
+  onSelectCommittee,
+  onClose,
+  onNodeClick,
+}: Props) {
+  const [committeeFilter, setCommitteeFilter] = useState<string | null>(initialCommittee ?? null)
   const closeRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    setCommitteeFilter(initialCommittee ?? null)
+  }, [initialCommittee])
 
   // Collect all unique committee names from reps that have assignments.
   const allCommittees = useMemo(() => {
@@ -97,7 +109,11 @@ export default function CommitteeGraphModal({ representatives, onClose, onNodeCl
               id="committee-filter"
               className="committee-modal-select"
               value={committeeFilter ?? ''}
-              onChange={(e) => setCommitteeFilter(e.target.value || null)}
+              onChange={(e) => {
+                const next = e.target.value || null
+                setCommitteeFilter(next)
+                onSelectCommittee?.(e.target.value)
+              }}
             >
               <option value="">All committees</option>
               {allCommittees.map((c) => (

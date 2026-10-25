@@ -1,19 +1,20 @@
-import { Component, useRef, useCallback, useEffect, useState } from 'react'
+import { Component, Suspense, lazy, useRef, useCallback, useEffect, useState } from 'react'
 import type { MapRef } from 'react-map-gl'
 import type { ViewLevel } from './types'
 import RepMap from './components/Map/RepMap'
 import RepresentativePanel from './components/Panel/RepresentativePanel'
-import ComparePanel from './components/Panel/ComparePanel'
 import StateTray from './components/Panel/StateTray'
 import NavBar from './components/Layout/NavBar'
 import PartyRibbon from './components/Layout/PartyRibbon'
 import ZipSearchResults from './components/Search/ZipSearchResults'
-import CommitteeGraphModal from './components/Committee/CommitteeGraphModal'
 import RedistrictingSlider from './components/Map/RedistrictingSlider'
 import { useMapStore } from './store/mapStore'
 import { useRepStore } from './store/repStore'
 import type { Representative, ZipSearchResult } from './types'
 import './App.css'
+
+const ComparePanel = lazy(() => import('./components/Panel/ComparePanel'))
+const CommitteeGraphModal = lazy(() => import('./components/Committee/CommitteeGraphModal'))
 
 class ErrorBoundary extends Component<
   { children: React.ReactNode },
@@ -46,13 +47,34 @@ class ErrorBoundary extends Component<
   }
 }
 
+import ScrollcraftStage from './components/Story/ScrollcraftStage'
+import { resolveZip } from './utils/zipLookup'
+
+function hasMapDeepLinkParams(search: string): boolean {
+  const params = new URLSearchParams(search)
+  return params.get('mode') === 'map'
+}
+
 export default function App() {
   const mapRef = useRef<MapRef>(null)
+  const [storyMode, setStoryMode] = useState<boolean>(() => !hasMapDeepLinkParams(window.location.search))
   const [zipSearchResult, setZipSearchResult] = useState<ZipSearchResult | null>(null)
   const [detailPanelOpen, setDetailPanelOpen] = useState(false)
   const [compareMode, setCompareMode] = useState(false)
   const [committeeGraphOpen, setCommitteeGraphOpen] = useState(false)
+  const [selectedCommittee, setSelectedCommittee] = useState<string | null>(null)
   const [isOffline, setIsOffline] = useState(!navigator.onLine)
+
+  useEffect(() => {
+    if (!hasMapDeepLinkParams(window.location.search)) {
+      setStoryMode(true)
+    }
+  }, [])
+
+  const handleOpenCommittee = useCallback((committee?: string) => {
+    setSelectedCommittee(committee ?? null)
+    setCommitteeGraphOpen(true)
+  }, [])
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false)
@@ -88,7 +110,7 @@ export default function App() {
     setDetailPanelOpen(false)
     setSelectedRepId(null)
     setSelectedStateCode(null)
-    window.history.replaceState({}, '', window.location.pathname)
+    window.history.replaceState({}, '', `${window.location.pathname}?mode=map`)
   }, [viewLevel, setCompareRepId, setSelectedRepId, setSelectedStateCode])
 
   // Sync Zustand dark mode state to a CSS class for variable-based theming.
@@ -102,7 +124,7 @@ export default function App() {
       return
     }
     const rep = allRepresentatives.find((r) => r.id === selectedRepId)
-    if (rep) document.title = `${rep.name} — RepMap`
+    if (rep) document.title = `${rep.name} · RepMap`
   }, [selectedRepId, allRepresentatives])
 
   const hasDeepLinked = useRef(false)
@@ -128,7 +150,7 @@ export default function App() {
       const repParam = rep.bioguide_id ? rep.bioguide_id : (isStateRep ? String(rep.id) : null)
       if (repParam) {
         const levelSuffix = isStateRep ? '&level=state' : ''
-        const newUrl = `${window.location.pathname}?rep=${repParam}${levelSuffix}`
+        const newUrl = `${window.location.pathname}?mode=map&rep=${repParam}${levelSuffix}`
         const hasRepParam = new URLSearchParams(window.location.search).has('rep')
         if (hasRepParam) {
           window.history.replaceState({}, '', newUrl)
@@ -189,7 +211,7 @@ export default function App() {
     setCompareRepId(null)
     setDetailPanelOpen(false)
     setSelectedRepId(null)
-    window.history.replaceState({}, '', window.location.pathname)
+    window.history.replaceState({}, '', `${window.location.pathname}?mode=map`)
   }, [setCompareRepId, setSelectedRepId])
 
   const handleCompareClose = useCallback(() => {
@@ -209,19 +231,126 @@ export default function App() {
     [handleRepSelect]
   )
 
+  const applyMapDeepLinks = useCallback(
+    (params: URLSearchParams) => {
+      if (allRepresentatives.length === 0) return
+
+      const committeeParam = params.get('committee')
+      if (committeeParam) {
+        setSelectedCommittee(committeeParam)
+        setCommitteeGraphOpen(true)
+      }
+
+      const compareParam = params.get('compare')
+      if (compareParam) {
+        const [a, b] = compareParam.split(',').map((s) => parseInt(s.trim(), 10))
+        if (!isNaN(a) && !isNaN(b)) {
+          setSelectedRepId(a)
+          setCompareRepId(b)
+          setDetailPanelOpen(false)
+          return
+        }
+      }
+
+      const redistrictParam = params.get('redistrict')
+      if (redistrictParam) {
+        const st = redistrictParam.toUpperCase()
+        setRedistrictingMode(true)
+        setRedistrictingSliderValue(45)
+        setSelectedStateCode(st)
+        const stateRep = allRepresentatives.find((r) => r.state === st)
+        if (stateRep) {
+          setTimeout(() => {
+            mapRef.current?.flyTo({
+              center: [stateRep.longitude, stateRep.latitude],
+              zoom: 6.2,
+              duration: 1800,
+              essential: true,
+            })
+          }, 250)
+        }
+        return
+      }
+
+      const zipParam = params.get('zip')
+      const repParam = params.get('rep')
+      const levelParam = params.get('level')
+
+      if (zipParam && /^\d{5}$/.test(zipParam)) {
+        resolveZip(zipParam, allRepresentatives).then((res) => {
+          if (!res) return
+          handleZipSearchComplete({
+            zipcode: zipParam,
+            lat: res.lat,
+            lng: res.lng,
+            representatives: res.representatives,
+          })
+          if (repParam) {
+            const numericId = parseInt(repParam, 10)
+            const target = allRepresentatives.find(
+              (r) => r.id === numericId || r.bioguide_id === repParam
+            )
+            if (target) {
+              setSelectedRepId(target.id)
+              setDetailPanelOpen(true)
+            }
+          }
+        })
+        return
+      }
+
+      if (repParam) {
+        const numericId = parseInt(repParam, 10)
+        const rep =
+          levelParam === 'state'
+            ? allRepresentatives.find((r) => r.id === numericId)
+            : allRepresentatives.find(
+                (r) => r.bioguide_id === repParam || r.id === numericId
+              )
+        if (rep) {
+          handleRepSelect(rep)
+        }
+      }
+    },
+    [
+      allRepresentatives,
+      handleRepSelect,
+      handleZipSearchComplete,
+      setCompareRepId,
+      setRedistrictingMode,
+      setRedistrictingSliderValue,
+      setSelectedRepId,
+      setSelectedStateCode,
+    ]
+  )
+
+  const handleNavigateFromStory = useCallback(
+    (params: URLSearchParams) => {
+      const qs = params.toString()
+      const newUrl = `${window.location.pathname}${qs ? `?${qs}` : '?mode=map'}`
+      window.history.pushState({}, '', newUrl)
+      setStoryMode(false)
+      hasDeepLinked.current = true
+      setTimeout(() => {
+        applyMapDeepLinks(params)
+      }, 120)
+    },
+    [applyMapDeepLinks]
+  )
+
   useEffect(() => {
     if (compareRepId !== null) setCompareMode(false)
   }, [compareRepId])
 
   useEffect(() => {
-    if (!selectedStateCode) return
+    if (!selectedStateCode || redistrictingMode) return
     setZipSearchResult(null)
     setCompareMode(false)
     setCompareRepId(null)
     setDetailPanelOpen(false)
     setSelectedRepId(null)
-    window.history.replaceState({}, '', window.location.pathname)
-  }, [selectedStateCode, setCompareRepId, setSelectedRepId])
+    window.history.replaceState({}, '', `${window.location.pathname}?mode=map`)
+  }, [redistrictingMode, selectedStateCode, setCompareRepId, setSelectedRepId])
 
   useEffect(() => {
     if (!detailPanelOpen || compareRepId !== null) return
@@ -237,55 +366,30 @@ export default function App() {
   }, [compareRepId, detailPanelOpen, handlePanelClose])
 
   useEffect(() => {
-    if (hasDeepLinked.current || allRepresentatives.length === 0) return
-    const params = new URLSearchParams(window.location.search)
-    const repParam = params.get('rep')
-    const levelParam = params.get('level')
-    if (!repParam) return
-    let rep: typeof allRepresentatives[0] | undefined
-    if (levelParam === 'state') {
-      const numericId = parseInt(repParam, 10)
-      rep = allRepresentatives.find((r) => r.id === numericId)
-    } else {
-      rep = allRepresentatives.find((r) => r.bioguide_id === repParam)
-    }
-    if (rep) {
-      hasDeepLinked.current = true
-      handleRepSelect(rep)
-    }
-  }, [allRepresentatives, handleRepSelect])
+    if (storyMode || hasDeepLinked.current || allRepresentatives.length === 0) return
+    hasDeepLinked.current = true
+    applyMapDeepLinks(new URLSearchParams(window.location.search))
+  }, [storyMode, allRepresentatives, applyMapDeepLinks])
 
   useEffect(() => {
     function onPopState() {
-      const params = new URLSearchParams(window.location.search)
-      const repParam = params.get('rep')
-      const levelParam = params.get('level')
-      if (repParam) {
-        let rep: typeof allRepresentatives[0] | undefined
-        if (levelParam === 'state') {
-          const numericId = parseInt(repParam, 10)
-          rep = allRepresentatives.find((r) => r.id === numericId)
-        } else {
-          rep = allRepresentatives.find((r) => r.bioguide_id === repParam)
-        }
-        if (rep) {
-          setSelectedStateCode(null)
-          setCompareMode(false)
-          setCompareRepId(null)
-          setSelectedRepId(rep.id)
-          setDetailPanelOpen(true)
-        }
-      } else {
-        setSelectedStateCode(null)
-        setCompareMode(false)
-        setCompareRepId(null)
-        setSelectedRepId(null)
-        setDetailPanelOpen(false)
+      const inMap = hasMapDeepLinkParams(window.location.search)
+      setStoryMode(!inMap)
+      if (inMap) {
+        applyMapDeepLinks(new URLSearchParams(window.location.search))
       }
     }
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
-  }, [allRepresentatives, setCompareRepId, setSelectedRepId, setSelectedStateCode])
+  }, [applyMapDeepLinks])
+
+  if (storyMode) {
+    return (
+      <ErrorBoundary>
+        <ScrollcraftStage onNavigateToMap={handleNavigateFromStory} />
+      </ErrorBoundary>
+    )
+  }
 
   return (
     <ErrorBoundary>
@@ -300,7 +404,11 @@ export default function App() {
           onZipSearchComplete={handleZipSearchComplete}
           onZipSearchReset={handleZipSearchReset}
           onRepSelect={handleRepSelect}
-          onCommitteesClick={() => setCommitteeGraphOpen(true)}
+          onStoryClick={() => {
+            window.history.pushState({}, '', window.location.pathname)
+            setStoryMode(true)
+          }}
+          onCommitteesClick={() => handleOpenCommittee()}
           onRedistrictingClick={() => {
             if (redistrictingMode) {
               setRedistrictingMode(false)
@@ -314,7 +422,7 @@ export default function App() {
         <main id="main-content" className="app-map-area">
           <RepMap mapRef={mapRef} onRepSelect={handleRepSelect} />
           {redistrictingMode && viewLevel === 'federal' && <RedistrictingSlider />}
-          {selectedStateCode && (
+          {selectedStateCode && !redistrictingMode && (
             <StateTray
               stateCode={selectedStateCode}
               onClose={handleStateTrayClose}
@@ -330,11 +438,14 @@ export default function App() {
             />
           )}
           {selectedRepId !== null && compareRepId !== null && (
-            <ComparePanel
-              repIdA={selectedRepId}
-              repIdB={compareRepId}
-              onClose={handleCompareClose}
-            />
+            <Suspense fallback={null}>
+              <ComparePanel
+                repIdA={selectedRepId}
+                repIdB={compareRepId}
+                onClose={handleCompareClose}
+                onCommitteeClick={(committee) => handleOpenCommittee(committee)}
+              />
+            </Suspense>
           )}
           {selectedRepId !== null && compareRepId === null && detailPanelOpen && (
             <RepresentativePanel
@@ -342,20 +453,25 @@ export default function App() {
               onClose={handlePanelClose}
               compareMode={compareMode}
               onCompareModeChange={setCompareMode}
+              onCommitteeClick={(committee) => handleOpenCommittee(committee)}
             />
           )}
         </main>
       </div>
-        {committeeGraphOpen && (
+      {committeeGraphOpen && (
+        <Suspense fallback={null}>
           <CommitteeGraphModal
             representatives={allRepresentatives}
+            initialCommittee={selectedCommittee}
+            onSelectCommittee={setSelectedCommittee}
             onClose={() => setCommitteeGraphOpen(false)}
             onNodeClick={(rep) => {
               setCommitteeGraphOpen(false)
               handleRepSelect(rep)
             }}
           />
-        )}
+        </Suspense>
+      )}
     </ErrorBoundary>
   )
 }

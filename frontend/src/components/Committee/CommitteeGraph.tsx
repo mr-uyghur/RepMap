@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import * as d3 from 'd3'
 import type { Representative } from '../../types'
 import { PARTY_COLORS } from '../../constants'
@@ -87,13 +87,26 @@ export default function CommitteeGraph({ representatives, committeeFilter, onNod
     onNodeClick(rep)
   }, [onNodeClick])
 
+  const { nodes: baseNodes, edges: baseEdges } = useMemo(
+    () => buildGraph(representatives, committeeFilter),
+    [representatives, committeeFilter],
+  )
+
   useEffect(() => {
     const container = containerRef.current
     const svgEl = svgRef.current
     if (!container || !svgEl) return
 
-    const { nodes, edges } = buildGraph(representatives, committeeFilter)
-    if (nodes.length === 0) return
+    if (baseNodes.length === 0) return
+
+    // Clone nodes and edges so D3 forceSimulation mutations do not pollute memoized state
+    const nodes: GraphNode[] = baseNodes.map((n) => ({ ...n }))
+    const nodeById = new Map<number, GraphNode>(nodes.map((n) => [n.id, n]))
+    const edges: GraphEdge[] = baseEdges.map((e) => ({
+      shared: e.shared,
+      source: nodeById.get((e.source as GraphNode).id)!,
+      target: nodeById.get((e.target as GraphNode).id)!,
+    }))
 
     const width = container.clientWidth || 800
     const height = container.clientHeight || 600
@@ -194,13 +207,11 @@ export default function CommitteeGraph({ representatives, committeeFilter, onNod
       simulation.stop()
       setTooltip(null)
     }
-  }, [representatives, committeeFilter, handleNodeClick])
-
-  const { nodes } = buildGraph(representatives, committeeFilter)
+  }, [baseNodes, baseEdges, handleNodeClick])
 
   return (
     <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
-      {nodes.length === 0 ? (
+      {baseNodes.length === 0 ? (
         <div className="committee-modal-empty">
           No representatives with committee assignments
           {committeeFilter ? ` on "${committeeFilter}"` : ''}.

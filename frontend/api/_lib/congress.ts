@@ -74,13 +74,20 @@ function simplifyBill(bill: RawBill): Bill {
   }
 }
 
+export interface LegislationBatch {
+  bills: Bill[]
+  totalCount: number
+}
+
 /** Throws CongressApiUnavailable on any upstream failure — matches the Python behavior. */
-export async function fetchLegislation(
+export async function fetchLegislationWithCount(
   bioguideId: string,
   kind: 'sponsored' | 'cosponsored',
-  apiKey: string
-): Promise<Bill[]> {
-  const url = `https://api.congress.gov/v3/member/${encodeURIComponent(bioguideId)}/${kind}-legislation?limit=10&format=json`
+  apiKey: string,
+  limit: number = 10
+): Promise<LegislationBatch> {
+  const cappedLimit = Math.max(1, Math.min(250, Math.floor(limit)))
+  const url = `https://api.congress.gov/v3/member/${encodeURIComponent(bioguideId)}/${kind}-legislation?limit=${cappedLimit}&format=json`
   let data: Record<string, unknown>
   try {
     data = (await fetchJson(url, { headers: { 'x-api-key': apiKey } })) as Record<string, unknown>
@@ -92,5 +99,18 @@ export async function fetchLegislation(
   if (!Array.isArray(raw)) {
     throw new CongressApiUnavailable(`Unexpected ${key} response shape`)
   }
-  return (raw as RawBill[]).slice(0, 10).map(simplifyBill)
+  const bills = (raw as RawBill[]).slice(0, cappedLimit).map(simplifyBill)
+  const pagination = data.pagination as { count?: unknown } | undefined
+  const totalCount = typeof pagination?.count === 'number' ? pagination.count : bills.length
+  return { bills, totalCount }
+}
+
+export async function fetchLegislation(
+  bioguideId: string,
+  kind: 'sponsored' | 'cosponsored',
+  apiKey: string,
+  limit: number = 10
+): Promise<Bill[]> {
+  const { bills } = await fetchLegislationWithCount(bioguideId, kind, apiKey, limit)
+  return bills
 }

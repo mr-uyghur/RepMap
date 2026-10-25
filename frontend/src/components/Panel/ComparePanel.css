@@ -264,14 +264,91 @@
 
 .compare-committee-pill {
   display: inline-flex;
+  align-items: center;
   padding: 4px 10px;
   border: 1px solid rgba(var(--color-accent-rgb), 0.26);
   border-radius: var(--radius-full);
   background: rgba(var(--color-accent-rgb), 0.10);
   color: var(--color-accent);
+  font-family: inherit;
   font-size: 11px;
   font-weight: 600;
   line-height: 1.35;
+  text-align: left;
+}
+
+.compare-committee-pill--clickable {
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.compare-committee-pill--clickable:hover {
+  background: rgba(var(--color-accent-rgb), 0.20);
+  border-color: rgba(var(--color-accent-rgb), 0.48);
+  transform: translateY(-1px);
+}
+
+.compare-committee-pill--clickable:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.compare-scores-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.compare-score-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm, 8px);
+  background: rgba(148, 163, 184, 0.07);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.compare-score-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.compare-score-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compare-score-value {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.compare-score-track {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--color-border);
+}
+
+.compare-score-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.35s ease;
+}
+
+.compare-score-skeleton {
+  height: 42px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--color-border-subtle);
 }
 
 .compare-insights {
@@ -304,6 +381,29 @@
   color: var(--color-text-secondary);
   background: var(--color-bg-glass);
   font-size: 13px;
+}
+
+.compare-insight-pill--alignment {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.compare-alignment-bar {
+  display: inline-block;
+  width: 64px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-border);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.compare-alignment-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
 }
 
 .compare-shared-committees {
@@ -407,7 +507,8 @@
 }
 
 @media (max-width: 480px) {
-  .compare-contact-grid {
+  .compare-contact-grid,
+  .compare-scores-grid {
     grid-template-columns: 1fr;
   }
 

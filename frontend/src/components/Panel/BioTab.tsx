@@ -166,9 +166,10 @@ function getOfficialProfileLinks(rep: Representative) {
 
 interface Props {
   rep: Representative
+  onCommitteeClick?: (committee: string) => void
 }
 
-export default function BioTab({ rep }: Props) {
+export default function BioTab({ rep, onCommitteeClick }: Props) {
   const partyColor = PARTY_COLORS[rep.party] || '#6b7280'
   const socialEntries = rep.social_links
     ? Object.entries(rep.social_links).filter(([, v]) => v)
@@ -270,9 +271,21 @@ export default function BioTab({ rep }: Props) {
           <div className="bio-field">
             <p className="bio-field-label">Committees</p>
             <div className="bio-committee-pills">
-              {committees.map((name) => (
-                <span key={name} className="bio-committee-pill">{name}</span>
-              ))}
+              {committees.map((name) =>
+                onCommitteeClick ? (
+                  <button
+                    key={name}
+                    type="button"
+                    className="bio-committee-pill bio-committee-pill--clickable"
+                    onClick={() => onCommitteeClick(name)}
+                    title={`View ${name} in Committee Network`}
+                  >
+                    {name}
+                  </button>
+                ) : (
+                  <span key={name} className="bio-committee-pill">{name}</span>
+                )
+              )}
             </div>
           </div>
         )}

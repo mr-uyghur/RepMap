@@ -601,6 +601,8 @@
   border-radius: var(--radius-full);
   font-size: 11px;
   font-weight: 600;
+  font-family: inherit;
+  text-align: left;
   letter-spacing: 0.02em;
   background: rgba(var(--color-accent-rgb), 0.10);
   border: 1px solid rgba(var(--color-accent-rgb), 0.28);
@@ -608,6 +610,10 @@
   white-space: normal;
   line-height: 1.4;
   transition: background 0.18s ease, transform 0.15s ease, box-shadow 0.18s ease;
+}
+
+.bio-committee-pill--clickable {
+  cursor: pointer;
 }
 
 .bio-committee-pill:hover {
