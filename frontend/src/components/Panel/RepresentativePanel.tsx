@@ -63,7 +63,7 @@ const PARTY_LABELS: Record<string, string> = {
 }
 
 const FEDERAL_TABS: { key: TabKey; label: string }[] = [
-  { key: 'biography',     label: 'Biography'    },
+  { key: 'biography',     label: 'Bio'          },
   { key: 'voting_record', label: 'Legislation'  },
   { key: 'votes',         label: 'Votes'        },
   { key: 'election',      label: 'Election'     },
@@ -71,7 +71,7 @@ const FEDERAL_TABS: { key: TabKey; label: string }[] = [
 ]
 
 const STATE_TABS: { key: TabKey; label: string }[] = [
-  { key: 'biography',   label: 'Biography'   },
+  { key: 'biography',   label: 'Bio'         },
   { key: 'how_to_vote', label: 'How to Vote' },
 ]
 

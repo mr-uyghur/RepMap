@@ -437,6 +437,12 @@
 
 .panel-tab--active { color: var(--color-accent-text); }
 
+/* Five federal tabs must fit at 360px without scrolling (R-13): tighter padding, no tracking. */
+@media (max-width: 480px) {
+  .panel-tabs { margin: 10px 10px; }
+  .panel-tab { flex: 1 1 auto; padding: 0 5px; letter-spacing: 0; }
+}
+
 .panel-tabs-divider {
   height: 1px;
   background: var(--color-border-subtle);

@@ -255,4 +255,13 @@
   .navbar-races-btn {
     padding: 0 10px;
   }
+
+  /* Give the search box room for its "ZIP or name" hint; the label carries the meaning. */
+  .navbar-races-btn svg {
+    display: none;
+  }
+
+  .navbar .searchbar-input {
+    padding: 0 8px;
+  }
 }
