@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getElectionIndex } from '../../api/representatives'
 import type { ElectionCycleSummary } from '../../types'
-import { daysUntil, formatShortDate, upcomingCycle } from '../../utils/elections'
+import { cycleInSeason, daysUntil, formatShortDate } from '../../utils/elections'
 import './ElectionStrip.css'
 
 const DISMISS_KEY = 'repmap.electionStrip.dismissed'
@@ -22,8 +22,8 @@ interface Props {
 }
 
 /** Map-level entry point to the races-for-ZIP view. Only the small election index
- *  is fetched here; dismissal is remembered per cycle, and the strip retires itself
- *  after election day because upcomingCycle() moves on. */
+ *  is fetched here; dismissal is remembered per cycle, and the strip only shows in
+ *  the run-up to an election (cycleInSeason), so it retires itself the day after. */
 export default function ElectionStrip({ onSeeRaces }: Props) {
   const [cycle, setCycle] = useState<ElectionCycleSummary | null>(null)
   const [dismissed, setDismissed] = useState<string | null>(readDismissed)
@@ -31,7 +31,7 @@ export default function ElectionStrip({ onSeeRaces }: Props) {
   useEffect(() => {
     let cancelled = false
     getElectionIndex()
-      .then((index) => { if (!cancelled) setCycle(upcomingCycle(index.cycles)) })
+      .then((index) => { if (!cancelled) setCycle(cycleInSeason(index.cycles)) })
       .catch(() => undefined) // the strip is optional; the NavBar entry still works
     return () => { cancelled = true }
   }, [])

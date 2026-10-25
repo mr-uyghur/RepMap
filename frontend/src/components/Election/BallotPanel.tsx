@@ -304,10 +304,12 @@ export default function BallotPanel({
                   <span className="ballot-row-text">
                     <span className="ballot-row-title">U.S. House · {raceTitle(house.race, summary.cycle)}</span>
                     <span className="ballot-row-sub">
-                      {house.race.candidates.length} filed
                       {(() => {
+                        // With nobody filed yet (common years ahead of a cycle) we can't
+                        // tell an open seat from an incumbent who hasn't filed.
+                        if (house.race.candidates.length === 0) return <>No candidates have filed yet</>
                         const inc = house.race.candidates.find((c) => c.incumbent)
-                        return inc ? <> · incumbent {inc.name} ({inc.party_label})</> : <> · open seat</>
+                        return <>{house.race.candidates.length} filed{inc ? <> · incumbent {inc.name} ({inc.party_label})</> : <> · open seat</>}</>
                       })()}
                     </span>
                   </span>

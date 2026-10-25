@@ -154,6 +154,17 @@ export function upcomingCycle(cycles: ElectionCycleSummary[]): ElectionCycleSumm
   return cycles.find((c) => daysUntil(c.general_date) >= 0) ?? null
 }
 
+/** How many days before a general election the map and Story reminders appear. */
+export const ELECTION_SEASON_DAYS = 60
+
+/** The upcoming cycle only while it is close enough to promote (0..ELECTION_SEASON_DAYS
+ *  days away). Returns null the day after the election, so reminders retire on their
+ *  own instead of counting down two years to the next cycle. */
+export function cycleInSeason(cycles: ElectionCycleSummary[]): ElectionCycleSummary | null {
+  const next = upcomingCycle(cycles)
+  return next && daysUntil(next.general_date) <= ELECTION_SEASON_DAYS ? next : null
+}
+
 /** "Tue, Nov 3" */
 export function formatShortDate(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number)
