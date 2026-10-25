@@ -65,7 +65,8 @@ export default function ScrollcraftStage({ onNavigateToMap }: Props) {
   }, [onNavigateToMap])
 
   return (
-    <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
+    // <main> gives the page its one main landmark; the Story itself lives in the iframe.
+    <main aria-label="Civic Story" style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
       <iframe
         ref={iframeRef}
         src="/scrollcraft/index.html"
@@ -77,6 +78,6 @@ export default function ScrollcraftStage({ onNavigateToMap }: Props) {
           display: 'block',
         }}
       />
-    </div>
+    </main>
   )
 }
