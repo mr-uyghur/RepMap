@@ -153,6 +153,18 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        // React + router change far less often than app code: a separate,
+        // long-cached vendor chunk survives app deploys. mapbox-gl and
+        // react-map-gl stay in the lazy map chunks.
+        manualChunks(id) {
+          if (/node_modules\/(react|react-dom|scheduler|react-router|react-router-dom|cookie|set-cookie-parser)\//.test(id)) return 'vendor'
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     // usePolling ensures file-system change events work inside Docker on all
