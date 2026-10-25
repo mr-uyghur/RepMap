@@ -1,0 +1,925 @@
+/* Civic Story page styles ("Plain Map"): system fonts, white and cool grey,
+   one deep-green accent. Party colours only next to a written party name.
+   Loaded after scrollcraft.css, so the engine tokens below override its defaults.
+   Contrast (WCAG): every text/background pair below is >= 4.5:1, most >= 7:1. */
+
+:root {
+  color-scheme: light;
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --surface-2: #eef1f4;
+  --ink: #15191f;
+  --muted: #4a5361;
+  --rule: #d3d9e0;
+  --rule-strong: #9aa4b1;
+  --accent: #0b6146;
+  --accent-hover: #084c37;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2f1ea;
+  --dem: #1d4ed8;
+  --dem-soft: #e6edff;
+  --rep: #b91c1c;
+  --rep-soft: #fdeaea;
+  --ind: #6d28d9;
+  --ind-soft: #efe8fd;
+  --map-dem-fill: rgba(29, 78, 216, 0.16);
+  --map-rep-fill: rgba(185, 28, 28, 0.14);
+  --map-ind-fill: rgba(109, 40, 217, 0.16);
+  --map-focal-fill: rgba(11, 97, 70, 0.30);
+  --grid: rgba(21, 25, 31, 0.07);
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 14px rgba(16, 24, 40, 0.08);
+
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --gutter: clamp(1rem, 4vw, 3.5rem);
+
+  /* engine tokens */
+  --sc-canvas: var(--bg);
+  --sc-surface: var(--surface);
+  --sc-ink: var(--ink);
+  --sc-ink-soft: var(--muted);
+  --sc-accent: var(--accent);
+  --sc-accent-ink: var(--accent-ink);
+  --sc-font-display: var(--font-sans);
+  --sc-font-text: var(--font-sans);
+  --sc-font-mono: var(--font-mono);
+  --sc-shadow-color: 215 30% 20%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #101317;
+    --surface: #181c22;
+    --surface-2: #20252c;
+    --ink: #eef1f5;
+    --muted: #b4bcc8;
+    --rule: #2f363f;
+    --rule-strong: #5b6573;
+    --accent: #4cc296;
+    --accent-hover: #6fd3ab;
+    --accent-ink: #07140e;
+    --accent-soft: rgba(76, 194, 150, 0.14);
+    --dem: #9db8fd;
+    --dem-soft: rgba(96, 140, 250, 0.16);
+    --rep: #fca5a5;
+    --rep-soft: rgba(248, 113, 113, 0.16);
+    --ind: #c9b8fd;
+    --ind-soft: rgba(167, 139, 250, 0.16);
+    --map-dem-fill: rgba(96, 140, 250, 0.22);
+    --map-rep-fill: rgba(248, 113, 113, 0.20);
+    --map-ind-fill: rgba(167, 139, 250, 0.22);
+    --map-focal-fill: rgba(76, 194, 150, 0.32);
+    --grid: rgba(238, 241, 245, 0.06);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 18px rgba(0, 0, 0, 0.35);
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+a { color: var(--accent); }
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.mono { font-family: var(--font-mono); }
+
+/* ---------------------------------------------------------------- chrome */
+.atlas-chrome {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem var(--gutter);
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+}
+
+.atlas-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  text-decoration: none;
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.atlas-brand__mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  display: inline-grid;
+  place-items: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.atlas-brand__meta {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted);
+  padding-left: 0.6rem;
+  border-left: 1px solid var(--rule);
+}
+
+.atlas-chrome__actions { display: flex; align-items: center; gap: 0.75rem; }
+
+.atlas-active-pill {
+  font-size: 0.8125rem;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+}
+
+.atlas-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0.55rem 1.05rem;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  border: 1px solid var(--accent);
+  cursor: pointer;
+}
+
+.atlas-cta:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+.atlas-cta--secondary {
+  background: var(--surface);
+  color: var(--accent);
+  border-color: var(--rule-strong);
+}
+
+.atlas-cta--secondary:hover { background: var(--accent-soft); border-color: var(--accent); }
+
+/* ------------------------------------------------------- shared plates */
+.sc-stage { background: var(--bg); }
+
+.stage-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--bg) 92%, transparent) 0%,
+    color-mix(in srgb, var(--bg) 70%, transparent) 42%,
+    transparent 76%);
+}
+
+.cue-plate {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: clamp(1.1rem, 2.2vw, 1.9rem);
+  box-shadow: var(--shadow);
+  max-width: 34rem;
+}
+
+.cue-plate__eyebrow {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 0 0 0.6rem 0;
+}
+
+.cue-plate__title {
+  font-weight: 800;
+  font-size: clamp(1.75rem, 3.2vw, 2.75rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0 0 0.75rem 0;
+  text-wrap: balance;
+}
+
+.cue-plate__title--md { font-size: clamp(1.5rem, 2.6vw, 2.25rem); }
+
+.cue-plate__body {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0 0 1rem 0;
+  max-width: 52ch;
+  text-wrap: pretty;
+}
+
+.fine-print { font-size: 0.8125rem; color: var(--muted); margin: 0.6rem 0 0; line-height: 1.5; }
+
+/* ------------------------------------------------------------- ACT 1 hero */
+.hero-plane {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: clamp(1rem, 5vw, 5rem);
+}
+
+.hero-plane--graticule { z-index: 1; justify-content: center; padding-right: 0; }
+.hero-plane--state { z-index: 2; }
+.hero-plane--focal { z-index: 3; }
+.hero-plane--hud {
+  z-index: 5;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 5rem var(--gutter) 2rem var(--gutter);
+}
+
+.grid-line { stroke: var(--grid); }
+
+.hero-state-wrap {
+  width: min(56vw, 720px);
+  height: min(74vh, 580px);
+  transform: scale(var(--hero-state-scale, 1));
+}
+
+.hero-focal-wrap {
+  width: min(36vw, 440px);
+  height: min(48vh, 390px);
+  margin-right: clamp(1rem, 4vw, 4rem);
+  transform: scale(var(--hero-focal-scale, 1));
+  filter: drop-shadow(0 14px 22px rgba(16, 24, 40, 0.28));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-state-wrap, .hero-focal-wrap { transition: transform 0.25s ease-out; }
+}
+
+/* District shapes: class-driven so both themes apply. */
+.d-shape { stroke-width: 1.1; vector-effect: non-scaling-stroke; }
+.d-shape--democrat { fill: var(--map-dem-fill); stroke: var(--dem); stroke-opacity: 0.55; }
+.d-shape--republican { fill: var(--map-rep-fill); stroke: var(--rep); stroke-opacity: 0.55; }
+.d-shape--independent { fill: var(--map-ind-fill); stroke: var(--ind); stroke-opacity: 0.55; }
+.d-shape--focal { fill: var(--map-focal-fill); stroke: var(--accent); stroke-opacity: 1; stroke-width: 2.4; }
+.d-shape--past { stroke-dasharray: 4 2; }
+.d-shape--lens { fill: color-mix(in srgb, var(--accent) 24%, var(--surface)); stroke: var(--accent); stroke-width: 2.6; }
+.focal-dot { fill: var(--accent); }
+.focal-ring { fill: none; stroke: var(--accent); stroke-width: 1.2; stroke-dasharray: 3 3; }
+
+.hero-hud-Readout {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  display: flex;
+  gap: 1.25rem;
+  box-shadow: var(--shadow);
+}
+
+.hero-hud-Readout span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin-bottom: 0.15rem;
+}
+
+.hero-copy-layer {
+  position: relative;
+  z-index: 6;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  align-items: center;
+  padding: 4.75rem var(--gutter) 2.25rem var(--gutter);
+}
+
+.hero-beat { grid-area: 1 / 1; justify-self: start; }
+
+.election-chip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  min-height: 44px;
+  margin: 0 0 1rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 0.875rem;
+  line-height: 1.35;
+  text-decoration: none;
+}
+
+.election-chip[hidden] { display: none; }
+.election-chip__when { font-weight: 700; }
+.election-chip__go { color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.election-chip:hover { border-color: var(--accent-hover); }
+
+.zip-console { margin-top: 0.75rem; padding-top: 0.9rem; border-top: 1px solid var(--rule); }
+
+.zip-console__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.zip-console__label--form { flex-basis: 100%; margin: 0; }
+
+.zip-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem; }
+
+.zip-chip {
+  min-height: 44px;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--rule-strong);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.zip-chip:hover { border-color: var(--accent); }
+
+.zip-chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.zip-custom-form { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+
+.zip-input {
+  min-height: 44px;
+  width: 9.5rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--rule-strong);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+}
+
+.zip-input::placeholder { color: var(--muted); opacity: 1; }
+
+.zip-status { font-size: 0.875rem; color: var(--muted); }
+
+.hero-delegation-list { display: grid; gap: 0.5rem; margin: 0.9rem 0 1.1rem 0; }
+
+.hero-rep-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+}
+
+.hero-rep-row__name { font-weight: 700; font-size: 0.9375rem; color: var(--ink); overflow-wrap: anywhere; }
+.hero-rep-row__role { font-size: 0.8125rem; color: var(--muted); line-height: 1.4; }
+
+.party-pill {
+  flex: none;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  text-transform: capitalize;
+  border: 1px solid currentColor;
+}
+
+.party-pill--democrat { background: var(--dem-soft); color: var(--dem); }
+.party-pill--republican { background: var(--rep-soft); color: var(--rep); }
+.party-pill--independent { background: var(--ind-soft); color: var(--ind); }
+
+/* ------------------------------------------------------------ ACT 2 scale */
+.act-scale {
+  padding: clamp(4rem, 10vh, 7.5rem) var(--gutter);
+  background: var(--surface);
+  border-block: 1px solid var(--rule);
+  position: relative;
+  z-index: 5;
+}
+
+.scale-inner { max-width: 74rem; margin: 0 auto; }
+
+.scale-rule { height: 3px; width: 6rem; background: var(--accent); margin-bottom: clamp(2rem, 4vh, 3rem); }
+
+.scale-header {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: clamp(1.25rem, 4vw, 4rem);
+  align-items: end;
+  margin-bottom: clamp(2rem, 5vh, 3.5rem);
+}
+
+.scale-title {
+  font-size: clamp(1.75rem, 3.2vw, 2.75rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--ink);
+}
+
+.scale-lede { font-size: 1.0625rem; line-height: 1.6; color: var(--muted); margin: 0; }
+
+.scale-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+
+.scale-card {
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.scale-card__num {
+  font-size: clamp(2.4rem, 4.2vw, 3.6rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 0.6rem;
+}
+
+.scale-card__label { font-weight: 700; font-size: 1rem; color: var(--ink); margin: 0 0 0.3rem 0; }
+.scale-card__meta { font-size: 0.875rem; color: var(--muted); margin: 0; line-height: 1.5; }
+
+/* --------------------------------------------------------- ACT 3 redraw */
+.redraw-map-viewport {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 4.5rem var(--gutter) 2rem var(--gutter);
+  pointer-events: none;
+}
+
+.redraw-map-frame {
+  width: min(60vw, 860px);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  padding: 1.1rem 1.35rem 1.25rem;
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+}
+
+.redraw-map-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--rule);
+  flex-wrap: wrap;
+}
+
+.redraw-epoch-badge { font-size: 0.875rem; font-weight: 700; color: var(--ink); }
+
+.redraw-mode-buttons { display: inline-flex; flex-wrap: wrap; gap: 0.4rem; }
+
+.redraw-mode-btn {
+  min-height: 44px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--rule-strong);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.redraw-mode-btn[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+.redraw-svg-stack {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 860 / 380;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+}
+
+.redraw-svg-layer { position: absolute; inset: 0; width: 100%; height: 100%; }
+.redraw-svg-layer--119 { clip-path: inset(0 calc((1 - var(--nc-morph, 0.5)) * 100%) 0 0); }
+.redraw-svg-layer--116 { opacity: 0.9; }
+.nc-ground { fill: var(--bg); }
+.nc-label { font-family: var(--font-sans); font-size: 15px; font-weight: 700; fill: var(--ink); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+
+.redraw-caliper {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--nc-morph, 0.5) * 100%);
+  width: 2px;
+  background: var(--accent);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.redraw-caliper__tag {
+  position: absolute;
+  top: 8px;
+  left: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.redraw-telemetry-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.875rem;
+}
+
+.redraw-telemetry-cell span { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.15rem; }
+
+.redraw-copy-layer {
+  position: relative;
+  z-index: 6;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  align-items: center;
+  padding: 4.75rem var(--gutter) 2.25rem var(--gutter);
+  pointer-events: none;
+}
+
+.redraw-beat { grid-area: 1 / 1; justify-self: start; max-width: 29rem; pointer-events: auto; }
+
+/* ------------------------------------------------------ ACT 4 delegation */
+.delegation-stage {
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 4.5rem;
+}
+
+.delegation-header {
+  padding: 0 var(--gutter) 1.25rem var(--gutter);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  flex-wrap: wrap;
+}
+
+.delegation-header__title {
+  font-size: clamp(1.6rem, 3vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--ink);
+}
+
+.delegation-header__sub { font-size: 1rem; color: var(--muted); max-width: 52ch; margin: 0.35rem 0 0 0; }
+
+.delegation-rail {
+  display: flex;
+  gap: 1.25rem;
+  width: max-content;
+  padding: 0.5rem var(--gutter) 1.5rem var(--gutter);
+}
+
+.dossier-card {
+  width: 400px;
+  flex: 0 0 400px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 1.35rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.9rem;
+  box-shadow: var(--shadow);
+}
+
+.dossier-card--active { border-color: var(--accent); box-shadow: var(--shadow), 0 0 0 1px var(--accent); }
+
+.dossier-card__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+.dossier-card__id { font-size: 0.8125rem; font-weight: 600; color: var(--accent); margin-bottom: 0.25rem; }
+.dossier-card__name { font-size: 1.375rem; font-weight: 800; margin: 0 0 0.2rem 0; color: var(--ink); overflow-wrap: anywhere; }
+.dossier-card__seat { font-size: 0.875rem; color: var(--muted); }
+
+.dossier-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  margin: 0;
+}
+
+.dossier-metrics dd { margin: 0; font-size: 1.125rem; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.dossier-metrics dt { font-size: 0.75rem; color: var(--muted); margin-top: 0.15rem; }
+.dossier-metrics div { display: flex; flex-direction: column-reverse; justify-content: flex-end; }
+
+.dossier-committees { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+
+.dossier-comm-chip {
+  font-size: 0.8125rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  color: var(--ink);
+}
+
+.dossier-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.dossier-link {
+  color: var(--accent);
+  font-weight: 700;
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  text-underline-offset: 3px;
+}
+
+/* ------------------------------------------------------ ACT 5 committees */
+.act-committees {
+  padding: clamp(4rem, 9vh, 7rem) var(--gutter);
+  background: var(--surface);
+  border-block: 1px solid var(--rule);
+  position: relative;
+  z-index: 5;
+}
+
+.committees-inner { max-width: 76rem; margin: 0 auto; }
+.committees-header { max-width: 46rem; margin-bottom: 1.75rem; }
+
+.committees-title {
+  font-size: clamp(1.75rem, 3.2vw, 2.75rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.75rem 0;
+  color: var(--ink);
+}
+
+.committees-filter-bar { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; }
+
+.comm-filter-btn {
+  min-height: 44px;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--rule-strong);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.comm-filter-btn[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+.committee-graph-plate {
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  padding: clamp(1rem, 2.4vw, 1.75rem);
+}
+
+.comm-rows { display: grid; gap: 0.6rem; margin: 0; padding: 0; list-style: none; }
+
+.comm-row {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) 2fr;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  padding: 0.75rem 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+}
+
+/* Unselected rows keep full contrast (text stays AA); the selected row is marked instead. */
+.comm-row[data-dim="true"] { border-style: dashed; }
+.comm-row[data-hit="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 4px 0 0 var(--accent); }
+.comm-row__name { font-weight: 700; font-size: 0.9375rem; color: var(--ink); }
+.comm-row__count { display: block; font-weight: 500; font-size: 0.8125rem; color: var(--muted); }
+.comm-row__members { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+
+.member-tag {
+  font-size: 0.8125rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--rule-strong);
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.member-tag b { font-weight: 700; }
+.member-tag--democrat b { color: var(--dem); }
+.member-tag--republican b { color: var(--rep); }
+.member-tag--independent b { color: var(--ind); }
+
+.committee-graph-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--rule);
+}
+
+/* --------------------------------------------------------- ACT 6 enter */
+.enter-stage {
+  background: var(--bg);
+  display: grid;
+  place-items: center;
+  padding: 4.75rem var(--gutter) 2.25rem var(--gutter);
+}
+
+.enter-console { width: min(100%, 66rem); display: grid; gap: 1.25rem; position: relative; z-index: 6; }
+
+.enter-main-plate {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-top: 4px solid var(--accent);
+  border-radius: 14px;
+  padding: clamp(1.25rem, 3vw, 2.25rem);
+  box-shadow: var(--shadow);
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 1.75rem;
+  align-items: center;
+}
+
+.enter-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; }
+
+.enter-selection-readout {
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 1.1rem;
+  font-size: 0.9375rem;
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.enter-selection-readout dt { color: var(--muted); font-size: 0.8125rem; }
+.enter-selection-readout dd { margin: 0; font-weight: 700; color: var(--ink); }
+
+.enter-dock-grid {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  padding: 1.1rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.9rem;
+}
+
+.enter-dock-card {
+  display: block;
+  text-decoration: none;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 0.95rem 1.1rem;
+}
+
+.enter-dock-card:hover { border-color: var(--accent); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .enter-dock-card { transition: border-color 0.15s ease, transform 0.15s ease; }
+  .enter-dock-card:hover { transform: translateY(-2px); }
+}
+
+.enter-dock-card__title { font-weight: 700; font-size: 1rem; margin: 0 0 0.3rem 0; color: var(--accent); }
+.enter-dock-card__desc { font-size: 0.875rem; color: var(--muted); margin: 0; line-height: 1.45; }
+
+/* ------------------------------------------------------- narrow layouts */
+@media (max-width: 1100px) {
+  .atlas-active-pill { display: none; }
+}
+
+@media (max-width: 860px) {
+  .atlas-brand__meta { display: none; }
+
+  .stage-scrim {
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--bg) 90%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 60%, transparent) 55%,
+      color-mix(in srgb, var(--bg) 90%, transparent) 100%);
+  }
+
+  .hero-plane { justify-content: center; align-items: flex-end; padding: 0 1rem 1.5rem 1rem; }
+  .hero-state-wrap { width: 88vw; height: 36vh; }
+  .hero-focal-wrap { width: 62vw; height: 28vh; margin-right: 0; }
+  .hero-plane--hud { display: none; }
+
+  .hero-copy-layer,
+  .redraw-copy-layer { align-items: flex-start; padding-top: 4.25rem; }
+
+  .cue-plate { padding: 1rem 1.1rem; max-width: 100%; }
+  .cue-plate__body { font-size: 0.9375rem; line-height: 1.5; margin-bottom: 0.75rem; }
+  .election-chip { margin-bottom: 0.75rem; }
+  .zip-chips { display: grid; grid-template-columns: 1fr 1fr; }
+  .zip-chip__city { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .zip-console__label--form { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  #hero-zip-status { flex-basis: 100%; }
+  .zip-input { width: 7.5rem; flex: none; }
+  .zip-status:empty { display: none; }
+  .hero-delegation-list { margin: 0.6rem 0 0.8rem; }
+  .cue-plate__title { font-size: clamp(1.45rem, 6vw, 2rem); }
+
+  .scale-header,
+  .scale-grid,
+  .enter-main-plate,
+  .enter-dock-grid { grid-template-columns: 1fr; }
+
+  .comm-row { grid-template-columns: 1fr; }
+
+  .redraw-map-viewport { justify-content: flex-end; align-items: center; padding: 1rem; }
+  .redraw-map-frame { width: 100%; padding: 0.8rem; }
+  .redraw-telemetry-bar { grid-template-columns: 1fr; gap: 0.35rem; }
+  .nc-label { display: none; }
+
+  .dossier-card { width: 300px; flex: 0 0 300px; }
+}
+
+@media (max-width: 420px) {
+  .atlas-cta { padding-inline: 0.8rem; }
+  .dossier-card { width: 280px; flex: 0 0 280px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .delegation-rail { width: 100%; overflow-x: auto; scroll-snap-type: x mandatory; }
+  .dossier-card { scroll-snap-align: start; }
+}
