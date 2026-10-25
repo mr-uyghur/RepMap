@@ -105,6 +105,8 @@ test.describe('RepMap navigation shell', () => {
     await page.locator('#map-search').blur()
     await page.keyboard.press('Escape')
     await expect(page).toHaveURL(/\/\?state=NE$/)
+    // Wait for the state level to render, as a person would, before going up again.
+    await expect(page.getByRole('heading', { name: '2026 races in Nebraska' })).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(page).toHaveURL(/\/$/)
     await expect(page.getByRole('main', { name: 'United States' })).toBeVisible()
@@ -459,6 +461,8 @@ test.describe('Compare view', () => {
       els.filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => el.textContent),
     )
     expect.soft(clipped, 'truncated names').toEqual([])
+    // Measure after the entrance animation: its brief scale makes 44px read as 43.9.
+    await dialog.evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)))
     expect.soft(await smallTargets(page, '.compare-panel'), 'targets < 44px').toEqual([])
     await page.waitForTimeout(400)
     await finish(page, info, 'compare', rec)
