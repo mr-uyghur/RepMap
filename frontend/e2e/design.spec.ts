@@ -370,3 +370,69 @@ test.describe('RepMap level content', () => {
   })
 })
 
+
+test.describe('Compare view', () => {
+  test('C1 compare two members: columns, swap, change, Esc one level at a time', async ({ page }, info) => {
+    const rec = record(page)
+    // The theme toggle lives in the NavBar menu, which the modal covers: set it first,
+    // then enter compare client-side (the theme is not persisted across loads).
+    await page.goto('/')
+    await applyAppTheme(page, scheme(info))
+    await page.evaluate(() => {
+      history.pushState({}, '', '/?compare=145,268')
+      dispatchEvent(new PopStateEvent('popstate'))
+    })
+    const dialog = page.getByRole('dialog', { name: 'Zoe Lofgren and Don Bacon' })
+    await expect(dialog).toBeVisible({ timeout: 20_000 })
+    const heads = dialog.locator('.cmp-member')
+    await expect(heads).toHaveCount(2)
+    await expect(heads.nth(0)).toContainText('Zoe Lofgren')
+    await expect(heads.nth(0)).toContainText('Democrat') // party written out (R-47)
+    await expect(heads.nth(1)).toContainText('Republican')
+    await expect(dialog.getByRole('row', { name: /^Seat/ }).last()).toContainText('California 18th District')
+    await expect(dialog.getByRole('row', { name: /^Current term/ })).toContainText('2025–2027')
+    // Names wrap, never ellipsis (R-22).
+    const clipped = await dialog.locator('.cmp-name').evaluateAll((els) =>
+      els.filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => el.textContent),
+    )
+    expect.soft(clipped, 'truncated names').toEqual([])
+    expect.soft(await smallTargets(page, '.compare-panel'), 'targets < 44px').toEqual([])
+    await page.waitForTimeout(400)
+    await finish(page, info, 'compare', rec)
+    await dialog.locator('.cmp-scroll').evaluate((el) => el.scrollTo(0, el.scrollHeight))
+    await finish(page, info, 'compare-lower', rec)
+
+    // Swap sides rewrites the URL and keeps the view open.
+    await dialog.getByRole('button', { name: 'Swap sides' }).click()
+    await expect(page).toHaveURL(/\?compare=268,145$/)
+    await expect(page.getByRole('dialog', { name: 'Don Bacon and Zoe Lofgren' })).toBeVisible()
+
+    // Change the second member through the inline picker.
+    await page.getByRole('button', { name: 'Change second member' }).click()
+    const input = page.getByLabel('Compare Don Bacon with…')
+    await expect(input).toBeFocused()
+    await input.fill('Fischer')
+    await page.getByRole('button', { name: /Deb Fischer/ }).click()
+    await expect(page).toHaveURL(/\?compare=268,57$/)
+    const mixed = page.getByRole('dialog', { name: 'Don Bacon and Deb Fischer' })
+    await expect(mixed).toContainText('U.S. Senator')
+    await expect(mixed.getByRole('row', { name: /^Party/ })).toContainText('Same')
+
+    // Esc closes the picker first, then the compare view.
+    await page.getByRole('button', { name: 'Change second member' }).click()
+    await expect(page.getByLabel(/Compare Don Bacon with/)).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(page.getByLabel(/Compare Don Bacon with/)).toHaveCount(0)
+    await expect(mixed).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Change second member' })).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(page.locator('.compare-panel')).toHaveCount(0)
+    await expect(page).toHaveURL(/\?rep=B001298$/)
+    await expect(page.getByRole('region', { name: 'Representative details' })).toBeVisible()
+  })
+
+  test('C2 compare deep link with bioguide IDs', async ({ page }) => {
+    await page.goto('/?compare=L000397,B001298')
+    await expect(page.getByRole('dialog', { name: 'Zoe Lofgren and Don Bacon' })).toBeVisible({ timeout: 20_000 })
+  })
+})
