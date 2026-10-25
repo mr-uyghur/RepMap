@@ -1,7 +1,7 @@
 import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { MapRef } from 'react-map-gl'
-import RepMap, { MAP_AVAILABLE, type MapFocus } from './components/Map/RepMap'
+import type { MapFocus } from './components/Map/RepMap'
 import RepresentativePanel from './components/Panel/RepresentativePanel'
 import NavBar from './components/Layout/NavBar'
 import PartyRibbon from './components/Layout/PartyRibbon'
@@ -12,7 +12,7 @@ import UsOverview from './components/Explore/UsOverview'
 import type { Crumb } from './components/Explore/Breadcrumb'
 import { useMapStore } from './store/mapStore'
 import { useRepStore } from './store/repStore'
-import { getElectionCycle, getElectionIndex } from './api/representatives'
+import { fetchAllReps, getElectionCycle, getElectionIndex } from './api/representatives'
 import { findRaceForRep, houseRaceId, senateRaceId, stateName, upcomingCycle } from './utils/elections'
 import { lookupZipLocation, type ZipLocation } from './utils/zipLookup'
 import { buildNavUrl, canonicalNavUrl, navLevel, navStateCode, parseNav, type NavParams } from './utils/navUrl'
@@ -20,6 +20,17 @@ import { parseRaceId, raceShortLabel, type MapClickTarget } from './utils/search
 import type { Representative } from './types'
 import './App.css'
 
+// Member data first, then the map: representatives.json feeds the panel and
+// search, and would otherwise share the bandwidth with mapbox-gl (~1.7 MB). RepMap repeats this load on mount
+// (served from the HTTP cache) and reports any error.
+const repsWarmup = fetchAllReps()
+  .then((reps) => { if (!useRepStore.getState().allReps.length) useRepStore.getState().setReps(reps) })
+  .catch(() => {})
+// The map chunk loads once the member data has settled: the shell, search and
+// state list are usable first, and a same-size placeholder holds the map area.
+const RepMap = lazy(() => repsWarmup.then(() => import('./components/Map/RepMap')))
+/** Mirrors RepMap's MAP_AVAILABLE without pulling the map chunk into the entry. */
+const MAP_AVAILABLE = Boolean(import.meta.env.VITE_MAPBOX_TOKEN)
 const StateOverview = lazy(() => import('./components/Explore/StateOverview'))
 const RaceView = lazy(() => import('./components/Election/RaceView'))
 const ComparePanel = lazy(() => import('./components/Panel/ComparePanel'))
@@ -446,13 +457,15 @@ export default function App() {
             <Suspense fallback={<Loading what="this view" />}>{content}</Suspense>
           </ExplorePanel>
           <section className="app-map-area" aria-label="Map">
-            <RepMap
-              mapRef={mapRef}
-              onRepSelect={handleRepSelect}
-              onRepCompare={handleRepCompare}
-              onMapTarget={handleMapTarget}
-              focus={mapFocus}
-            />
+            <Suspense fallback={<div className="map-placeholder" style={{ width: '100%', height: '100%' }} />}>
+              <RepMap
+                mapRef={mapRef}
+                onRepSelect={handleRepSelect}
+                onRepCompare={handleRepCompare}
+                onMapTarget={handleMapTarget}
+                focus={mapFocus}
+              />
+            </Suspense>
             {MAP_AVAILABLE && mapHint && !redistrictingMode && <p className="map-hint">{mapHint}</p>}
             <PartyRibbon />
             {redistrictingMode && viewLevel === 'federal' && <RedistrictingSlider />}

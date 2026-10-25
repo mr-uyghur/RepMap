@@ -7,27 +7,34 @@ interface ZipEntry {
   district: number | null
 }
 
-let zipTable: Record<string, ZipEntry> | null = null
-let loadPromise: Promise<Record<string, ZipEntry>> | null = null
+type ZipShard = Record<string, ZipEntry>
 
-function loadZipTable(): Promise<Record<string, ZipEntry>> {
-  if (zipTable) return Promise.resolve(zipTable)
-  if (!loadPromise) {
-    loadPromise = fetch('/data/zips.json')
+// The ZIP table is split by 3-digit prefix (scripts/split-zips.mjs) so a
+// search downloads one ~3 KB shard instead of the 2.3 MB zips.json. Shards are
+// memoized per prefix; a failed load is evicted so the next search retries.
+const shardCache = new Map<string, Promise<ZipShard>>()
+
+function loadShard(zipcode: string): Promise<ZipShard> {
+  if (!/^\d{5}$/.test(zipcode)) return Promise.resolve({})
+  const prefix = zipcode.slice(0, 3)
+  let cached = shardCache.get(prefix)
+  if (!cached) {
+    cached = fetch(`/data/zips/${prefix}.json`)
       .then((res) => {
-        if (!res.ok) throw new Error(`zips.json returned ${res.status}`)
-        return res.json() as Promise<Record<string, ZipEntry>>
-      })
-      .then((data) => {
-        zipTable = data
-        return data
+        // No shard for this prefix: the static host answers 404, or (Vercel's
+        // SPA rewrite) 200 with index.html. Either way the ZIP doesn't exist.
+        if (res.status === 404) return {}
+        if (!res.ok) throw new Error(`zips/${prefix}.json returned ${res.status}`)
+        if (!(res.headers.get('Content-Type') ?? '').includes('json')) return {}
+        return res.json() as Promise<ZipShard>
       })
       .catch((err) => {
-        loadPromise = null // allow a retry on the next search
+        shardCache.delete(prefix) // allow a retry on the next search
         throw err
       })
+    shardCache.set(prefix, cached)
   }
-  return loadPromise
+  return cached
 }
 
 export interface ZipLocation {
@@ -39,8 +46,8 @@ export interface ZipLocation {
 
 /** The state + House district a ZIP centroid falls in, or null if unknown. */
 export async function lookupZipLocation(zipcode: string): Promise<ZipLocation | null> {
-  const table = await loadZipTable()
-  return table[zipcode] ?? null
+  const shard = await loadShard(zipcode)
+  return shard[zipcode] ?? null
 }
 
 export interface ZipResolution {
@@ -55,8 +62,8 @@ export interface ZipResolution {
  * Returns null if the ZIP isn't in the table or has no matching reps.
  */
 export async function resolveZip(zipcode: string, allReps: Representative[]): Promise<ZipResolution | null> {
-  const table = await loadZipTable()
-  const entry = table[zipcode]
+  const shard = await loadShard(zipcode)
+  const entry = shard[zipcode]
   if (!entry) return null
 
   const house = allReps.find(

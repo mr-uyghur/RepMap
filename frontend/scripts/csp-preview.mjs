@@ -2,9 +2,11 @@
 // rewrites from vercel.json, so the strict CSP is really enforced in tests
 // (`vite preview` sends none of them). No dependencies.
 //   node scripts/csp-preview.mjs [distDir]   env: PORT (default 4173)
+//   COMPRESS=1 gzips text responses like Vercel does (for realistic perf numbers).
 import http from 'node:http'
 import fs from 'node:fs'
 import path from 'node:path'
+import zlib from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -52,6 +54,12 @@ const server = http.createServer((req, res) => {
     return res.end('Not found')
   }
   const type = MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream'
+  const compress = process.env.COMPRESS === '1' && /gzip/.test(req.headers['accept-encoding'] ?? '') &&
+    /^(text\/|application\/(json|manifest)|image\/svg)/.test(type)
+  if (compress) {
+    res.writeHead(200, { ...headers, 'Content-Type': type, 'Content-Encoding': 'gzip', Vary: 'Accept-Encoding' })
+    return fs.createReadStream(file).pipe(zlib.createGzip()).pipe(res)
+  }
   res.writeHead(200, { ...headers, 'Content-Type': type })
   fs.createReadStream(file).pipe(res)
 })
