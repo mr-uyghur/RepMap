@@ -1,20 +1,19 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { forwardRef, useEffect, useId, useRef, useState } from 'react'
 import { useMapStore } from '../../store/mapStore'
 import SearchBar from '../Search/SearchBar'
-import LevelToggle from './LevelToggle'
-import type { Representative, ZipSearchResult } from '../../types'
+import AboutDataDialog from './AboutDataDialog'
+import type { Representative } from '../../types'
 import './NavBar.css'
 
 interface Props {
   allRepresentatives: Representative[]
-  onZipSearchComplete: (result: ZipSearchResult) => void
-  onZipSearchReset: () => void
-  onRepSelect: (rep: Representative) => void
-  onCommitteesClick?: () => void
-  onRedistrictingClick?: () => void
-  onStoryClick?: () => void
-  onRacesClick?: () => void
-  racesOpen?: boolean
+  onNavigate: (href: string) => void
+  onSelectZip: (zip: string) => void
+  onSelectState: (code: string) => void
+  onSelectRace: (raceId: string) => void
+  onSelectRep: (rep: Representative) => void
+  onCommitteesClick: () => void
+  onRedistrictingClick: () => void
 }
 
 function SunIcon() {
@@ -26,12 +25,10 @@ function SunIcon() {
   )
 }
 
-function BallotIcon() {
+function MoonIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 13h16v7H4z"/>
-      <path d="M8 13V5h8v8"/>
-      <path d="M10.5 9l1.5 1.5L15 7.5"/>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
     </svg>
   )
 }
@@ -46,36 +43,28 @@ function MenuIcon() {
   )
 }
 
-function MoonIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-    </svg>
-  )
-}
-
-export default function NavBar({
-  allRepresentatives,
-  onZipSearchComplete,
-  onZipSearchReset,
-  onRepSelect,
-  onCommitteesClick,
-  onRedistrictingClick,
-  onStoryClick,
-  onRacesClick,
-  racesOpen = false,
-}: Props) {
+/** Brand, one search box, "About the data" and a Menu (R-15: nothing else in the bar). */
+const NavBar = forwardRef<HTMLInputElement, Props>(function NavBar(
+  {
+    allRepresentatives,
+    onNavigate,
+    onSelectZip,
+    onSelectState,
+    onSelectRace,
+    onSelectRep,
+    onCommitteesClick,
+    onRedistrictingClick,
+  },
+  searchRef,
+) {
   const darkMode = useMapStore((s) => s.darkMode)
   const toggleDarkMode = useMapStore((s) => s.toggleDarkMode)
   const redistrictingMode = useMapStore((s) => s.redistrictingMode)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
   const menuId = useId()
   const menuBtnRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
-
-  const hasStateReps = allRepresentatives.some(
-    (r) => r.level === 'state_house' || r.level === 'state_senate' || r.level === 'governor'
-  )
 
   useEffect(() => {
     if (!menuOpen) return
@@ -97,98 +86,82 @@ export default function NavBar({
     }
   }, [menuOpen])
 
-  // Secondary actions: inline on wide screens, inside the Menu disclosure below 1100px.
-  const secondary = (inMenu: boolean) => {
-    const run = (fn?: () => void) => () => {
-      if (inMenu) setMenuOpen(false)
-      fn?.()
-    }
-    const cls = inMenu ? 'navbar-menu-item' : 'navbar-theme-btn'
-    return (
-      <>
-        {hasStateReps && <LevelToggle />}
-        {onStoryClick && (
-          <button type="button" onClick={run(onStoryClick)} className={cls}>
-            Civic Story
-          </button>
-        )}
-        {onCommitteesClick && (
-          <button type="button" onClick={run(onCommitteesClick)} className={cls}>
-            Committees
-          </button>
-        )}
-        {onRedistrictingClick && (
-          <button
-            type="button"
-            onClick={run(onRedistrictingClick)}
-            className={`${cls}${redistrictingMode ? ` ${cls}--active` : ''}`}
-            aria-pressed={redistrictingMode}
-          >
-            Redistricting
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={run(toggleDarkMode)}
-          aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-          className={`${cls} navbar-theme-toggle`}
-        >
-          {darkMode ? <SunIcon /> : <MoonIcon />}
-          <span className="navbar-theme-label">{darkMode ? 'Light' : 'Dark'}</span>
-        </button>
-      </>
-    )
+  const run = (fn: () => void) => () => {
+    setMenuOpen(false)
+    fn()
+  }
+
+  const linkClick = (href: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+    e.preventDefault()
+    setMenuOpen(false)
+    onNavigate(href)
   }
 
   return (
     <nav className="navbar" aria-label="Primary navigation">
       <a href="#main-content" className="skip-link">Skip to main content</a>
-      {onStoryClick ? (
-        <button type="button" className="navbar-brand" onClick={onStoryClick} aria-label="RepMap, open the Civic Story">
-          RepMap
-        </button>
-      ) : (
-        <span className="navbar-brand">RepMap</span>
-      )}
+      <a href="/" className="navbar-brand" onClick={linkClick('/')} aria-label="RepMap home: United States">
+        <span className="navbar-brand-mark" aria-hidden="true" />
+        <span className="navbar-brand-name">RepMap</span>
+      </a>
       <div className="navbar-search">
-        <span className="navbar-search-label">Find your representatives</span>
         <SearchBar
+          ref={searchRef}
           allRepresentatives={allRepresentatives}
-          onZipSearchComplete={onZipSearchComplete}
-          onZipSearchReset={onZipSearchReset}
-          onRepSelect={onRepSelect}
+          onSelectZip={onSelectZip}
+          onSelectState={onSelectState}
+          onSelectRace={onSelectRace}
+          onSelectRep={onSelectRep}
         />
       </div>
       <div className="navbar-right">
-        {onRacesClick && (
-          <button
-            type="button"
-            onClick={onRacesClick}
-            className={`navbar-races-btn${racesOpen ? ' navbar-races-btn--open' : ''}`}
-            aria-pressed={racesOpen}
-            title="Congressional races by ZIP code"
-          >
-            <BallotIcon />
-            <span>Races</span>
-          </button>
-        )}
-        <div className="navbar-inline">{secondary(false)}</div>
+        <button type="button" className="navbar-about-btn" onClick={() => setAboutOpen(true)}>
+          About the data
+        </button>
         <button
           ref={menuBtnRef}
           type="button"
           className="navbar-menu-btn"
-          aria-label="Menu"
           aria-expanded={menuOpen}
           aria-controls={menuId}
           onClick={() => setMenuOpen((v) => !v)}
         >
-          <MenuIcon />
           <span className="navbar-menu-label">Menu</span>
+          <MenuIcon />
         </button>
         <div ref={menuRef} id={menuId} className="navbar-menu" hidden={!menuOpen}>
-          {secondary(true)}
+          <button type="button" className="navbar-menu-item navbar-menu-item--about" onClick={run(() => setAboutOpen(true))}>
+            About the data
+          </button>
+          <a href="/story" className="navbar-menu-item" onClick={linkClick('/story')}>
+            Civic Story
+          </a>
+          <button type="button" className="navbar-menu-item" onClick={run(onCommitteesClick)}>
+            Committees
+          </button>
+          <button
+            type="button"
+            className={`navbar-menu-item${redistrictingMode ? ' navbar-menu-item--active' : ''}`}
+            aria-pressed={redistrictingMode}
+            onClick={run(onRedistrictingClick)}
+          >
+            Redistricting
+          </button>
+          <button
+            type="button"
+            className="navbar-menu-item navbar-theme-toggle"
+            aria-label={darkMode ? 'Switch to light theme' : 'Switch to dark theme'}
+            onClick={run(toggleDarkMode)}
+          >
+            {darkMode ? <SunIcon /> : <MoonIcon />}
+            <span>{darkMode ? 'Light theme' : 'Dark theme'}</span>
+          </button>
         </div>
       </div>
+      <AboutDataDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />
     </nav>
   )
-}
+})
+
+export default NavBar
