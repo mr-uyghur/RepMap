@@ -127,23 +127,6 @@ export default defineConfig({
             },
           },
           {
-            // Google Fonts CSS
-            urlPattern: /^https:\/\/fonts\.googleapis\.com/,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'google-fonts-stylesheets',
-            },
-          },
-          {
-            // Google Fonts binary files — long-lived, CacheFirst
-            urlPattern: /^https:\/\/fonts\.gstatic\.com/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-webfonts',
-              expiration: { maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
-            },
-          },
-          {
             // Mapbox GL CSS served from their CDN
             urlPattern: /^https:\/\/api\.mapbox\.com\/mapbox-gl-js/,
             handler: 'CacheFirst',
