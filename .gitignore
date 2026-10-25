@@ -156,3 +156,7 @@ frontend/e2e/.artifacts/
 frontend/dist-e2e/
 frontend/test-results/
 frontend/playwright-report/
+
+# ----- frontend generated data --------------------------------
+# ZIP shards split from public/data/zips.json by scripts/split-zips.mjs (pre-dev/pre-build)
+frontend/public/data/zips/
