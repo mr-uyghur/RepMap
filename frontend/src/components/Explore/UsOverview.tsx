@@ -54,9 +54,12 @@ export default function UsOverview({ onSelectState, onSearchFocus }: Props) {
         </div>
       )}
 
-      {next && senateUp > 0 && allReps.length > 0 && (
+      {next && (
+        // Rendered as soon as the date is known (with a generic count until members
+        // load) so the state list below doesn't shift down when they arrive.
         <p className="overview-lede">
-          Every U.S. House seat and {senateUp} Senate seats are up in {next.cycle}.
+          Every U.S. House seat and {senateUp > 0 ? `${senateUp} Senate seats are` : 'about a third of the Senate is'} up
+          in {next.cycle}.
         </p>
       )}
 
