@@ -413,13 +413,12 @@ export default function App() {
       const qs = params.toString()
       const newUrl = `${window.location.pathname}${qs ? `?${qs}` : '?mode=map'}`
       window.history.pushState({}, '', newUrl)
+      // Hand off to the one-time deep-link effect below: it waits until the
+      // member list has loaded, so a Story CTA clicked early doesn't lose its ZIP.
+      hasDeepLinked.current = false
       setStoryMode(false)
-      hasDeepLinked.current = true
-      setTimeout(() => {
-        applyMapDeepLinks(params)
-      }, 120)
     },
-    [applyMapDeepLinks]
+    []
   )
 
   useEffect(() => {

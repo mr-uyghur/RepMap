@@ -286,6 +286,42 @@
     }
 
     /* Live ZIP Switcher inside Hero Beat 1 */
+    .election-chip {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.25rem 0.75rem;
+      min-height: 44px;
+      margin: 0 0 1rem;
+      padding: 0.5rem 0.85rem;
+      border-radius: 8px;
+      border: 1px solid var(--sc-accent);
+      background: rgba(245, 158, 11, 0.12);
+      color: var(--sc-ink);
+      font-family: var(--sc-font-sans);
+      font-size: 0.875rem;
+      line-height: 1.35;
+      text-decoration: none;
+    }
+
+    .election-chip[hidden] { display: none; }
+
+    .election-chip__when { font-weight: 700; }
+
+    .election-chip__go {
+      color: var(--sc-accent);
+      font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .election-chip:hover { background: rgba(245, 158, 11, 0.2); }
+
+    .election-chip:focus-visible {
+      outline: 3px solid var(--sc-accent);
+      outline-offset: 3px;
+    }
+
     .zip-console {
       margin-top: 1rem;
       padding-top: 1rem;
@@ -1051,7 +1087,7 @@
     </a>
     <div class="atlas-chrome__actions">
       <div class="atlas-active-pill" id="chrome-active-zip">ZIP 95112 · CA-18</div>
-      <a href="/?mode=map&amp;zip=95112&amp;rep=3353" class="atlas-cta" id="chrome-launch-cta" data-sc-magnet="0.22">
+      <a href="/?mode=map&amp;zip=95112&amp;rep=L000397" class="atlas-cta" id="chrome-launch-cta" data-sc-magnet="0.22">
         Launch 3D Globe &#8599;
       </a>
     </div>
@@ -1120,6 +1156,10 @@
           <!-- Beat 1: Opening Thesis + Interactive ZIP Console -->
           <div class="cue-plate hero-beat" data-sc-cue="0 0.48 0 0.12">
             <p class="cue-plate__eyebrow">Civic Cartography · 119th Congress</p>
+            <a href="/?mode=map&amp;view=ballot&amp;zip=95112" class="election-chip" id="hero-election-chip" hidden>
+              <span class="election-chip__when" id="hero-election-when"></span>
+              <span class="election-chip__go">See races for ZIP <span id="hero-election-zip">95112</span> &rarr;</span>
+            </a>
             <h1 class="cue-plate__title">Democracy has a boundary line.</h1>
             <p class="cue-plate__body">
               Every street address in the United States resolves to one House polygon and two Senate seats. Lock the atlas onto a postal code below to inspect its real boundary geometry and Capitol Hill delegation.
@@ -1181,7 +1221,7 @@
                 <span class="party-pill party-pill--democrat">Democrat</span>
               </div>
             </div>
-            <a href="/?mode=map&amp;zip=95112&amp;rep=3353" class="atlas-cta" id="beat2-globe-link">
+            <a href="/?mode=map&amp;zip=95112&amp;rep=L000397" class="atlas-cta" id="beat2-globe-link">
               Inspect District on 3D Globe &#8599;
             </a>
           </div>
@@ -1345,7 +1385,7 @@
             </div>
             <div class="dossier-card__footer">
               <span id="active-card-room">1401 Longworth HOB · 202-225-3072</span>
-              <a href="/?mode=map&amp;rep=3353" class="dossier-link" id="active-card-link">Open on Globe &#8599;</a>
+              <a href="/?mode=map&amp;rep=L000397" class="dossier-link" id="active-card-link">Open on Globe &#8599;</a>
             </div>
           </article>
 
@@ -1380,7 +1420,7 @@
             </div>
             <div class="dossier-card__footer">
               <span>331 Hart SOB · 202-224-3553</span>
-              <a href="/?mode=map&amp;rep=3294" class="dossier-link">Open on Globe &#8599;</a>
+              <a href="/?mode=map&amp;rep=P000145" class="dossier-link">Open on Globe &#8599;</a>
             </div>
           </article>
 
@@ -1414,7 +1454,7 @@
             </div>
             <div class="dossier-card__footer">
               <span>2452 Rayburn HOB · 202-225-1784</span>
-              <a href="/?mode=map&amp;rep=3633" class="dossier-link">Open on Globe &#8599;</a>
+              <a href="/?mode=map&amp;rep=F000477" class="dossier-link">Open on Globe &#8599;</a>
             </div>
           </article>
 
@@ -1448,7 +1488,7 @@
             </div>
             <div class="dossier-card__footer">
               <span>354 Russell SOB · 202-224-3154</span>
-              <a href="/?mode=map&amp;rep=3280" class="dossier-link">Open on Globe &#8599;</a>
+              <a href="/?mode=map&amp;rep=B001305" class="dossier-link">Open on Globe &#8599;</a>
             </div>
           </article>
 
@@ -1482,7 +1522,7 @@
             </div>
             <div class="dossier-card__footer">
               <span>2132 Rayburn HOB · 202-225-5635</span>
-              <a href="/?mode=map&amp;rep=3363" class="dossier-link">Open on Globe &#8599;</a>
+              <a href="/?mode=map&amp;rep=N000002" class="dossier-link">Open on Globe &#8599;</a>
             </div>
           </article>
 
@@ -1517,7 +1557,7 @@
             </div>
             <div class="dossier-card__footer">
               <span>2307 Rayburn HOB · 202-225-4865</span>
-              <a href="/?mode=map&amp;rep=3332" class="dossier-link">Open on Globe &#8599;</a>
+              <a href="/?mode=map&amp;rep=D000399" class="dossier-link">Open on Globe &#8599;</a>
             </div>
           </article>
         </div>
@@ -1658,7 +1698,7 @@
                 Your selected postal code and district parameters are locked below. Launch the interactive Mapbox GL globe to inspect every congressional and state legislative district, live roll-call vote, and bill report card.
               </p>
               <div style="display:flex; flex-wrap:wrap; gap:0.75rem; margin-top:1rem;">
-                <a href="/?mode=map&amp;zip=95112&amp;rep=3353" class="atlas-cta" id="close-primary-cta" data-sc-magnet="0.22" data-sc-rise="0">
+                <a href="/?mode=map&amp;zip=95112&amp;rep=L000397" class="atlas-cta" id="close-primary-cta" data-sc-magnet="0.22" data-sc-rise="0">
                   Enter Interactive 3D Globe &#8599;
                 </a>
                 <a href="/?mode=map" class="atlas-cta atlas-cta--secondary">

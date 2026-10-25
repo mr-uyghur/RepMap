@@ -9,10 +9,10 @@
           state: "CA",
           district: 18,
           coord: "37.3446° N, 121.8834° W",
-          house: { id: 3353, name: "Zoe Lofgren", party: "democrat", bioguide: "L000397", room: "1401 Longworth HOB", phone: "202-225-3072", att: "97.4%", bills: "100+", collab: "64.2%", comms: ["House Science, Space, and Technology", "House Committee on the Judiciary"] },
+          house: { id: "L000397", name: "Zoe Lofgren", party: "democrat", bioguide: "L000397", room: "1401 Longworth HOB", phone: "202-225-3072", att: "97.4%", bills: "100+", collab: "64.2%", comms: ["House Science, Space, and Technology", "House Committee on the Judiciary"] },
           senators: [
-            { id: 3294, name: "Alejandro Padilla", party: "democrat", room: "331 Hart SOB" },
-            { id: 3250, name: "Adam Schiff", party: "democrat", room: "112 Hart SOB" }
+            { id: "P000145", name: "Alejandro Padilla", party: "democrat", room: "331 Hart SOB" },
+            { id: "S001150", name: "Adam Schiff", party: "democrat", room: "112 Hart SOB" }
           ]
         },
         "27701": {
@@ -21,10 +21,10 @@
           state: "NC",
           district: 4,
           coord: "35.9992° N, 78.8979° W",
-          house: { id: 3633, name: "Valerie Foushee", party: "democrat", bioguide: "F000477", room: "2452 Rayburn HOB", phone: "202-225-1784", att: "96.8%", bills: "100+", collab: "71.0%", comms: ["House Transportation and Infrastructure", "House Science, Space, and Technology"] },
+          house: { id: "F000477", name: "Valerie Foushee", party: "democrat", bioguide: "F000477", room: "2452 Rayburn HOB", phone: "202-225-1784", att: "96.8%", bills: "100+", collab: "71.0%", comms: ["House Transportation and Infrastructure", "House Science, Space, and Technology"] },
           senators: [
-            { id: 3280, name: "Ted Budd", party: "republican", room: "354 Russell SOB" },
-            { id: 3272, name: "Thom Tillis", party: "republican", room: "113 Dirksen SOB" }
+            { id: "B001305", name: "Ted Budd", party: "republican", room: "354 Russell SOB" },
+            { id: "T000476", name: "Thom Tillis", party: "republican", room: "113 Dirksen SOB" }
           ]
         },
         "10001": {
@@ -33,10 +33,10 @@
           state: "NY",
           district: 12,
           coord: "40.7506° N, 73.9973° W",
-          house: { id: 3363, name: "Jerrold Nadler", party: "democrat", bioguide: "N000002", room: "2132 Rayburn HOB", phone: "202-225-5635", att: "96.2%", bills: "100+", collab: "66.8%", comms: ["House Committee on the Judiciary", "House Transportation and Infrastructure"] },
+          house: { id: "N000002", name: "Jerrold Nadler", party: "democrat", bioguide: "N000002", room: "2132 Rayburn HOB", phone: "202-225-5635", att: "96.2%", bills: "100+", collab: "66.8%", comms: ["House Committee on the Judiciary", "House Transportation and Infrastructure"] },
           senators: [
-            { id: 3251, name: "Charles Schumer", party: "democrat", room: "322 Hart SOB" },
-            { id: 3225, name: "Kirsten Gillibrand", party: "democrat", room: "478 Russell SOB" }
+            { id: "S000148", name: "Charles Schumer", party: "democrat", room: "322 Hart SOB" },
+            { id: "G000555", name: "Kirsten Gillibrand", party: "democrat", room: "478 Russell SOB" }
           ]
         },
         "78701": {
@@ -45,10 +45,10 @@
           state: "TX",
           district: 37,
           coord: "30.2706° N, 97.7426° W",
-          house: { id: 3332, name: "Lloyd Doggett", party: "democrat", bioguide: "D000399", room: "2307 Rayburn HOB", phone: "202-225-4865", att: "98.7%", bills: "100+", collab: "62.1%", comms: ["House Committee on Ways and Means", "House Committee on the Budget"] },
+          house: { id: "D000399", name: "Lloyd Doggett", party: "democrat", bioguide: "D000399", room: "2307 Rayburn HOB", phone: "202-225-4865", att: "98.7%", bills: "100+", collab: "62.1%", comms: ["House Committee on Ways and Means", "House Committee on the Budget"] },
           senators: [
-            { id: 3216, name: "John Cornyn", party: "republican", room: "517 Hart SOB" },
-            { id: 3266, name: "Ted Cruz", party: "republican", room: "167 Russell SOB" }
+            { id: "C001056", name: "John Cornyn", party: "republican", room: "517 Hart SOB" },
+            { id: "C001098", name: "Ted Cruz", party: "republican", room: "167 Russell SOB" }
           ]
         },
         "60601": {
@@ -57,10 +57,10 @@
           state: "IL",
           district: 7,
           coord: "41.8852° N, 87.6215° W",
-          house: { id: 3327, name: "Danny Davis", party: "democrat", bioguide: "D000096", room: "2159 Rayburn HOB", phone: "202-225-5006", att: "94.6%", bills: "100+", collab: "67.9%", comms: ["House Committee on Ways and Means"] },
+          house: { id: "D000096", name: "Danny Davis", party: "democrat", bioguide: "D000096", room: "2159 Rayburn HOB", phone: "202-225-5006", att: "94.6%", bills: "100+", collab: "67.9%", comms: ["House Committee on Ways and Means"] },
           senators: [
-            { id: 3217, name: "Richard Durbin", party: "democrat", room: "711 Hart SOB" },
-            { id: 3260, name: "Tammy Duckworth", party: "democrat", room: "524 Hart SOB" }
+            { id: "D000563", name: "Richard Durbin", party: "democrat", room: "711 Hart SOB" },
+            { id: "D000622", name: "Tammy Duckworth", party: "democrat", room: "524 Hart SOB" }
           ]
         }
       };
@@ -148,6 +148,7 @@
         const chromeCta = document.getElementById("chrome-launch-cta");
         if (chromeZip) chromeZip.textContent = `ZIP ${info.zip} · ${info.state}-${info.district}`;
         if (chromeCta) chromeCta.href = globeUrl;
+        updateElectionChip();
 
         const hudCoord = document.getElementById("hud-coord");
         const hudDist = document.getElementById("hud-district");
@@ -353,6 +354,44 @@
         }
       }
       document.addEventListener("focusin", handlePinnedFocus);
+
+      // Election reminder: date and countdown come from the same index.json the app
+      // uses, and the chip only appears in the 60 days before an election (mirrors
+      // ELECTION_SEASON_DAYS / cycleInSeason in src/utils/elections.ts).
+      let electionCycle = null;
+
+      function daysUntil(iso) {
+        const [y, m, d] = iso.split("-").map(Number);
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        return Math.round((new Date(y, m - 1, d).getTime() - today) / 86400000);
+      }
+
+      function updateElectionChip() {
+        const chip = document.getElementById("hero-election-chip");
+        if (!chip || !electionCycle) return;
+        const days = daysUntil(electionCycle.general_date);
+        const [y, m, d] = electionCycle.general_date.split("-").map(Number);
+        const date = new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+        const count = days === 0 ? "Election Day is today" : days === 1 ? "Tomorrow" : `${days} days away`;
+        const name = electionCycle.label.replace(/^\d{4}\s*/, "");
+        document.getElementById("hero-election-when").textContent = `${name}: ${date} · ${count}`;
+        document.getElementById("hero-election-zip").textContent = activeZip;
+        chip.href = `/?mode=map&view=ballot&zip=${activeZip}`;
+        chip.hidden = false;
+      }
+
+      fetch("/data/elections/index.json")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((index) => {
+          const cycles = (index && index.cycles) || [];
+          const next = cycles.find((c) => daysUntil(c.general_date) >= 0);
+          if (next && daysUntil(next.general_date) <= 60) {
+            electionCycle = next;
+            updateElectionChip();
+          }
+        })
+        .catch(() => {}); // the reminder is optional; the Story works without it
 
       renderHeroGeometry(activeZip);
       renderNorthCarolinaPeak();
