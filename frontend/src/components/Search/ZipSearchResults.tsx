@@ -25,6 +25,7 @@ interface Props {
   selectedRepId: number | null
   onSelectRep: (rep: Representative) => void
   onClear: () => void
+  onSeeRaces?: (zip: string) => void
 }
 
 export default function ZipSearchResults({
@@ -32,6 +33,7 @@ export default function ZipSearchResults({
   selectedRepId,
   onSelectRep,
   onClear,
+  onSeeRaces,
 }: Props) {
   const houseReps = result.representatives.filter((rep) => rep.level === 'us_house')
   const senators = result.representatives.filter((rep) => rep.level === 'us_senate')
@@ -59,6 +61,16 @@ export default function ZipSearchResults({
           Clear
         </button>
       </div>
+
+      {onSeeRaces && (
+        <button type="button" className="zip-results-races" onClick={() => onSeeRaces(result.zipcode)}>
+          <span>
+            <span className="zip-results-races-title">See the races for ZIP {result.zipcode}</span>
+            <span className="zip-results-races-sub">U.S. House &amp; Senate candidates filed with the FEC</span>
+          </span>
+          <span aria-hidden="true">→</span>
+        </button>
+      )}
 
       {result.note && (
         <p className="zip-results-note">

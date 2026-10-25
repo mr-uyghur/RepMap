@@ -25,6 +25,14 @@
   white-space: nowrap;
   flex-shrink: 0;
   user-select: none;
+  min-height: 44px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
 }
 
 /* Accent dot on the brand name for cinematic flair */
@@ -47,7 +55,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 8px 6px 12px;
+  padding: 2px 4px 2px 12px;
+  min-width: 0;
   border: 1px solid rgba(30, 58, 95, 0.16);
   border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.88);
@@ -86,12 +95,97 @@
   flex-shrink: 0;
 }
 
+/* ── Races (primary election entry point) ────────────────────────────────── */
+.navbar-races-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.navbar-races-btn:hover { filter: brightness(1.06); }
+.navbar-races-btn--open { box-shadow: inset 0 0 0 2px var(--color-on-accent); }
+
+.navbar-inline { display: flex; align-items: center; gap: 8px; }
+
+/* ── Menu disclosure (below 1100px) ───────────────────────────────────────── */
+.navbar-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.navbar-menu-btn[aria-expanded='true'] { background: var(--color-bg-elevated); border-color: var(--color-accent); }
+
+.navbar-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 12px;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 40;
+}
+.navbar-menu[hidden] { display: none; }
+
+.navbar-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.navbar-menu-item:hover { background: var(--color-bg-elevated); }
+.navbar-menu-item--active { color: var(--color-accent-text); }
+
+@media (max-width: 1099px) {
+  .navbar-inline { display: none; }
+  .navbar-menu-btn { display: inline-flex; }
+}
+
 /* ── Dark-mode toggle ─────────────────────────────────────────────────────── */
 .navbar-theme-btn {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 6px 12px;
+  min-height: 44px;
+  padding: 0 12px;
   background: none;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -114,9 +208,9 @@
 }
 
 .navbar-theme-btn--active {
-  background: rgba(217, 119, 6, 0.12);
-  color: #d97706;
-  border-color: #d97706;
+  background: rgba(var(--color-accent-rgb), 0.12);
+  color: var(--color-accent-text);
+  border-color: var(--color-accent);
 }
 
 .navbar-theme-btn--active:hover {
@@ -154,11 +248,11 @@
     box-shadow: none;
   }
 
-  .navbar-theme-label {
+  .navbar-menu-label {
     display: none;
   }
 
-  .navbar-theme-btn {
-    padding: 6px;
+  .navbar-races-btn {
+    padding: 0 10px;
   }
 }

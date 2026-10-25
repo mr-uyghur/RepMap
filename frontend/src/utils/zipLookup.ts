@@ -30,6 +30,19 @@ function loadZipTable(): Promise<Record<string, ZipEntry>> {
   return loadPromise
 }
 
+export interface ZipLocation {
+  lat: number
+  lng: number
+  state: string
+  district: number | null
+}
+
+/** The state + House district a ZIP centroid falls in, or null if unknown. */
+export async function lookupZipLocation(zipcode: string): Promise<ZipLocation | null> {
+  const table = await loadZipTable()
+  return table[zipcode] ?? null
+}
+
 export interface ZipResolution {
   lat: number
   lng: number

@@ -108,6 +108,7 @@ interface Props {
   compareMode: boolean
   onCompareModeChange: (active: boolean) => void
   onCommitteeClick?: (committee: string) => void
+  onOpenBallot?: () => void
 }
 
 export default function RepresentativePanel({
@@ -116,6 +117,7 @@ export default function RepresentativePanel({
   compareMode,
   onCompareModeChange,
   onCommitteeClick,
+  onOpenBallot,
 }: Props) {
   const { rep, loading } = useRepresentative(repId)
   const [seatCycle, setSeatCycle] = useState<ElectionCycleSummary | null>(null)
@@ -272,23 +274,25 @@ export default function RepresentativePanel({
             <>
               <h2 className="panel-name">{rep.name}</h2>
               <p className="panel-chamber">{getChamberLabel(rep)}</p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <div className="panel-meta-row">
                 <span
                   className="panel-party-badge"
                   style={{ background: color }}
                 >
                   {PARTY_LABELS[rep.party] ?? rep.party}
                 </span>
-                <p className="panel-district" style={{ margin: 0 }}>{getDistrictLabel(rep)}</p>
+                <p className="panel-district">{getDistrictLabel(rep)}</p>
               </div>
               {seatCycle && (
                 <button
                   type="button"
                   className="panel-election-badge"
                   onClick={() => setActiveTab('election')}
-                  title="See the race and candidates"
                 >
-                  {isSpecialSeat(rep.term_end, seatCycle.cycle) ? 'Special election' : 'Up for election'} · {seatCycle.cycle}
+                  <span className="panel-election-badge-status">
+                    {isSpecialSeat(rep.term_end, seatCycle.cycle) ? 'Special election' : 'Up for election'} {seatCycle.cycle}
+                  </span>
+                  <span className="panel-election-badge-cta">See the race →</span>
                 </button>
               )}
             </>
@@ -297,56 +301,54 @@ export default function RepresentativePanel({
           )}
         </div>
 
-        {rep && (
+        <div className="panel-header-actions">
+          {rep && (
+            <button
+              type="button"
+              onClick={() => onCompareModeChange(!compareMode)}
+              aria-label={compareMode ? 'Cancel comparison selection' : 'Compare with another representative'}
+              aria-pressed={compareMode}
+              className={`panel-action-btn${compareMode ? ' panel-action-btn--active' : ''}`}
+            >
+              <CompareIcon />
+              <span>{compareMode ? 'Cancel' : 'Compare'}</span>
+            </button>
+          )}
+          {rep && (rep.bioguide_id || isStateLevel(rep)) && (
+            <button
+              type="button"
+              onClick={handleCopy}
+              aria-label="Copy link to this representative"
+              className="panel-close-btn"
+            >
+              {copied ? (
+                <span className="panel-copied" role="status">Copied!</span>
+              ) : (
+                <ShareIcon />
+              )}
+            </button>
+          )}
+          {rep && (
+            <button
+              type="button"
+              onClick={() => setShowEmbed(true)}
+              aria-label="Get embed code"
+              className="panel-close-btn"
+              title="Embed this representative"
+            >
+              <EmbedIcon />
+            </button>
+          )}
           <button
             type="button"
-            onClick={() => onCompareModeChange(!compareMode)}
-            aria-label={compareMode ? 'Cancel comparison selection' : 'Compare with another representative'}
-            aria-pressed={compareMode}
-            className={`panel-action-btn${compareMode ? ' panel-action-btn--active' : ''}`}
-          >
-            <CompareIcon />
-            <span>{compareMode ? 'Cancel' : 'Compare'}</span>
-          </button>
-        )}
-        {rep && (rep.bioguide_id || isStateLevel(rep)) && (
-          <button
-            type="button"
-            onClick={handleCopy}
-            aria-label="Copy link to this representative"
+            ref={closeButtonRef}
+            onClick={onClose}
+            aria-label="Close panel"
             className="panel-close-btn"
-            style={{ marginRight: 4 }}
           >
-            {copied ? (
-              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-success)', whiteSpace: 'nowrap' }}>
-                Copied!
-              </span>
-            ) : (
-              <ShareIcon />
-            )}
+            <CloseIcon />
           </button>
-        )}
-        {rep && (
-          <button
-            type="button"
-            onClick={() => setShowEmbed(true)}
-            aria-label="Get embed code"
-            className="panel-close-btn"
-            style={{ marginRight: 4 }}
-            title="Embed this representative"
-          >
-            <EmbedIcon />
-          </button>
-        )}
-        <button
-          type="button"
-          ref={closeButtonRef}
-          onClick={onClose}
-          aria-label="Close panel"
-          className="panel-close-btn"
-        >
-          <CloseIcon />
-        </button>
+        </div>
         {showEmbed && rep && (
           <EmbedSnippet rep={rep} onClose={() => setShowEmbed(false)} />
         )}
@@ -405,7 +407,11 @@ export default function RepresentativePanel({
               />
             )}
             {activeTab === 'election' && (
-              <ElectionTab rep={rep} boardUrl={STATE_VOTING_RESOURCES[rep.state]?.boardUrl} />
+              <ElectionTab
+                rep={rep}
+                boardUrl={STATE_VOTING_RESOURCES[rep.state]?.boardUrl}
+                onOpenBallot={onOpenBallot}
+              />
             )}
             {activeTab === 'how_to_vote' && <HowToVoteTab rep={rep} />}
           </div>

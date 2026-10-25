@@ -1,0 +1,70 @@
+.cf { display: flex; flex-direction: column; gap: 8px; }
+
+.cf-legend { display: flex; flex-direction: column; gap: 2px; }
+.cf-legend p { margin: 0; font-size: 12px; line-height: 1.45; color: var(--color-text-muted); }
+.cf-legend-keys { display: flex; flex-wrap: wrap; gap: 4px 16px; font-weight: 600; }
+.cf-legend-item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.cf-key {
+  display: inline-block; width: 20px; height: 8px; border-radius: var(--radius-full);
+  background: var(--color-text-muted);
+}
+.cf-key--cash { height: 3px; }
+
+.cf-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+
+.cf-row {
+  --party: var(--color-independent);
+  display: flex; flex-direction: column; gap: 5px;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--color-border);
+}
+.cf-row--democrat   { --party: var(--color-democrat); }
+.cf-row--republican { --party: var(--color-republican); }
+
+.cf-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.cf-name {
+  min-width: 0; font-size: 14px; font-weight: 600; line-height: 1.3;
+  color: var(--color-text-primary); overflow-wrap: anywhere;
+}
+.cf-tag {
+  display: inline-block; margin-left: 8px; padding: 1px 6px; vertical-align: 1px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--color-accent-text); background: var(--color-accent-glow);
+  border: 1px solid rgba(var(--color-accent-rgb), 0.45); border-radius: var(--radius-sm);
+}
+.cf-amount {
+  flex: none; font-family: var(--font-mono); font-size: 14px; font-weight: 600;
+  color: var(--color-text-primary); font-variant-numeric: tabular-nums;
+}
+.cf-amount-label { font-family: var(--font-body); font-size: 12px; font-weight: 500; color: var(--color-text-muted); }
+
+.cf-bars {
+  position: relative; display: flex; flex-direction: column; gap: 3px;
+  padding: 2px 0;
+}
+.cf-bars::before {
+  /* track */
+  content: ''; position: absolute; inset: 2px 0 auto 0; height: 10px;
+  border-radius: var(--radius-full); background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+}
+.cf-bar {
+  position: relative; display: block; height: 10px; min-width: 3px;
+  border-radius: var(--radius-full); background: var(--party);
+}
+.cf-bar--cash { height: 3px; opacity: 0.75; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .cf-bar { transform-origin: left; animation: cf-grow 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  @keyframes cf-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+}
+
+.cf-meta { font-size: 12px; line-height: 1.4; color: var(--color-text-muted); }
+
+.cf-more {
+  align-self: flex-start; min-height: 44px; padding: 0 14px;
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  background: var(--color-bg-surface); color: var(--color-link);
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.cf-more:hover { border-color: var(--color-accent); }

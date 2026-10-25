@@ -25,29 +25,33 @@
 }
 .election-label-count { font-weight: 600; letter-spacing: 0; }
 
-.election-cands { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.election-cand { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid var(--color-border); }
-.election-cand-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; }
-.election-cand-main { display: flex; flex-direction: column; min-width: 0; }
-.election-cand-name { font-size: 14px; font-weight: 600; color: var(--color-text-primary); overflow-wrap: anywhere; }
-.election-cand-tag {
-  margin-left: 8px; padding: 1px 6px;
-  font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--color-accent); background: var(--color-accent-glow); border-radius: var(--radius-sm);
-}
-.election-cand-meta { font-size: 12px; color: var(--color-text-muted); }
-
-.election-more {
-  align-self: flex-start; padding: 4px 0;
-  background: none; border: 0; cursor: pointer;
-  font: inherit; font-size: 13px; font-weight: 600; color: var(--color-link);
-}
-.election-more:hover { text-decoration: underline; }
-
 .election-note, .election-caveat { margin: 0; font-size: 12px; line-height: 1.5; color: var(--color-text-muted); }
 .election-note {
   padding: 10px 12px;
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+}
+
+.election-caveat--top {
+  padding: 8px 10px;
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+}
+.election-caveat--top strong { color: var(--color-text-primary); }
+
+.election-ballot-link {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-link);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
 }

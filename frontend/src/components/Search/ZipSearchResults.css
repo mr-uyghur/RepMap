@@ -26,7 +26,7 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: var(--color-accent);
+  color: var(--color-accent-text);
 }
 
 .zip-results-title {
@@ -59,6 +59,32 @@
   border-color: var(--color-accent);
   color: var(--color-text-primary);
 }
+
+.zip-results-races {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.zip-results-races:hover { filter: brightness(1.06); }
+.zip-results-races > span:first-child { display: flex; flex-direction: column; gap: 1px; }
+.zip-results-races-title { font-size: 15px; font-weight: 700; }
+.zip-results-races-sub { font-size: 12px; font-weight: 600; }
+
+.zip-results-clear { min-height: 44px; min-width: 44px; }
 
 .zip-results-list {
   display: flex;

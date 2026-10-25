@@ -148,7 +148,7 @@
 }
 
 .panel-compare-banner strong {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
 }
 
 /* ── Header ───────────────────────────────────────────────────────────────── */
@@ -234,9 +234,9 @@
   font-weight: 700;
   letter-spacing: -0.03em;
   color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.2;
+  /* Wrap long names instead of truncating them (R-22). */
+  overflow-wrap: anywhere;
 }
 
 .panel-chamber {
@@ -245,7 +245,7 @@
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--color-accent);
+  color: var(--color-accent-text);
 }
 
 .panel-district {
@@ -268,12 +268,48 @@
   margin-top: 4px;
 }
 
+.panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.panel-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.panel-copied {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-success);
+  white-space: nowrap;
+}
+
+/* Actions get their own row so the name and badges keep the full width (no truncation). */
+.panel-header {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.panel-header-actions {
+  order: -1;
+  width: 100%;
+  justify-content: flex-end;
+}
+
 .panel-close-btn {
   background: rgba(100, 116, 139, 0.08);
   border: 1px solid var(--color-border-subtle);
   cursor: pointer;
-  color: var(--color-text-subtle);
-  padding: 7px;
+  color: var(--color-text-secondary);
+  width: 44px;
+  height: 44px;
+  padding: 0;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -286,14 +322,15 @@
 .panel-action-btn {
   background: rgba(100, 116, 139, 0.08);
   border: 1px solid var(--color-border-subtle);
-  color: var(--color-text-muted);
-  padding: 7px 9px;
+  color: var(--color-text-secondary);
+  min-height: 44px;
+  padding: 0 12px;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 5px;
   border-radius: var(--radius-full);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
@@ -302,7 +339,7 @@
 
 .panel-action-btn:hover,
 .panel-action-btn--active {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   background: rgba(var(--color-accent-rgb), 0.12);
   border-color: rgba(var(--color-accent-rgb), 0.28);
 }
@@ -348,6 +385,8 @@
 .panel-tabs {
   position: relative;
   display: flex;
+  overflow-x: auto;
+  scrollbar-width: thin;
   padding: 4px;
   margin: 10px 14px;
   background: rgba(0, 0, 0, 0.05);
@@ -378,10 +417,12 @@
 .panel-tab {
   position: relative;
   z-index: 1;
-  flex: 1;
-  padding: 7px 6px;
+  flex: 1 0 auto;
+  min-height: 44px;
+  padding: 0 8px;
+  white-space: nowrap;
   font-family: var(--font-body);
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.02em;
   border: none;
@@ -394,7 +435,7 @@
 
 .panel-tab:hover { color: var(--color-text-secondary); }
 
-.panel-tab--active { color: var(--color-accent); }
+.panel-tab--active { color: var(--color-accent-text); }
 
 .panel-tabs-divider {
   height: 1px;
@@ -517,9 +558,9 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.2;
+  /* Wrap long names instead of truncating them (R-22). */
+  overflow-wrap: anywhere;
 }
 
 .bio-action-value--mono {
@@ -606,7 +647,7 @@
   letter-spacing: 0.02em;
   background: rgba(var(--color-accent-rgb), 0.10);
   border: 1px solid rgba(var(--color-accent-rgb), 0.28);
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   white-space: normal;
   line-height: 1.4;
   transition: background 0.18s ease, transform 0.15s ease, box-shadow 0.18s ease;
@@ -649,7 +690,7 @@
   font-weight: 600;
   text-decoration: none;
   line-height: 1.4;
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   transition: background 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
               box-shadow 0.22s ease,
               transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -707,13 +748,16 @@
 
 
 .panel-election-badge {
-  margin-top: 6px;
-  padding: 2px 8px;
-  font: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
-  color: var(--color-accent);
+  margin-top: 8px;
+  min-height: 44px;
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px 8px;
+  padding: 4px 12px;
+  font: inherit; font-size: 13px; font-weight: 700; text-align: left;
+  color: var(--color-accent-text);
   background: var(--color-accent-glow);
   border: 1px solid var(--color-accent);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
-.panel-election-badge:hover { background: var(--color-accent); color: var(--color-bg-primary); }
+.panel-election-badge-cta { text-decoration: underline; text-underline-offset: 3px; }
+.panel-election-badge:hover { background: var(--color-accent); color: var(--color-on-accent); }

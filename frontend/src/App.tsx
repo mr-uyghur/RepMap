@@ -7,6 +7,7 @@ import StateTray from './components/Panel/StateTray'
 import NavBar from './components/Layout/NavBar'
 import PartyRibbon from './components/Layout/PartyRibbon'
 import ZipSearchResults from './components/Search/ZipSearchResults'
+import ElectionStrip from './components/Election/ElectionStrip'
 import RedistrictingSlider from './components/Map/RedistrictingSlider'
 import { useMapStore } from './store/mapStore'
 import { useRepStore } from './store/repStore'
@@ -15,6 +16,35 @@ import './App.css'
 
 const ComparePanel = lazy(() => import('./components/Panel/ComparePanel'))
 const CommitteeGraphModal = lazy(() => import('./components/Committee/CommitteeGraphModal'))
+const BallotPanel = lazy(() => import('./components/Election/BallotPanel'))
+
+/** Races-for-ZIP view; mirrored in the URL as ?mode=map&view=ballot[&zip=][&race=]. */
+interface BallotState {
+  open: boolean
+  zip: string | null
+  race: string | null
+}
+const BALLOT_CLOSED: BallotState = { open: false, zip: null, race: null }
+
+function ballotFromParams(params: URLSearchParams): BallotState {
+  if (params.get('view') !== 'ballot') return BALLOT_CLOSED
+  const zip = params.get('zip')
+  return {
+    open: true,
+    zip: zip && /^\d{5}$/.test(zip) ? zip : null,
+    race: params.get('race'),
+  }
+}
+
+function ballotUrl(b: BallotState): string {
+  const params = new URLSearchParams({ mode: 'map' })
+  if (b.open) {
+    params.set('view', 'ballot')
+    if (b.zip) params.set('zip', b.zip)
+    if (b.zip && b.race) params.set('race', b.race)
+  }
+  return `${window.location.pathname}?${params.toString()}`
+}
 
 class ErrorBoundary extends Component<
   { children: React.ReactNode },
@@ -48,7 +78,7 @@ class ErrorBoundary extends Component<
 }
 
 import ScrollcraftStage from './components/Story/ScrollcraftStage'
-import { resolveZip } from './utils/zipLookup'
+import { lookupZipLocation, resolveZip } from './utils/zipLookup'
 
 function hasMapDeepLinkParams(search: string): boolean {
   const params = new URLSearchParams(search)
@@ -64,6 +94,7 @@ export default function App() {
   const [committeeGraphOpen, setCommitteeGraphOpen] = useState(false)
   const [selectedCommittee, setSelectedCommittee] = useState<string | null>(null)
   const [isOffline, setIsOffline] = useState(!navigator.onLine)
+  const [ballot, setBallot] = useState<BallotState>(() => ballotFromParams(new URLSearchParams(window.location.search)))
 
   useEffect(() => {
     if (!hasMapDeepLinkParams(window.location.search)) {
@@ -119,13 +150,17 @@ export default function App() {
   }, [darkMode])
 
   useEffect(() => {
+    if (ballot.open) {
+      document.title = ballot.zip ? `Races for ZIP ${ballot.zip} · RepMap` : 'Races by ZIP · RepMap'
+      return
+    }
     if (selectedRepId === null) {
       document.title = 'RepMap'
       return
     }
     const rep = allRepresentatives.find((r) => r.id === selectedRepId)
     if (rep) document.title = `${rep.name} · RepMap`
-  }, [selectedRepId, allRepresentatives])
+  }, [ballot.open, ballot.zip, selectedRepId, allRepresentatives])
 
   const hasDeepLinked = useRef(false)
 
@@ -143,6 +178,7 @@ export default function App() {
 
       // A direct user selection supersedes any one-time URL initialization.
       hasDeepLinked.current = true
+      setBallot(BALLOT_CLOSED)
       setCompareRepId(null)
       setSelectedRepId(rep.id)
       setDetailPanelOpen(true)
@@ -183,6 +219,7 @@ export default function App() {
 
   const handleZipSearchComplete = useCallback(
     (result: ZipSearchResult) => {
+      setBallot(BALLOT_CLOSED)
       setZipSearchResult(result)
       setCompareMode(false)
       setCompareRepId(null)
@@ -220,6 +257,45 @@ export default function App() {
     setDetailPanelOpen(true)
   }, [setCompareRepId])
 
+  // Every ballot step is a history entry, so browser Back walks back through it.
+  const navigateBallot = useCallback((next: BallotState) => {
+    window.history.pushState({}, '', ballotUrl(next))
+    setBallot(next)
+    if (next.open) {
+      setCompareMode(false)
+      setCompareRepId(null)
+      setDetailPanelOpen(false)
+    }
+  }, [setCompareRepId])
+
+  const handleOpenBallot = useCallback(
+    (zip?: string | null) => navigateBallot({ open: true, zip: zip ?? ballot.zip ?? null, race: null }),
+    [navigateBallot, ballot.zip],
+  )
+  const handleBallotZip = useCallback(
+    (zip: string) => navigateBallot({ open: true, zip: zip || null, race: null }),
+    [navigateBallot],
+  )
+  const handleBallotRace = useCallback(
+    (race: string | null) => navigateBallot({ ...ballot, open: true, race }),
+    [navigateBallot, ballot],
+  )
+  const handleBallotClose = useCallback(() => navigateBallot(BALLOT_CLOSED), [navigateBallot])
+  const handleBallotOpenRep = useCallback(
+    (rep: Representative) => handleRepSelect(rep, { skipCompare: true }),
+    [handleRepSelect],
+  )
+
+  // Bring the ZIP's district into view behind the ballot card.
+  useEffect(() => {
+    if (!ballot.open || !ballot.zip) return
+    let cancelled = false
+    lookupZipLocation(ballot.zip)
+      .then((loc) => { if (loc && !cancelled) handleFlyTo(loc.lat, loc.lng) })
+      .catch(() => undefined)
+    return () => { cancelled = true }
+  }, [ballot.open, ballot.zip, handleFlyTo])
+
   const handleStateTrayClose = useCallback(() => {
     setSelectedStateCode(null)
   }, [setSelectedStateCode])
@@ -234,6 +310,14 @@ export default function App() {
   const applyMapDeepLinks = useCallback(
     (params: URLSearchParams) => {
       if (allRepresentatives.length === 0) return
+
+      const nextBallot = ballotFromParams(params)
+      setBallot(nextBallot)
+      if (nextBallot.open) {
+        setZipSearchResult(null)
+        setDetailPanelOpen(false)
+        return
+      }
 
       const committeeParam = params.get('committee')
       if (committeeParam) {
@@ -409,6 +493,8 @@ export default function App() {
             setStoryMode(true)
           }}
           onCommitteesClick={() => handleOpenCommittee()}
+          onRacesClick={() => (ballot.open ? handleBallotClose() : handleOpenBallot(zipSearchResult?.zipcode))}
+          racesOpen={ballot.open}
           onRedistrictingClick={() => {
             if (redistrictingMode) {
               setRedistrictingMode(false)
@@ -418,6 +504,7 @@ export default function App() {
             }
           }}
         />
+        {!ballot.open && <ElectionStrip onSeeRaces={() => handleOpenBallot(zipSearchResult?.zipcode)} />}
         <PartyRibbon />
         <main id="main-content" className="app-map-area">
           <RepMap mapRef={mapRef} onRepSelect={handleRepSelect} />
@@ -429,13 +516,27 @@ export default function App() {
               onSelectRep={handleStateTrayRepSelect}
             />
           )}
-          {zipSearchResult && (
+          {zipSearchResult && !ballot.open && (
             <ZipSearchResults
               result={zipSearchResult}
               selectedRepId={selectedRepId}
               onSelectRep={handleRepSelect}
               onClear={handleZipSearchReset}
+              onSeeRaces={handleOpenBallot}
             />
+          )}
+          {ballot.open && (
+            <Suspense fallback={null}>
+              <BallotPanel
+                zip={ballot.zip}
+                raceId={ballot.race}
+                allRepresentatives={allRepresentatives}
+                onSubmitZip={handleBallotZip}
+                onSelectRace={handleBallotRace}
+                onOpenRep={handleBallotOpenRep}
+                onClose={handleBallotClose}
+              />
+            </Suspense>
           )}
           {selectedRepId !== null && compareRepId !== null && (
             <Suspense fallback={null}>
@@ -454,6 +555,7 @@ export default function App() {
               compareMode={compareMode}
               onCompareModeChange={setCompareMode}
               onCommitteeClick={(committee) => handleOpenCommittee(committee)}
+              onOpenBallot={() => handleOpenBallot(zipSearchResult?.zipcode)}
             />
           )}
         </main>

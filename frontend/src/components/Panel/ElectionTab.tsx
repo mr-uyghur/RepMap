@@ -1,80 +1,39 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getElectionIndex, getElectionCycle } from '../../api/representatives'
-import type { ElectionCycleData, ElectionCycleSummary, FecCandidate, Representative } from '../../types'
-import { PARTY_COLORS } from '../../constants'
+import type { ElectionCycleData, ElectionCycleSummary, Representative } from '../../types'
 import {
   ballotpediaRaceUrl,
+  countdownText,
   cycleForSeat,
   electionYearForTermEnd,
   findRaceForRep,
   formatDate,
-  formatMoney,
   isSpecialSeat,
   raceTitle,
 } from '../../utils/elections'
+import CandidateFunding from '../Election/CandidateFunding'
 import './ElectionTab.css'
 
 interface Props {
   rep: Representative
   /** Official state elections site, used as the results link-out. */
   boardUrl?: string
+  /** Opens the races-for-ZIP view (all races on the ballot, not just this seat). */
+  onOpenBallot?: () => void
 }
-
-const COLLAPSED_COUNT = 6
-// Don't hide just a couple of rows behind a toggle.
-const COLLAPSE_THRESHOLD = COLLAPSED_COUNT + 2
 
 type LoadState =
   | { status: 'loading' }
   | { status: 'error' }
   | { status: 'ready'; summary: ElectionCycleSummary | null; data: ElectionCycleData | null }
 
-function daysUntil(iso: string): number {
-  const [y, m, d] = iso.split('-').map(Number)
-  const target = new Date(y, m - 1, d).getTime()
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-  return Math.round((target - today) / 86_400_000)
-}
-
-function countdownText(iso: string): string {
-  const days = daysUntil(iso)
-  if (days > 1) return `${days} days away`
-  if (days === 1) return 'Tomorrow'
-  if (days === 0) return 'Today'
-  return 'Election day has passed'
-}
-
-function CandidateRow({ c, displayName }: { c: FecCandidate; displayName?: string }) {
-  return (
-    <li className="election-cand">
-      <span
-        className="election-cand-dot"
-        style={{ background: PARTY_COLORS[c.party] ?? PARTY_COLORS.other }}
-        aria-hidden="true"
-      />
-      <div className="election-cand-main">
-        <span className="election-cand-name">
-          {displayName ?? c.name}
-          {c.incumbent && <span className="election-cand-tag">Incumbent</span>}
-        </span>
-        <span className="election-cand-meta">
-          {c.party_label}
-          {c.receipts != null && <> · raised {formatMoney(c.receipts)}</>}
-        </span>
-      </div>
-    </li>
-  )
-}
-
-export default function ElectionTab({ rep, boardUrl }: Props) {
+export default function ElectionTab({ rep, boardUrl, onOpenBallot }: Props) {
   const [state, setState] = useState<LoadState>({ status: 'loading' })
-  const [expanded, setExpanded] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let cancelled = false
     setState({ status: 'loading' })
-    setExpanded(false)
     getElectionIndex()
       .then(async (index) => {
         const summary = cycleForSeat(rep, index.cycles)
@@ -83,17 +42,30 @@ export default function ElectionTab({ rep, boardUrl }: Props) {
       })
       .catch(() => { if (!cancelled) setState({ status: 'error' }) })
     return () => { cancelled = true }
-  }, [rep])
+  }, [rep, attempt])
 
   const found = useMemo(
     () => (state.status === 'ready' && state.data ? findRaceForRep(rep, state.data) : null),
     [state, rep],
   )
 
-  if (state.status === 'loading') return <p className="htv-tab-loading">Loading election data…</p>
-  if (state.status === 'error') {
-    return <p className="htv-tab-error">Election data is unavailable right now. Please try again later.</p>
+  if (state.status === 'loading') {
+    return <p className="htv-tab-loading" role="status">Loading election data…</p>
   }
+  if (state.status === 'error') {
+    return (
+      <div className="election-tab" role="status">
+        <p className="htv-tab-error">Election data couldn&apos;t be loaded. Check your connection and try again.</p>
+        <button type="button" className="cf-more" onClick={() => setAttempt((n) => n + 1)}>Retry</button>
+      </div>
+    )
+  }
+
+  const ballotLink = onOpenBallot && (
+    <button type="button" className="election-ballot-link" onClick={onOpenBallot}>
+      See every race for a ZIP code →
+    </button>
+  )
 
   const { summary, data } = state
 
@@ -110,6 +82,7 @@ export default function ElectionTab({ rep, boardUrl }: Props) {
             </p>
           )}
         </div>
+        {ballotLink}
       </div>
     )
   }
@@ -118,8 +91,6 @@ export default function ElectionTab({ rep, boardUrl }: Props) {
   const ownFecIds = new Set(rep.external_ids?.fec_ids ?? [])
   const special = isSpecialSeat(rep.term_end, summary.cycle)
   const candidates = race?.candidates ?? []
-  const collapsible = candidates.length > COLLAPSE_THRESHOLD
-  const visible = expanded || !collapsible ? candidates : candidates.slice(0, COLLAPSED_COUNT)
   // Only claim a member isn't running when we actually hold their FEC ids to check.
   const sittingNotFiled = !!rep.external_ids?.fec_ids?.length && !!found && !found.viaCandidacy
   const redistricted =
@@ -140,6 +111,10 @@ export default function ElectionTab({ rep, boardUrl }: Props) {
       {race && (
         <>
           <h3 className="election-race-title">{raceTitle(race, summary.cycle)}</h3>
+          <p className="election-caveat election-caveat--top" role="note">
+            <strong>Candidates who filed with the FEC, not the official ballot.</strong>
+            {data.data_through && <> Data through {formatDate(data.data_through)}.</>}
+          </p>
 
           {redistricted && (
             <p className="election-note" role="note">
@@ -153,22 +128,11 @@ export default function ElectionTab({ rep, boardUrl }: Props) {
               <p className="election-label">
                 Filed with FEC <span className="election-label-count">· {candidates.length}</span>
               </p>
-              <ul className="election-cands">
-                {visible.map((c) => (
-                  // For the member whose panel this is, prefer their canonical name over FEC's.
-                  <CandidateRow key={c.fec_id} c={c} displayName={ownFecIds.has(c.fec_id) ? rep.name : undefined} />
-                ))}
-              </ul>
-              {collapsible && (
-                <button
-                  type="button"
-                  className="election-more"
-                  onClick={() => setExpanded((v) => !v)}
-                  aria-expanded={expanded}
-                >
-                  {expanded ? 'Show fewer' : `Show ${candidates.length - COLLAPSED_COUNT} more`}
-                </button>
-              )}
+              <CandidateFunding
+                candidates={candidates}
+                // For the member whose panel this is, prefer their canonical name over FEC's.
+                nameFor={(c) => (ownFecIds.has(c.fec_id) ? rep.name : undefined)}
+              />
               {sittingNotFiled && (
                 <p className="election-note" role="note">
                   {rep.name} has no {summary.cycle} FEC candidacy for this seat, so may be retiring or
@@ -180,12 +144,11 @@ export default function ElectionTab({ rep, boardUrl }: Props) {
             <p className="election-note">No candidates have filed with the FEC for this race yet.</p>
           )}
 
-          <p className="election-caveat" role="note">
-            {data.source.caveat}
-            {data.data_through && <> Financial data through {formatDate(data.data_through)}.</>}
-          </p>
+          <p className="election-caveat" role="note">{data.source.caveat}</p>
         </>
       )}
+
+      {ballotLink}
 
       <div className="htv-links">
         {race && (
@@ -195,12 +158,12 @@ export default function ElectionTab({ rep, boardUrl }: Props) {
             rel="noopener noreferrer"
             className="bio-tab-btn"
           >
-            Race on Ballotpedia — ballot &amp; results
+            This race on Ballotpedia
           </a>
         )}
         {boardUrl && (
           <a href={boardUrl} target="_blank" rel="noopener noreferrer" className="bio-tab-btn">
-            Official state results &amp; ballot info
+            Official ballot &amp; results: state elections office
           </a>
         )}
       </div>
