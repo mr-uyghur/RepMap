@@ -106,7 +106,7 @@ test.describe('RepMap navigation shell', () => {
     await page.keyboard.press('Escape')
     await expect(page).toHaveURL(/\/\?state=NE$/)
     // Wait for the state level to render, as a person would, before going up again.
-    await expect(page.getByRole('heading', { name: '2026 races in Nebraska' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Senators', exact: true })).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(page).toHaveURL(/\/$/)
     await expect(page.getByRole('main', { name: 'United States' })).toBeVisible()
@@ -291,13 +291,14 @@ test.describe('RepMap navigation shell', () => {
 
 // Level content (merged from the state-level and race-level work), on the new URLs.
 test.describe('RepMap level content', () => {
-  test('L1 state level lists 2026 races in Nebraska', async ({ page }, info) => {
+  test('L1 state level lists 2026 races in Nebraska below the delegation', async ({ page }, info) => {
     const rec = record(page)
     await page.clock.setFixedTime(BEFORE_ELECTION)
     await page.goto('/?state=NE')
     await applyAppTheme(page, scheme(info))
     const main = page.getByRole('main', { name: 'Nebraska' })
-    await expect(main.getByRole('heading', { name: '2026 races in Nebraska' })).toBeVisible({ timeout: 20_000 })
+    // Final stretch: the races section is open (below Senators and House).
+    await expect(main.getByRole('heading', { name: /^2026 races in Nebraska/ })).toBeVisible({ timeout: 20_000 })
     await main.getByRole('button', { name: /U\.S\. House.*District 2/ }).click()
     await expect(page).toHaveURL(/race=US-HOU-NE-02/)
     expect.soft(await smallTargets(page, '.explore-panel'), 'targets < 44px').toEqual([])
@@ -502,4 +503,109 @@ test.describe('Compare view', () => {
     await page.goto('/?compare=L000397,B001298')
     await expect(page.getByRole('dialog', { name: 'Zoe Lofgren and Don Bacon' })).toBeVisible({ timeout: 20_000 })
   })
+})
+
+// Members first (MEMBERS_FIRST_CONTRACT.md, Agent B): home, state tiles and the state level.
+// Election prominence follows electionPhase(), so every scene pins the clock.
+const FINAL = new Date('2026-10-26T12:00:00')
+const OFF = new Date('2027-03-01T12:00:00')
+
+test.describe('Members first: explore', () => {
+  test('M1 home leads with members; tiles count members (final)', async ({ page }, info) => {
+    const rec = record(page)
+    await page.clock.setFixedTime(FINAL)
+    await page.goto('/')
+    await applyAppTheme(page, scheme(info))
+    const main = page.getByRole('main', { name: 'United States' })
+    await expect(main.getByRole('heading', { level: 2, name: 'Who represents you in Congress' })).toBeVisible()
+    await expect(main.getByRole('heading', { name: 'Browse members by state' })).toBeVisible()
+    const nebraska = main.getByRole('button', { name: /^Nebraska/ })
+    await expect(nebraska).toContainText('2 senators · 3 House', { timeout: 20_000 })
+    await expect(nebraska).not.toContainText('race')
+    await expect(main.getByRole('button', { name: /^District of Columbia/ })).toContainText('1 non-voting delegate')
+    // Final stretch: a small election card with the countdown, below the members heading.
+    const card = main.getByRole('complementary', { name: '2026 election' })
+    await expect(card).toContainText('8 days')
+    await expect(card.getByRole('link', { name: /See 2026 races by state/ })).toHaveAttribute('href', '/?view=races')
+    expect.soft(await smallTargets(page, '.overview'), 'targets < 44px').toEqual([])
+    await finish(page, info, 'mf-home-final', rec)
+  })
+
+  test('M1b home: election card can be hidden and stays hidden (final)', async ({ page }) => {
+    await page.clock.setFixedTime(FINAL)
+    await page.goto('/')
+    const main = page.getByRole('main', { name: 'United States' })
+    const card = main.getByRole('complementary', { name: '2026 election' })
+    await card.getByRole('button', { name: 'Hide election card' }).click()
+    await expect(card).toHaveCount(0)
+    await page.reload()
+    await expect(main.getByRole('heading', { name: 'Browse members by state' })).toBeVisible()
+    await expect(main.getByRole('complementary', { name: '2026 election' })).toHaveCount(0)
+  })
+
+  test('M1c home ZIP form: validation, then opens the ZIP', async ({ page }) => {
+    await page.clock.setFixedTime(FINAL)
+    await page.goto('/')
+    const main = page.getByRole('main', { name: 'United States' })
+    const zip = main.getByLabel('Your ZIP code')
+    // The form appears once App passes onSelectZip (Agent A wires it).
+    test.skip((await zip.count()) === 0, 'onSelectZip is not wired yet')
+    await main.getByRole('button', { name: 'Find my members' }).click()
+    await expect(main.getByRole('alert')).toHaveText('Enter your 5-digit ZIP code.')
+    await expect(zip).toHaveAttribute('aria-invalid', 'true')
+    await zip.fill('95112')
+    await main.getByRole('button', { name: 'Find my members' }).click()
+    await expect(page).toHaveURL(/zip=95112/)
+  })
+
+  test('M2 home in the off-season: no election card', async ({ page }, info) => {
+    const rec = record(page)
+    await page.clock.setFixedTime(OFF)
+    await page.goto('/')
+    await applyAppTheme(page, scheme(info))
+    const main = page.getByRole('main', { name: 'United States' })
+    await expect(main.getByRole('button', { name: /^Nebraska/ })).toContainText('2 senators · 3 House', { timeout: 20_000 })
+    await expect(main.getByRole('complementary')).toHaveCount(0)
+    await finish(page, info, 'mf-home-off', rec)
+  })
+
+  test('M3 Nebraska: delegation before races; races open with jump chips (final)', async ({ page }, info) => {
+    const rec = record(page)
+    await page.clock.setFixedTime(FINAL)
+    await page.goto('/?state=NE')
+    await applyAppTheme(page, scheme(info))
+    const main = page.getByRole('main', { name: 'Nebraska' })
+    const races = main.getByRole('button', { name: /^2026 races in Nebraska/ })
+    await expect(races).toHaveAttribute('aria-expanded', 'true', { timeout: 20_000 })
+    const order = await main.locator('h3').allTextContents()
+    expect(order.indexOf('Senators')).toBeGreaterThanOrEqual(0)
+    expect(order.indexOf('Senators')).toBeLessThan(order.indexOf('House'))
+    expect(order.indexOf('House')).toBeLessThan(order.findIndex((t) => t.startsWith('2026 races in Nebraska')))
+    // Members as rows with party written out and a phase-aware status.
+    await expect(main.getByRole('button', { name: /Don Bacon.*District 2.*Republican.*Seat up Nov 3/ })).toBeVisible()
+    await expect(main.getByRole('button', { name: /2026 races \(4\) · Nov 3/ })).toBeVisible()
+    await expect(main.getByRole('button', { name: 'How to vote' })).toBeVisible()
+    await expect(main.getByRole('button', { name: /U\.S\. House.*District 2/ })).toBeVisible()
+    expect.soft(await smallTargets(page, '.overview'), 'targets < 44px').toEqual([])
+    await finish(page, info, 'mf-state-final', rec)
+  })
+
+  test('M4 Nebraska in the off-season: races are a single collapsed row', async ({ page }, info) => {
+    const rec = record(page)
+    await page.clock.setFixedTime(OFF)
+    await page.goto('/?state=NE')
+    await applyAppTheme(page, scheme(info))
+    const main = page.getByRole('main', { name: 'Nebraska' })
+    await expect(main.getByRole('heading', { name: 'Senators', exact: true })).toBeVisible({ timeout: 20_000 })
+    const races = main.getByRole('button', { name: /^2028 races in Nebraska/ })
+    await expect(races).toHaveAttribute('aria-expanded', 'false')
+    await expect(main.getByRole('button', { name: 'How to vote' })).toHaveCount(0)
+    await expect(main.getByRole('button', { name: /U\.S\. House.*District 2/ })).toBeHidden()
+    await races.click()
+    await expect(main.getByRole('button', { name: /U\.S\. House.*District 2/ })).toBeVisible()
+    await finish(page, info, 'mf-state-off', rec)
+  })
+
+  // `?state=NE&view=races` (focusRaces) needs Agent A's URL wiring.
+  test.skip('M5 view=races opens and scrolls to the races section', async () => {})
 })
