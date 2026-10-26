@@ -4,22 +4,29 @@ Source design: `REDESIGN_PROPOSAL.md` (comps in `design-mockups/redesign/`).
 The app becomes **one map, one search box, four levels**: United States → State → District (race) → Member, with a breadcrumb back up.
 
 ## URL scheme (the URL is the single source of truth)
-| URL | Level |
-|---|---|
-| `/` | United States (map home). No more Story on `/`. |
-| `/story` | Civic Story (the iframe page) |
-| `/?state=NE` | State |
-| `/?race=US-HOU-NE-02` (state implied) | District / race |
-| `/?zip=95112` | Resolves to that ZIP's House race; RaceView shows a "From ZIP 95112 · ZIPs can cross district lines" note |
-| `/?rep=L000397` | Member (bioguide ID; numeric IDs still accepted) |
-| `&compare=a,b`, `&committee=`, `&redistrict=` | unchanged |
+Updated 2026-10-26 for members first (`MEMBERS_FIRST_CONTRACT.md`): five levels, United States → State → District → Race → Member; members lead every level.
+
+| URL | Level | Shows |
+|---|---|---|
+| `/` | United States | Home: "Who represents you in Congress", ZIP form, phase-aware election card, state tiles with member counts. No Story on `/`. |
+| `/?view=races` | United States | "Races by state": the state tiles with race counts. Breadcrumb `United States › Races by state` |
+| `/story` | | Civic Story (the iframe page) |
+| `/?state=NE` | State | Delegation first (Senators, then House); races section below |
+| `/?state=NE&view=races` | State | Same, races section opened and scrolled into view |
+| `/?district=CA-18` (also `NE-2`, `AK-AL`; `ca18`, `CA 18`, `AK-1` are normalised) | District | DistrictView: the district's members, then the ballot strip. Map district clicks, member breadcrumbs and `NE-2` searches go here. A value that names no district (`XX-1`, or `NE-9` once seat counts load) shows a message with a way out |
+| `/?zip=95112` | District | DistrictView for that ZIP's district (ZIP → state + district from the bundled ZIP table) with `fromZip`: "ZIPs can cross district lines". Breadcrumb `United States › California › ZIP 95112` |
+| `/?race=US-HOU-NE-02` (state implied) | Race | Unchanged full race page (RaceView). Breadcrumb `… › Nebraska › District 2 › House race` (with `&zip=`, the parent crumb is `ZIP 95112`) |
+| `/?rep=L000397` | Member | Member (bioguide ID; numeric IDs still accepted). Breadcrumb parent: `District 18` (`?district=CA-18`), or `ZIP 95112` when opened from a ZIP (`&zip=` kept); senators: the state |
+| `&compare=a,b`, `&committee=`, `&redistrict=` | | unchanged; DistrictView's "Compare your two senators" opens `?compare=a,b` |
+
+`view` only applies to `/` and `?state=`; elsewhere it is dropped. Precedence when several are present: `compare` > `rep` > `race` > `district` > `zip` > `state`.
 
 Old links must keep working and be rewritten with `replaceState`:
 - `/?mode=map` → `/`
 - `/?mode=map&zip=95112&rep=L000397` → member L000397 (zip kept for the "From ZIP" context)
-- `/?mode=map&view=ballot&zip=95112[&race=…]` → race (or the ZIP's House race)
+- `/?mode=map&view=ballot&zip=95112[&race=…]` → race, or (without `race`) the ZIP's members-first district page
 
-Back/forward walks levels. Esc goes up one level. Breadcrumb links are real `<a href>`s.
+Back/forward walks levels. Esc goes up one level (to the parent crumb). Breadcrumb links are real `<a href>`s.
 
 ## Ownership (one owner per file; don't edit files you don't own)
 **Agent A: navigation core**
