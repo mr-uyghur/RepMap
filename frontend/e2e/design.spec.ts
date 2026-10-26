@@ -639,8 +639,7 @@ test.describe('Members first: explore', () => {
     await page.goto('/')
     const main = page.getByRole('main', { name: 'United States' })
     const zip = main.getByLabel('Your ZIP code')
-    // The form appears once App passes onSelectZip (Agent A wires it).
-    test.skip((await zip.count()) === 0, 'onSelectZip is not wired yet')
+    await expect(zip).toBeVisible({ timeout: 20_000 })
     await main.getByRole('button', { name: 'Find my members' }).click()
     await expect(main.getByRole('alert')).toHaveText('Enter your 5-digit ZIP code.')
     await expect(zip).toHaveAttribute('aria-invalid', 'true')
@@ -697,8 +696,16 @@ test.describe('Members first: explore', () => {
     await finish(page, info, 'mf-state-off', rec)
   })
 
-  // `?state=NE&view=races` (focusRaces) needs Agent A's URL wiring.
-  test.skip('M5 view=races opens and scrolls to the races section', async () => {})
+  test('M5 view=races opens and scrolls to the races section', async ({ page }) => {
+    await page.clock.setFixedTime(FINAL)
+    await page.goto('/?state=CA&view=races')
+    const main = page.getByRole('main', { name: 'California' })
+    const heading = main.getByRole('heading', { name: '2026 races in California' })
+    await expect(heading).toBeVisible({ timeout: 20_000 })
+    // California has 52 House members above the races, so being in view proves the scroll.
+    await expect(heading).toBeInViewport()
+    await expect(main.getByRole('heading', { name: 'Senators', exact: true })).not.toBeInViewport()
+  })
 })
 
 // Members first (MEMBERS_FIRST_CONTRACT.md): URLs, levels and the shell around them.
