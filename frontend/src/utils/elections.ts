@@ -187,3 +187,32 @@ export function racesForLocation(data: ElectionCycleData, state: string, distric
     senate,
   }
 }
+
+export type ElectionPhaseName = 'off' | 'season' | 'final' | 'post'
+
+export interface ElectionPhase {
+  phase: ElectionPhaseName
+  /** The cycle the phase refers to: the upcoming one, or (in 'post') the one just held. */
+  cycle: ElectionCycleSummary | null
+  /** Days until that cycle's general election (negative in 'post'); null without a cycle. */
+  days: number | null
+}
+
+/** How prominent election content should be today (user's local date):
+ *  - 'final'  : 14 days out through Election Day
+ *  - 'season' : 15 to ELECTION_SEASON_DAYS days out
+ *  - 'post'   : the day after the election through Jan 3, when the new Congress is sworn in
+ *  - 'off'    : everything else */
+export function electionPhase(cycles: ElectionCycleSummary[]): ElectionPhase {
+  const held = [...cycles]
+    .filter((c) => daysUntil(c.general_date) < 0)
+    .sort((a, b) => b.general_date.localeCompare(a.general_date))[0]
+  if (held && daysUntil(`${held.cycle + 1}-01-03`) >= 0) {
+    return { phase: 'post', cycle: held, days: daysUntil(held.general_date) }
+  }
+  const next = upcomingCycle(cycles)
+  if (!next) return { phase: 'off', cycle: null, days: null }
+  const days = daysUntil(next.general_date)
+  const phase: ElectionPhaseName = days <= 14 ? 'final' : days <= ELECTION_SEASON_DAYS ? 'season' : 'off'
+  return { phase, cycle: next, days }
+}

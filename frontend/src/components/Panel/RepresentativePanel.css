@@ -1,4 +1,4 @@
-/* Member view: header (who, seat, party, Compare + Share), ballot card, 3 tabs.
+/* Member view: header (who, seat, party, Call + Compare + Share), ballot line, 3 tabs.
    Tokens only (src/styles/variables.css). */
 
 /* Shared skeleton shimmer (also used by Overview.css, BallotPanel.css, ComparePanel.css). */
@@ -186,11 +186,46 @@
 .panel-party-letter--independent,
 .panel-party-letter--other       { color: var(--color-independent-text); }
 
-/* ── Actions: Compare + Share (R-21: two secondary controls) ─────────────── */
+/* ── Actions: Call (primary) + Compare and Share (secondary) ─────────────── */
 .panel-actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+}
+/* With a phone number: Call spans the row, Compare and Share share the next. */
+.panel-actions--call {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 480px;
+}
+.panel-actions--call > .panel-call { grid-column: 1 / -1; }
+.panel-actions--call > .panel-action-btn,
+.panel-actions--call > .panel-share > .panel-action-btn { width: 100%; justify-content: center; }
+
+.panel-call {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: var(--space-2) var(--space-4);
+  box-sizing: border-box;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  text-decoration: none;
+  transition: filter var(--transition-fast);
+}
+.panel-call:hover { filter: brightness(1.08); }
+.panel-call svg { flex-shrink: 0; }
+.panel-call-number {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .panel-action-btn {
@@ -284,7 +319,7 @@
   color: var(--color-error-text);
 }
 
-/* ── Ballot card slot ────────────────────────────────────────────────────── */
+/* ── Ballot line slot ────────────────────────────────────────────────────── */
 .panel-ballot { padding: 0 var(--space-5) var(--space-4); }
 
 /* ── Tabs (ARIA APG, R-43). Underline style, equal width, 44px tall. ─────── */
@@ -334,6 +369,7 @@
   gap: var(--space-4) var(--space-5);
 }
 .ov-fact { min-width: 0; }
+.ov-fact--wide { grid-column: 1 / -1; }
 .ov-fact dt {
   margin: 0 0 2px;
   font-size: 13px;

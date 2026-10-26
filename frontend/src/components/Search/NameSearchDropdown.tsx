@@ -69,7 +69,7 @@ export default function NameSearchDropdown({ options, activeIndex, onSelect, onS
 
         if (option.kind !== 'rep') {
           const title = option.kind === 'state' ? stateName(option.state) : option.label
-          const detail = option.kind === 'state' ? 'State · 2026 races and members' : option.detail
+          const detail = option.kind === 'state' ? 'State · members and races' : option.detail
           return (
             <li key={optionKey(option)} {...common}>
               <span className="zip-result-avatar searchbar-place-icon" aria-hidden="true">

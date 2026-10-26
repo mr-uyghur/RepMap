@@ -1,0 +1,188 @@
+/* "On the ballot Nov 3" strip on the ZIP / district page. Tokens only. */
+.bs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+}
+
+.bs-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding: var(--space-1) var(--space-1) 0;
+}
+
+.bs-title,
+.bs-quiet-text {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--color-text-primary);
+}
+.bs-title svg,
+.bs-quiet-text svg { flex-shrink: 0; color: var(--color-text-muted); }
+
+.bs-badge {
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.bs-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.bs-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-3);
+  box-sizing: border-box;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.bs-row:hover { border-color: var(--color-accent); }
+.bs-row:hover .bs-row-title { color: var(--color-link); }
+
+.bs-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bs-row-title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.bs-row-sub,
+.bs-row-label {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+.bs-row-label { margin-top: 2px; }
+
+.bs-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--space-3);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.bs-name { font-weight: 600; color: var(--color-text-primary); overflow-wrap: anywhere; }
+.bs-party { font-weight: 400; color: var(--color-text-secondary); }
+.bs-more { color: var(--color-text-muted); }
+
+.bs-chevron { flex-shrink: 0; color: var(--color-text-muted); }
+
+.bs-static {
+  padding: var(--space-3);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.bs-note {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-note-border);
+  border-radius: var(--radius-md);
+  background: var(--color-note-bg);
+  color: var(--color-note-text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.bs-official {
+  align-self: flex-start;
+  display: inline-block;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: var(--space-3) var(--space-1);
+  line-height: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Off season: one quiet line. */
+.bs--quiet { padding: var(--space-3) var(--space-4); }
+.bs-quiet-text { font-weight: 500; color: var(--color-text-secondary); }
+.bs-quiet-text strong { color: var(--color-text-primary); font-weight: 700; }
+
+/* After the election. */
+.bs-post {
+  margin: 0;
+  padding: 0 var(--space-1);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.bs-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: 0 var(--space-1);
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+.bs-error p { margin: 0; }
+.bs-retry {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-link);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bs-skeleton {
+  height: 56px;
+  margin-top: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+}

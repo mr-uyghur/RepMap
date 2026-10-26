@@ -190,7 +190,8 @@
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
   }
-  .navbar .searchbar-input { padding: 0 44px 0 12px; }
+  /* Room for the whole placeholder ("ZIP, state or member name") at 375px; the icon sits 15-30px from the right. */
+  .navbar .searchbar-input { padding: 0 34px 0 12px; }
 }
 
 /* ── Search messages and place suggestions ────────────────────────────────── */

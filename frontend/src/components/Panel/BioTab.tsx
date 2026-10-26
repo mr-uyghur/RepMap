@@ -1,7 +1,8 @@
 import type { Representative } from '../../types'
 import { externalHostname, safeExternalHref } from '../../utils/urlSafety'
 
-// The member "Overview" tab: contact details, term, committees, official links.
+// The member "Overview" tab: contact details, then committees, then office, term
+// and (off season) when the seat is next up, then official links.
 
 const SOCIAL_LABELS: Record<string, string> = {
   twitter: 'X (Twitter)',
@@ -68,9 +69,11 @@ function groupCommittees(names: string[]) {
 interface Props {
   rep: Representative
   onCommitteeClick?: (committee: string) => void
+  /** Off season the member header has no ballot line; show "Seat up in <year>" here. */
+  seatUpYear?: number | null
 }
 
-export default function BioTab({ rep, onCommitteeClick }: Props) {
+export default function BioTab({ rep, onCommitteeClick, seatUpYear = null }: Props) {
   const federal = rep.level === 'us_house' || rep.level === 'us_senate'
   const website = safeExternalHref(rep.website)
   const office = officeLine(rep)
@@ -109,38 +112,28 @@ export default function BioTab({ rep, onCommitteeClick }: Props) {
 
   return (
     <div className="ov">
-      <dl className="ov-facts">
-        {rep.phone && (
-          <div className="ov-fact">
-            <dt>{federal ? 'Phone (D.C. office)' : 'Phone'}</dt>
-            <dd><a href={`tel:${rep.phone}`} className="ov-link ov-mono">{rep.phone}</a></dd>
-          </div>
-        )}
-        {rep.website && (
-          <div className="ov-fact">
-            <dt>Website</dt>
-            <dd>
-              {website ? (
-                <a href={website} target="_blank" rel="noopener noreferrer" className="ov-link">
-                  {externalHostname(website)}
-                </a>
-              ) : rep.website}
-            </dd>
-          </div>
-        )}
-        {office && (
-          <div className="ov-fact">
-            <dt>Office</dt>
-            <dd>{office}</dd>
-          </div>
-        )}
-        {term && (
-          <div className="ov-fact">
-            <dt>Current term</dt>
-            <dd>{term}</dd>
-          </div>
-        )}
-      </dl>
+      {(rep.phone || rep.website) && (
+        <dl className="ov-facts ov-facts--contact">
+          {rep.phone && (
+            <div className="ov-fact">
+              <dt>{federal ? 'Phone (D.C. office)' : 'Phone'}</dt>
+              <dd><a href={`tel:${rep.phone}`} className="ov-link ov-mono">{rep.phone}</a></dd>
+            </div>
+          )}
+          {rep.website && (
+            <div className="ov-fact">
+              <dt>Website</dt>
+              <dd>
+                {website ? (
+                  <a href={website} target="_blank" rel="noopener noreferrer" className="ov-link">
+                    {externalHostname(website)}
+                  </a>
+                ) : rep.website}
+              </dd>
+            </div>
+          )}
+        </dl>
+      )}
 
       <section className="ov-section" aria-labelledby={`ov-committees-${rep.id}`}>
         <h3 className="ov-heading" id={`ov-committees-${rep.id}`}>Committees</h3>
@@ -170,6 +163,29 @@ export default function BioTab({ rep, onCommitteeClick }: Props) {
           <p className="ov-empty">No committee assignments in our data.</p>
         )}
       </section>
+
+      {(office || term || seatUpYear) && (
+        <dl className="ov-facts ov-facts--details">
+          {office && (
+            <div className="ov-fact ov-fact--wide">
+              <dt>Office</dt>
+              <dd>{office}</dd>
+            </div>
+          )}
+          {term && (
+            <div className="ov-fact">
+              <dt>Current term</dt>
+              <dd>{term}</dd>
+            </div>
+          )}
+          {seatUpYear && (
+            <div className="ov-fact">
+              <dt>Next election</dt>
+              <dd>Seat up in {seatUpYear}</dd>
+            </div>
+          )}
+        </dl>
+      )}
 
       {(profileLinks.length > 0 || socials.length > 0) && (
         <section className="ov-section" aria-labelledby={`ov-links-${rep.id}`}>
