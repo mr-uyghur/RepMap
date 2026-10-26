@@ -304,7 +304,7 @@ test.describe('RepMap level content', () => {
     await finish(page, info, 'state-races', rec)
   })
 
-  test('L2 member view: ballot card, 3 tabs, 2 actions', async ({ page }, info) => {
+  test('L2 member view: Call first, ballot line, 3 tabs', async ({ page }, info) => {
     const rec = record(page)
     await page.clock.setFixedTime(BEFORE_ELECTION)
     await page.goto('/?rep=L000397')
@@ -314,8 +314,11 @@ test.describe('RepMap level content', () => {
     await expect(panel.getByRole('heading', { level: 2, name: 'Zoe Lofgren' })).toBeVisible()
     await expect(panel).toContainText('U.S. Representative · California District 18')
     await expect(panel).toContainText('Democrat')
-    // Proposal: 3 tabs (Overview, Votes, Bills), 2 header actions (Compare, Share).
+    // Members first: Call (D.C. office) is the primary action; Compare and Share are secondary.
     await expect(panel.getByRole('tab')).toHaveText(['Overview', 'Votes', 'Bills'])
+    const call = panel.locator('.panel-actions a.panel-call')
+    await expect(call).toHaveAttribute('href', 'tel:+12022253072')
+    await expect(call).toContainText('Call D.C. office')
     await expect(panel.locator('.panel-actions > * > button, .panel-actions > button')).toHaveCount(2)
     await expect(panel.getByRole('button', { name: 'Compare' })).toBeVisible()
     const share = panel.getByRole('button', { name: 'Share' })
@@ -325,18 +328,20 @@ test.describe('RepMap level content', () => {
     await page.keyboard.press('Escape')
     await expect(share).toHaveAttribute('aria-expanded', 'false')
     await expect(page).toHaveURL(/\?rep=L000397$/) // Esc closed the menu, not the level
-    // The "On the Nov 3 ballot" card sits above the tabs.
-    await expect(panel.getByText('On the Nov 3 ballot')).toBeVisible()
-    await expect(panel.locator('.bc-filer')).toHaveCount(2)
+    // The big ballot card is now one line above the tabs.
+    const line = panel.locator('.bc-line')
+    await expect(line).toContainText('Up for re-election Tue, Nov 3 · 9 days · See the race')
+    expect((await line.boundingBox())!.height).toBeLessThanOrEqual(72)
+    await expect(panel.locator('.bc-card')).toHaveCount(0)
     await expect(panel).not.toContainText(/your ballot/i)
     // Overview: contact details and committees.
     const overview = panel.getByRole('tabpanel', { name: 'Overview' })
     await expect(overview).toContainText('202-225-3072')
     await expect(overview.getByRole('heading', { name: 'Committees' })).toBeVisible()
-    expect.soft(await smallTargets(page, '.panel-header, .panel-tabs, .bc'), 'targets < 44px').toEqual([])
+    expect.soft(await smallTargets(page, '.panel-header, .panel-tabs, .panel-ballot'), 'targets < 44px').toEqual([])
     await finish(page, info, 'member-overview', rec)
     // "See the race" goes straight to the race level.
-    await panel.locator('.bc-cta').click()
+    await line.click()
     await expect(page).toHaveURL(/race=US-HOU-CA-18/)
   })
 
@@ -501,5 +506,83 @@ test.describe('Compare view', () => {
   test('C2 compare deep link with bioguide IDs', async ({ page }) => {
     await page.goto('/?compare=L000397,B001298')
     await expect(page.getByRole('dialog', { name: 'Zoe Lofgren and Don Bacon' })).toBeVisible({ timeout: 20_000 })
+  })
+})
+
+// Members first (Agent C): the member page leads with the profile and Call; the
+// ballot is one phase-aware line; committees follow the contact details.
+const FINAL_WEEK = new Date('2026-10-26T12:00:00')
+const OFF_SEASON = new Date('2027-03-01T12:00:00')
+
+test.describe('Members first: member page', () => {
+  test('M1 final stretch: Call is primary, ballot line links to the race', async ({ page }, info) => {
+    const rec = record(page)
+    await page.clock.setFixedTime(FINAL_WEEK)
+    await page.goto('/?rep=L000397')
+    await applyAppTheme(page, scheme(info))
+    const panel = page.getByRole('region', { name: 'Representative details' })
+    await expect(panel.getByRole('heading', { level: 2, name: 'Zoe Lofgren' })).toBeVisible({ timeout: 20_000 })
+    // Primary action first in the action row, before Compare and Share.
+    const actions = panel.locator('.panel-actions')
+    await expect(actions.locator(':scope > *').first()).toHaveClass(/panel-call/)
+    const call = panel.getByRole('link', { name: /Call D\.C\. office/ })
+    await expect(call).toHaveAttribute('href', 'tel:+12022253072')
+    await expect(call).toContainText('202-225-3072')
+    expect((await call.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+    // The line sits between the header and the tabs.
+    const line = panel.getByRole('button', { name: /Up for re-election.*See the race/ })
+    await expect(line).toContainText('8 days')
+    const lineBox = (await line.boundingBox())!
+    const tabsBox = (await panel.getByRole('tablist').boundingBox())!
+    const callBox = (await call.boundingBox())!
+    expect(lineBox.y).toBeGreaterThan(callBox.y)
+    expect(lineBox.y).toBeLessThan(tabsBox.y)
+    expect(lineBox.height).toBeGreaterThanOrEqual(44)
+    // In season the Overview has no "Seat up" fact (the line says it).
+    const overview = panel.getByRole('tabpanel', { name: 'Overview' })
+    await expect(overview).not.toContainText('Seat up in')
+    // Committees come right after phone and website, before office and term.
+    const order = await overview.evaluate((el) =>
+      Array.from(el.querySelectorAll('dt, h3')).map((n) => n.textContent?.trim() ?? ''),
+    )
+    expect(order.slice(0, 3)).toEqual(['Phone (D.C. office)', 'Website', 'Committees'])
+    expect(order.indexOf('Office')).toBeGreaterThan(order.indexOf('Committees'))
+    expect.soft(await smallTargets(page, '.panel-header, .panel-ballot, .panel-tabs'), 'targets < 44px').toEqual([])
+    await finish(page, info, 'mf-member-final', rec)
+    await line.click()
+    await expect(page).toHaveURL(/race=US-HOU-CA-18/)
+  })
+
+  test('M2 off season: no ballot line, "Seat up in 2028" in Overview', async ({ page }, info) => {
+    const rec = record(page)
+    await page.clock.setFixedTime(OFF_SEASON)
+    await page.goto('/?rep=L000397')
+    await applyAppTheme(page, scheme(info))
+    const panel = page.getByRole('region', { name: 'Representative details' })
+    await expect(panel.getByRole('heading', { level: 2, name: 'Zoe Lofgren' })).toBeVisible({ timeout: 20_000 })
+    const overview = panel.getByRole('tabpanel', { name: 'Overview' })
+    await expect(overview).toContainText('Seat up in 2028')
+    await expect(panel.locator('.bc-line')).toHaveCount(0)
+    await expect(panel.locator('.panel-ballot')).toHaveCount(0)
+    await expect(panel).not.toContainText('See the race')
+    await expect(panel.getByRole('link', { name: /Call D\.C\. office/ })).toBeVisible()
+    expect.soft(await smallTargets(page, '.panel-header, .panel-tabs'), 'targets < 44px').toEqual([])
+    await finish(page, info, 'mf-member-off', rec)
+  })
+
+  test('M3 member tabs keep the APG keyboard pattern next to the new header', async ({ page }) => {
+    await page.clock.setFixedTime(FINAL_WEEK)
+    await page.goto('/?rep=L000397')
+    const panel = page.getByRole('region', { name: 'Representative details' })
+    await expect(panel.getByRole('tab', { name: 'Overview' })).toBeVisible({ timeout: 20_000 })
+    await panel.getByRole('tab', { name: 'Overview' }).focus()
+    await page.keyboard.press('ArrowRight')
+    await expect(panel.getByRole('tab', { name: 'Votes' })).toBeFocused()
+    await expect(panel.getByRole('tab', { name: 'Votes' })).toHaveAttribute('aria-selected', 'true')
+    await page.keyboard.press('End')
+    await expect(panel.getByRole('tab', { name: 'Bills' })).toBeFocused()
+    await page.keyboard.press('Home')
+    await expect(panel.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true')
+    await expect(panel.getByRole('tabpanel', { name: 'Overview' })).toContainText('Committees')
   })
 })
