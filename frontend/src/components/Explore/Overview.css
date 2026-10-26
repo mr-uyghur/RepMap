@@ -104,49 +104,145 @@
   cursor: pointer;
 }
 
-/* ── Election Day card ───────────────────────────────────────────────────── */
-.election-day {
+/* ── Home: ZIP form ─────────────────────────────────────────────────────── */
+.overview-title--home { font-size: 24px; }
+.overview-title--home + .overview-lede { margin-top: var(--space-1); }
+
+.zip-form {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2) var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border: 0;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
   border-radius: var(--radius-lg);
   background: var(--color-bg-surface);
 }
-.election-day--loading { flex-direction: column; align-items: flex-start; min-height: 76px; }
-.election-day-text { min-width: 0; }
-.election-day-kicker {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
+.zip-form-label { font-size: 14px; font-weight: 700; }
+.zip-form-row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.zip-form-input {
+  flex: 1 1 120px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 17px;
+  letter-spacing: 0.04em;
 }
-.election-day-date {
-  margin: 2px 0 0;
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.25;
-}
-.election-day-note {
-  margin: 2px 0 0;
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-.election-day-countdown {
-  flex: none;
-  padding: 6px 12px;
+.zip-form-input:focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 1px; }
+.zip-form-input[aria-invalid='true'] { border-color: var(--color-error-text); }
+.zip-form-submit {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 0;
   border-radius: var(--radius-full);
   background: var(--color-accent);
   color: var(--color-on-accent);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.zip-form-submit:hover { filter: brightness(1.12); }
+.zip-form-submit:focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 2px; }
+.zip-form-error { margin: 0; font-size: 14px; font-weight: 600; color: var(--color-error-text); }
+.zip-form-hint { margin: 0; font-size: 13px; line-height: 1.45; color: var(--color-text-muted); }
+.zip-form-search { align-self: flex-start; margin-top: calc(-1 * var(--space-2)); font-size: 14px; }
+
+/* ── Home: phase-aware election card (SeasonCard) ───────────────────────── */
+.season-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-2) var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-accent-text);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+}
+.season-card-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.season-card-kicker {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-text-primary);
+}
+.season-card-kicker > svg { flex: none; margin-top: 2px; color: var(--color-text-muted); }
+.season-card-count { font-weight: 700; color: var(--color-accent-text); }
+.season-card--final .season-card-kicker,
+.season-card--post .season-card-kicker { font-weight: 600; }
+.season-card-body { margin: 0; font-size: 13px; line-height: 1.45; color: var(--color-text-muted); }
+.season-card-link {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-link);
   font-size: 14px;
   font-weight: 700;
-  white-space: nowrap;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
+.season-card-close {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  margin-top: calc(-1 * var(--space-2));
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.season-card-close:hover { background: var(--color-bg-surface); color: var(--color-text-primary); }
+
+/* ── ZIP / district page ─────────────────────────────────────────────────── */
+.district-view-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.district-view-zip-note { margin-top: calc(-1 * var(--space-2)); }
+.district-view-zip-note { display: flex; flex-direction: column; align-items: flex-start; }
+.district-view-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-link);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.district-view-vacant {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border: 1px dashed var(--color-border-control);
+  border-radius: var(--radius-md);
+}
+.district-view-vacant p { margin: 0; }
+.district-view-vacant-title { font-size: 15px; font-weight: 700; }
+.district-view-compare {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.district-view-compare:hover { background: var(--color-bg-surface); }
+.district-view-state { align-self: flex-start; }
 
 /* ── Status: loading, errors ─────────────────────────────────────────────── */
 .overview-message {
@@ -169,6 +265,7 @@
   background: var(--color-bg-elevated);
 }
 .overview-skeleton--line { height: 12px; width: 40%; }
+.overview-skeleton--card { height: 132px; }
 .overview-skeleton--title { height: 22px; width: 65%; margin-top: var(--space-2); }
 
 @media (prefers-reduced-motion: no-preference) {

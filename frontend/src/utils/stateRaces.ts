@@ -1,5 +1,5 @@
-import type { ElectionCycleData, ElectionRace, Party, Representative } from '../types'
-import { isSpecialSeat, seatUpInCycle, stateName } from './elections'
+import type { ElectionCycleData, ElectionCycleSummary, ElectionRace, Party, Representative } from '../types'
+import { isSpecialSeat, seatUpInCycle, stateName, type ElectionPhase } from './elections'
 
 // Pure helpers for the State level and the home state list. No fetching, no React.
 
@@ -111,4 +111,63 @@ export function houseSeatLabel(state: string, district: number | null | undefine
 /** The year a member's current term ends: "2031" for 2031-01-03. */
 export function termEndYear(termEnd: string | null | undefined): string | null {
   return termEnd ? termEnd.slice(0, 4) : null
+}
+
+/** "ZL" for "Zoe Lofgren" (drops Jr./Sr./II-IV suffixes). Matches the member panel. */
+export function memberInitials(name: string): string {
+  const parts = name.replace(/,?\s+\b(Jr|Sr|II|III|IV)\.?$/i, '').trim().split(/\s+/)
+  const first = parts[0]?.[0] ?? ''
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : ''
+  return (first + last).toUpperCase()
+}
+
+/** `tel:` link for a U.S. number like "202-225-3072", or null when it isn't one. */
+export function telHref(phone: string | null | undefined): string | null {
+  if (!phone) return null
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length === 10) return `tel:+1${digits}`
+  if (digits.length === 11 && digits.startsWith('1')) return `tel:+${digits}`
+  return null
+}
+
+/** Long role for cards ("U.S. Representative · District 18") or short for rows ("District 18"). */
+export function memberRole(rep: Representative, short = false): string {
+  if (rep.level === 'us_senate') return short ? 'Senator' : 'U.S. Senator'
+  if (rep.level === 'us_house') {
+    if (rep.state === 'DC') return short ? 'Delegate (non-voting)' : 'Delegate to the U.S. House (non-voting)'
+    const seat = houseSeatLabel(rep.state, rep.district_number)
+    return short ? seat : `U.S. Representative · ${seat}`
+  }
+  return rep.district_label ?? ''
+}
+
+function shortMonthDay(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+/** A member's one-line status, phase-aware (`electionPhase()` from utils/elections):
+ *  "Seat up Nov 3" in season/final, "Seat up in 2028" off-season, "Seat was up Nov 3"
+ *  after the election, otherwise "Term ends 2031". */
+export function seatStatus(
+  rep: Representative,
+  phase: ElectionPhase | null,
+  next: ElectionCycleSummary | null,
+): string | null {
+  const held = phase?.phase === 'post' ? phase.cycle : null
+  if (held && seatUpInCycle(rep.term_end, held.cycle)) return `Seat was up ${shortMonthDay(held.general_date)}`
+  if (next && seatUpInCycle(rep.term_end, next.cycle)) {
+    return phase && (phase.phase === 'season' || phase.phase === 'final')
+      ? `Seat up ${shortMonthDay(next.general_date)}`
+      : `Seat up in ${next.cycle}`
+  }
+  const ends = termEndYear(rep.term_end)
+  return ends ? `Term ends ${ends}` : null
+}
+
+/** Tile text from member counts: "2 senators · 3 House"; DC has one non-voting delegate. */
+export function memberCountText(code: string, s: StateSummary): string {
+  if (!s.houseSeats && !s.senators) return ''
+  if (code === 'DC') return '1 non-voting delegate'
+  return `${s.senators} ${s.senators === 1 ? 'senator' : 'senators'} · ${s.houseSeats} House`
 }

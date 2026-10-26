@@ -54,3 +54,5 @@
   line-height: 1.35;
   color: var(--color-text-muted);
 }
+
+.state-list-meta--races { font-weight: 600; color: var(--color-accent-text); }
