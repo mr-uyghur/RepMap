@@ -131,10 +131,11 @@
 
 .bs-official {
   align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
+  display: inline-block;
   min-height: 44px;
-  padding: 0 var(--space-1);
+  box-sizing: border-box;
+  padding: var(--space-3) var(--space-1);
+  line-height: 20px;
   font-size: 14px;
   font-weight: 600;
   color: var(--color-link);
