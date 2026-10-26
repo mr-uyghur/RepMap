@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useId, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { useRepresentative } from '../../hooks/useRepresentative'
+import { getElectionIndex } from '../../api/representatives'
 import type { Representative } from '../../types'
-import { isFederalSeat, stateName } from '../../utils/elections'
+import { electionPhase, isFederalSeat, stateName, type ElectionPhase } from '../../utils/elections'
 import LegislationTab from './LegislationTab'
 import BioTab from './BioTab'
-import BallotCard from './BallotCard'
+import BallotCard, { nextContestYear } from './BallotCard'
 import VotesSection from './VotesSection'
 import ReportCard from './ReportCard'
 import EmbedSnippet from './EmbedSnippet'
@@ -37,6 +38,34 @@ function CompareIcon() {
       <rect x="14" y="4" width="7" height="16" rx="1.5" />
     </svg>
   )
+}
+
+function PhoneIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>
+    </svg>
+  )
+}
+
+/** "202-225-3072" -> "+12022253072" for tel: links; null when there are no digits. */
+function telHref(phone: string): string | null {
+  const digits = phone.replace(/\D/g, '')
+  if (!digits) return null
+  return digits.length === 10 ? `tel:+1${digits}` : `tel:${digits.length === 11 && digits.startsWith('1') ? '+' : ''}${digits}`
+}
+
+/** Election phase from the (memoized) election index; null until loaded or on error. */
+function useElectionPhase(): ElectionPhase | null {
+  const [phase, setPhase] = useState<ElectionPhase | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    getElectionIndex()
+      .then((index) => { if (!cancelled) setPhase(electionPhase(index.cycles)) })
+      .catch(() => undefined) // the ballot line shows its own error and retry
+    return () => { cancelled = true }
+  }, [])
+  return phase
 }
 
 type TabKey = 'overview' | 'votes' | 'bills'
@@ -123,6 +152,7 @@ export default function RepresentativePanel({
   embedded = false,
 }: Props) {
   const { rep, loading } = useRepresentative(repId)
+  const phase = useElectionPhase()
   const [activeTab, setActiveTab] = useState<TabKey>('overview')
   const [copied, setCopied] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
@@ -247,6 +277,10 @@ export default function RepresentativePanel({
   }, [compareMode, embedded])
 
   const party = rep ? partyKey(rep.party) : 'other'
+  const tel = rep?.phone ? telHref(rep.phone) : null
+  const federal = !!rep && isFederalSeat(rep)
+  // Off season the ballot line goes away; "Seat up in <year>" becomes an Overview fact.
+  const seatUpYear = rep && federal && phase?.phase === 'off' ? nextContestYear(rep, phase.cycle) : null
 
   return (
     <div
@@ -316,7 +350,16 @@ export default function RepresentativePanel({
         </div>
 
         {rep && (
-          <div className="panel-actions">
+          <div className={`panel-actions${tel ? ' panel-actions--call' : ''}`}>
+            {tel && (
+              <a href={tel} className="panel-call">
+                <PhoneIcon />
+                <span className="panel-call-label">
+                  {federal ? 'Call D.C. office' : 'Call office'}
+                  <span className="panel-call-number"> · {rep.phone}</span>
+                </span>
+              </a>
+            )}
             <button
               type="button"
               onClick={() => onCompareModeChange(!compareMode)}
@@ -368,9 +411,9 @@ export default function RepresentativePanel({
 
       {rep && (
         <>
-          {isFederalSeat(rep) && (
+          {federal && phase?.phase !== 'off' && (
             <div className="panel-ballot">
-              <BallotCard rep={rep} onOpenRace={openRace} variant="summary" />
+              <BallotCard rep={rep} onOpenRace={openRace} variant="line" />
             </div>
           )}
 
@@ -415,7 +458,7 @@ export default function RepresentativePanel({
               >
                 {selected && key === 'overview' && (
                   <>
-                    <BioTab rep={rep} onCommitteeClick={onCommitteeClick} />
+                    <BioTab rep={rep} onCommitteeClick={onCommitteeClick} seatUpYear={seatUpYear} />
                     {isStateLevel(rep) && <BallotCard rep={rep} onOpenRace={openRace} />}
                   </>
                 )}
