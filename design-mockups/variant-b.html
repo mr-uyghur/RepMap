@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RepMap mock-up B: ballot-first Civic Story</title>
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+
+:root{--bg:#f4f1ea;--surface:#ebe6dc;--elev:#e2dcd0;--text:#0c121e;--muted:#3b4656;--accent:#d97706;--accent-text:#8a3f04;--on-accent:#0c121e;--border:#7a6f5c;--hair:rgba(12,18,30,.16);--focus:#8a3f04;--glass:rgba(244,241,234,.94);--shadow:0 8px 32px rgba(15,23,42,.18);--err:#a3122e;--err-bg:#fff1f2;
+--map-bg:#e9e4d8;--map-grid:rgba(12,18,30,.08);--map-d:#e0d9ca;--map-ds:rgba(12,18,30,.22);--map-hl:rgba(217,119,6,.32);--map-hls:#8a3f04;
+--dem:#2563eb;--rep:#dc2626;--ind:#64748b;--lib:#a16207;--grn:#15803d;
+--font-display:'Instrument Serif',Georgia,serif;--font-body:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+:root[data-theme=dark]{--bg:#080c14;--surface:#0f1624;--elev:#162033;--text:#f4f1ea;--muted:#a3b0c2;--accent:#f59e0b;--accent-text:#f59e0b;--on-accent:#080c14;--border:#6b7a90;--hair:rgba(244,241,234,.14);--focus:#f59e0b;--glass:rgba(8,12,20,.94);--shadow:0 16px 56px rgba(0,0,0,.6);--err:#fda4af;--err-bg:rgba(244,63,94,.14);
+--map-bg:#0b1220;--map-grid:rgba(244,241,234,.07);--map-d:#101a2b;--map-ds:rgba(244,241,234,.18);--map-hl:rgba(245,158,11,.28);--map-hls:#f59e0b;
+--dem:#60a5fa;--rep:#f87171;--ind:#94a3b8;--lib:#fbbf24;--grn:#4ade80}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;height:100vh;height:100dvh;display:flex;flex-direction:column;background:var(--bg);color:var(--text);font:400 15px/1.5 var(--font-body);overflow:hidden}
+h1,h2,h3,p,ul{margin:0}ul{padding:0;list-style:none}
+.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:4px}
+button,input{font:inherit;color:inherit}
+[hidden]{display:none!important}
+.nav{flex:none;display:flex;align-items:center;gap:8px;min-height:56px;padding:4px 16px;background:var(--bg);border-bottom:1px solid var(--hair);position:relative;z-index:30}
+.brand{font:400 26px/1 var(--font-display);letter-spacing:.01em;margin-right:auto;display:inline-flex;align-items:center;min-height:44px;color:var(--text);background:none;border:0;padding:0 4px;cursor:pointer}
+.brand b{color:var(--accent-text);font-weight:400}
+.nav-btn,.icon-btn{min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 12px;background:transparent;border:1px solid transparent;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;color:var(--text)}
+.nav-btn:hover,.icon-btn:hover{background:var(--surface)}
+.nav-btn.mine{border-color:var(--border)}
+.nav-btn.mine svg{color:var(--accent-text)}
+.theme-label{min-width:2.6em;text-align:left}
+.nav-extra{display:none}
+.stage{position:relative;flex:1;min-height:0}
+.mapsvg{position:absolute;inset:0;width:100%;height:100%}
+.m-bg{fill:var(--map-bg)}.m-grid path{stroke:var(--map-grid);stroke-width:1;fill:none}
+.m-d path{fill:var(--map-d);stroke:var(--map-ds);stroke-width:1.5}
+.m-hl{fill:var(--map-hl);stroke:var(--map-hls);stroke-width:3;opacity:0}.m-pin{opacity:0}
+body[data-view=results] .m-hl,body[data-view=detail] .m-hl,body[data-view=results] .m-pin,body[data-view=detail] .m-pin{opacity:1}
+.m-dot{fill:var(--map-hls)}.m-pulse{fill:var(--map-hl)}
+.map-label{position:absolute;right:12px;top:12px;font-size:12px;color:var(--muted);background:var(--glass);padding:2px 8px;border-radius:99px;border:1px solid var(--hair)}
+.mock-tag{position:fixed;left:8px;bottom:6px;z-index:60;font-size:12px;line-height:1.4;padding:2px 8px;border-radius:99px;background:var(--text);color:var(--bg);pointer-events:none;opacity:.88}
+/* cards */
+.card{position:absolute;z-index:20;display:flex;flex-direction:column;background:var(--glass);border:1px solid var(--hair);box-shadow:var(--shadow);backdrop-filter:blur(10px);overflow:hidden}
+.pane{padding:16px 16px 24px;overflow-y:auto;flex:1;min-height:0;overscroll-behavior:contain}
+.pane-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px}
+h2{font:400 28px/1.15 var(--font-display);overflow-wrap:anywhere}
+h2:focus{outline:none}
+.meta{color:var(--muted);font-size:14px;margin-top:4px}
+.caveat{margin:14px 0;padding:10px 12px;border-left:4px solid var(--accent-text);background:var(--surface);font-size:14px;color:var(--text)}
+.note{margin:0 0 14px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px}
+.btn{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 16px;border-radius:8px;font-weight:700;font-size:14px;border:1.5px solid var(--border);background:transparent;color:var(--text);cursor:pointer;text-decoration:none;text-align:center}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn.secondary{background:var(--surface)}.btn.secondary:hover,.btn.ghost:hover{background:var(--elev)}
+.btn.ghost{border-color:transparent;color:var(--accent-text)}
+.btn.back{padding-left:4px;margin-left:-4px}
+.races{display:grid;gap:10px}
+[data-action=reset].btn{white-space:nowrap}
+.race-row{width:100%;min-height:64px;display:flex;align-items:center;gap:12px;text-align:left;padding:12px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;cursor:pointer}
+.race-row:hover{background:var(--elev)}
+.race-main{flex:1;display:grid;gap:2px;min-width:0}
+.race-title{font-weight:700;font-size:16px;overflow-wrap:anywhere}
+.race-sub{font-size:14px;color:var(--muted)}
+.race-go{display:inline-flex;align-items:center;gap:2px;font-weight:700;font-size:14px;color:var(--accent-text);white-space:nowrap}
+.race-none{padding:12px 14px;border:1.5px dashed var(--border);border-radius:12px;font-size:14px}
+.links{display:grid;gap:10px;margin-top:18px}
+.tag{display:inline-block;font-size:12px;font-weight:700;line-height:1.4;padding:1px 8px;border-radius:99px;border:1px solid var(--border);vertical-align:middle;margin-left:4px;color:var(--text)}
+.tag-special{border-color:var(--accent-text);color:var(--accent-text);margin-left:0}
+.cands-h{font:700 15px/1.3 var(--font-body);margin:6px 0 8px}
+.count{display:inline-block;min-width:1.6em;text-align:center;padding:0 6px;border-radius:99px;background:var(--surface);border:1px solid var(--border);font-size:13px}
+.cands{display:grid;gap:2px}
+.cand{display:flex;gap:12px;align-items:flex-start;padding:10px 4px;border-bottom:1px solid var(--hair)}
+.pdot{flex:none;width:12px;height:12px;border-radius:50%;margin-top:6px;background:var(--ind)}
+.pdot-D{background:var(--dem)}.pdot-R{background:var(--rep)}.pdot-L{background:var(--lib)}.pdot-G{background:var(--grn)}
+.cand-main{display:grid;gap:0;min-width:0}.cand-name{font-weight:700;overflow-wrap:anywhere}.cand-meta{color:var(--muted);font-size:14px}
+.more{margin-top:6px}
+/* zip form */
+.zip-form{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}
+.zip-row{display:flex;gap:8px}
+.zip-form input{flex:1;min-width:0;min-height:48px;padding:0 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);font-size:18px;letter-spacing:.12em;font-variant-numeric:tabular-nums}
+.zip-form input::placeholder{color:var(--muted);letter-spacing:.02em;font-size:15px}
+.zip-form input[aria-invalid=true]{border-color:var(--err);box-shadow:0 0 0 1px var(--err)}
+.zip-err{color:var(--err);background:var(--err-bg);border-radius:8px;padding:8px 10px;font-size:14px;line-height:1.4}
+.chips{display:inline-flex;flex-wrap:wrap;gap:6px;margin-left:2px;vertical-align:middle}
+.chip{min-height:44px;min-width:56px;padding:0 12px;border-radius:99px;border:1.5px solid var(--border);background:var(--bg);font-weight:700;color:var(--text);cursor:pointer;font-variant-numeric:tabular-nums}
+.chip:hover{background:var(--elev)}
+/* views: sheet <600, floating card 600-1099, two cards >=1100 */
+#results,#detail{display:none;overflow-y:auto;padding:16px 16px 48px;overscroll-behavior:contain;left:0;right:0;bottom:0;max-height:calc(100% - 96px);border-radius:20px 20px 0 0;border-bottom:0}
+body[data-view=results] #results{display:flex}
+body[data-view=detail] #detail{display:flex}
+@media (min-width:600px){
+ #results,#detail{left:16px;right:auto;top:16px;bottom:16px;width:440px;max-height:none;border-radius:16px;border-bottom:1px solid var(--hair)}
+ .nav-extra{display:inline-flex}
+}
+@media (min-width:1100px){
+ body[data-view=detail] #results{display:flex}
+ #detail{left:auto;right:24px;width:440px}
+ body[data-view=detail] #results .race-row[data-race]{outline-offset:-2px}
+}
+@media (prefers-reduced-motion:no-preference){
+ .m-pulse{animation:pulse 2.4s ease-out infinite;transform-origin:540px 270px}
+ @keyframes pulse{0%{transform:scale(.4);opacity:.9}100%{transform:scale(1.6);opacity:0}}
+ #results,#detail{animation:rise .28s cubic-bezier(.16,1,.3,1)}
+ @keyframes rise{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
+}
+
+.story{display:none;flex:1;min-height:0;overflow-y:auto;background:radial-gradient(1200px 500px at 85% -10%,var(--surface),transparent 70%),var(--bg);position:relative}
+body[data-view=story] .story{display:block}
+body[data-view=story] .stage,body[data-view=landing] .stage{display:none}
+.hero{max-width:1040px;margin:0 auto;padding:40px 20px 56px;display:grid;grid-template-columns:minmax(0,1fr);gap:28px}
+.hero h1{font:400 clamp(40px,9vw,84px)/1.02 var(--font-display);letter-spacing:-.01em;max-width:14ch;overflow-wrap:anywhere}
+.hero .ask{font:400 clamp(24px,4.4vw,38px)/1.15 var(--font-display);color:var(--accent-text);max-width:22ch}
+.zip-console{display:grid;gap:12px;max-width:560px;padding:18px;background:var(--glass);border:1.5px solid var(--border);border-radius:16px;box-shadow:var(--shadow)}
+.zip-console label{font-weight:700}
+.zip-console .zip-row input{font-size:22px;min-height:56px}
+.zip-console .btn{min-height:56px;font-size:16px}
+.try{font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.when-line{display:flex;align-items:center;gap:10px;font-weight:600}
+.when-line .dot{width:10px;height:10px;border-radius:50%;background:var(--accent-text)}
+.story-more{border-top:1px solid var(--hair);padding-top:20px;max-width:560px;color:var(--muted);font-size:14px}
+.story-map{display:none}
+.hero{position:relative;z-index:1}
+@media (min-width:900px){.hero{padding-top:72px}.story-map{display:block;left:auto;right:0;width:52%;height:100%;opacity:.8;pointer-events:none;-webkit-mask-image:linear-gradient(to right,transparent,#000 35%);mask-image:linear-gradient(to right,transparent,#000 35%)}}
+dialog{border:1.5px solid var(--border);border-radius:16px;background:var(--bg);color:var(--text);padding:20px;width:min(440px,calc(100% - 32px));box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(8,12,20,.55)}
+dialog h2{font-size:28px;margin-bottom:12px}
+.dlg-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+
+</style>
+</head>
+<body data-view="landing">
+
+<header class="nav">
+  <button type="button" class="brand" data-action="story" aria-label="RepMap Civic Story">Rep<b>Map</b></button>
+  <button type="button" class="nav-btn nav-extra" data-action="story">Civic Story</button>
+  <button type="button" class="nav-btn mine" data-action="myballot"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M4 4h16v16H4zM8 12l3 3 5-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>My ballot</button>
+  <button type="button" class="icon-btn theme-btn" data-action="theme" aria-pressed="false" aria-label="Dark mode"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span class="theme-label">Light</span></button>
+</header>
+<main class="story" id="story">
+  <svg class="mapsvg story-map" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+<rect width="1200" height="800" class="m-bg"/>
+<g class="m-grid"><path d="M0 100H1200M0 250H1200M0 400H1200M0 550H1200M0 700H1200M150 0V800M350 0V800M550 0V800M750 0V800M950 0V800M1100 0V800"/></g>
+<g class="m-d"><path d="M80 120L300 60L420 160L380 300L220 340L90 260Z"/><path d="M300 60L560 40L640 170L420 160Z"/><path d="M420 160L640 170L700 330L520 420L380 300Z"/><path d="M700 330L900 250L1040 380L960 560L760 540Z"/><path d="M220 340L380 300L520 420L460 600L260 580L150 470Z"/><path d="M640 170L880 120L900 250L700 330Z"/><path d="M520 420L700 330L760 540L620 690L460 600Z"/><path d="M880 120L1120 160L1100 330L1040 380L900 250Z"/><path d="M960 560L1040 380L1130 480L1100 700L930 690Z"/></g>
+<path class="m-hl" d="M420 160L640 170L700 330L520 420L380 300Z"/>
+<g class="m-pin"><circle cx="540" cy="270" r="26" class="m-pulse"/><circle cx="540" cy="270" r="9" class="m-dot"/></g>
+</svg>
+  <div class="hero">
+    <h1>Democracy has a boundary line.</h1>
+    <p class="ask">What's on the ballot Nov 3?</p>
+    <form class="zip-form zip-console" novalidate>
+      <label for="zipB">Enter a ZIP code to see the races</label>
+      <div class="zip-row"><input id="zipB" inputmode="numeric" autocomplete="postal-code" maxlength="5" placeholder="ZIP code" aria-describedby="zipB-err"><button class="btn primary" type="submit">Show my races</button></div>
+      <p class="zip-err" id="zipB-err" hidden></p>
+      <p class="try">Or try <button type="button" class="chip" data-zip="94105">94105</button><button type="button" class="chip" data-zip="27701">27701</button><button type="button" class="chip" data-zip="10001">10001</button></p>
+    </form>
+    <p class="when-line"><span class="dot" aria-hidden="true"></span>Midterm elections: <span data-countdown></span></p>
+  </div>
+</main>
+<main class="stage">
+  <svg class="mapsvg " viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+<rect width="1200" height="800" class="m-bg"/>
+<g class="m-grid"><path d="M0 100H1200M0 250H1200M0 400H1200M0 550H1200M0 700H1200M150 0V800M350 0V800M550 0V800M750 0V800M950 0V800M1100 0V800"/></g>
+<g class="m-d"><path d="M80 120L300 60L420 160L380 300L220 340L90 260Z"/><path d="M300 60L560 40L640 170L420 160Z"/><path d="M420 160L640 170L700 330L520 420L380 300Z"/><path d="M700 330L900 250L1040 380L960 560L760 540Z"/><path d="M220 340L380 300L520 420L460 600L260 580L150 470Z"/><path d="M640 170L880 120L900 250L700 330Z"/><path d="M520 420L700 330L760 540L620 690L460 600Z"/><path d="M880 120L1120 160L1100 330L1040 380L900 250Z"/><path d="M960 560L1040 380L1130 480L1100 700L930 690Z"/></g>
+<path class="m-hl" d="M420 160L640 170L700 330L520 420L380 300Z"/>
+<g class="m-pin"><circle cx="540" cy="270" r="26" class="m-pulse"/><circle cx="540" cy="270" r="9" class="m-dot"/></g>
+</svg>
+  <p class="map-label">Map illustration</p>
+  <section class="card" id="results" aria-label="Races for ZIP"></section>
+  <section class="card" id="detail" aria-label="Race detail"></section>
+</main>
+<dialog id="zipDialog" aria-labelledby="dlgH">
+  <div class="dlg-head"><h2 id="dlgH">My ballot</h2><button type="button" class="icon-btn" data-action="closedlg" aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div>
+  <form class="zip-form" novalidate>
+    <label for="zipD">Enter your ZIP code to see the races</label>
+    <div class="zip-row"><input id="zipD" inputmode="numeric" autocomplete="postal-code" maxlength="5" placeholder="ZIP code" aria-describedby="zipD-err"><button class="btn primary" type="submit">Show races</button></div>
+    <p class="zip-err" id="zipD-err" hidden></p>
+  </form>
+</dialog>
+<p class="mock-tag">MOCK-UP: sample data</p>
+
+<p id="status" class="vh" role="status" aria-live="polite"></p>
+<script>
+const CFG = {home:'story', zipFocus:'#zipB', dialog:true, title:'RepMap (mock-up B)'};
+/* ---------- SAMPLE DATA (invented names; not real candidates) ---------- */
+const ELECTION = { date: '2026-11-03', dataThrough: '2026-10-22' };
+const P = { D: 'Democratic', R: 'Republican', I: 'Independent', L: 'Libertarian', G: 'Green' };
+const c = (name, party, inc, receipts) => ({ name, party, inc: !!inc, receipts });
+const RACES = {
+  'CA-11': { office: 'U.S. House', title: 'U.S. House · California 11th District', short: 'U.S. House · CA-11', special: false,
+    cands: [c('Dana Whitfield','D',1,2400000), c('Marcus Lindqvist','R',0,310000), c('Priya Raman','G',0,48000), c('Theo Okafor','I',0,12500), c('Wen-Li Chao','L',0,9100)] },
+  'CA-S': { office: 'U.S. Senate', title: 'U.S. Senate · California', short: 'U.S. Senate · California', special: false,
+    cands: [c('Elena Marquez','D',1,9800000), c('Robert Hale','R',0,3100000), c('Sam Tuttle','L',0,95000), c('Joy Abernathy','G',0,71000), c('Luis Ferrer','I',0,40200), c('Nora Kimball','I',0,22000), c('Greg Paulsen','R',0,18400), c('Aiko Tanabe','D',0,11900), c('Victor Osei','I',0,6200)] },
+  'NC-04': { office: 'U.S. House', title: 'U.S. House · North Carolina 4th District', short: 'U.S. House · NC-04', special: false,
+    cands: [c('Harold Beckett','D',1,1900000), c('Candace Moore','R',0,1250000), c('Isaac Prewitt','L',0,22000), c('Tamsin Cole','I',0,8000), c('Rafael Duarte','G',0,5300), c('Yuki Sato','I',0,2100)] },
+  'NC-S': { office: 'U.S. Senate', title: 'U.S. Senate · North Carolina', short: 'U.S. Senate · North Carolina', special: false,
+    cands: [c('Gloria Ashby','R',1,7200000), c('Michael Denton','D',0,6900000), c('Owen Teller','L',0,61000), c('Hana Weiss','G',0,29500)] },
+  'NY-12': { office: 'U.S. House', title: 'U.S. House · New York 12th District', short: 'U.S. House · NY-12', special: false,
+    cands: [c('Samuel Greer','D',1,3300000), c('Alicia Fontaine','R',0,540000), c('Bao Tran','L',0,14000), c('Ruth Adeyemi','I',0,9900)] },
+  'OH-03': { office: 'U.S. House', title: 'U.S. House · Ohio 3rd District', short: 'U.S. House · OH-03', special: false,
+    cands: [c('Kevin Marsh','D',1,1500000), c('Allison Pruitt','R',0,1100000), c('Dmitri Volkov','I',0,17000), c('Beth Calloway','L',0,6100), c('Jonas Reyes','G',0,3200)] },
+  'OH-S': { office: 'U.S. Senate', title: 'U.S. Senate · Ohio', short: 'U.S. Senate · Ohio', special: true,
+    cands: [c('Frank Oduya','R',1,5400000), c('Naomi Steiner','D',0,5100000), c('Cal Whitaker','L',0,48000), c('Mira Jensen','I',0,16300)] },
+  'IL-07': { office: 'U.S. House', title: 'U.S. House · Illinois 7th District', short: 'U.S. House · IL-07', special: false,
+    cands: [c('Patrice Holloway','D',1,2100000), c('Gerald Nix','R',0,260000), c('Lena Kowalski','G',0,12000), c('Omar Haddad','I',0,7400), c('Tess Wu','L',0,3800)] },
+  'IL-S': { office: 'U.S. Senate', title: 'U.S. Senate · Illinois', short: 'U.S. Senate · Illinois', special: false,
+    cands: [c('Walter Brandt','D',1,8800000), c('Cynthia Roe','R',0,2700000), c('Eli Marchetti','L',0,37000), c('Dara Vaughn','G',0,21800)] },
+};
+const ZIPS = {
+  '94105': { st: 'California', house: 'CA-11', senate: 'CA-S', place: 'San Francisco, CA' },
+  '27701': { st: 'North Carolina', house: 'NC-04', senate: 'NC-S', place: 'Durham, NC' },
+  '10001': { st: 'New York', house: 'NY-12', senate: null, place: 'New York, NY' },
+  '43215': { st: 'Ohio', house: 'OH-03', senate: 'OH-S', place: 'Columbus, OH' },
+  '60601': { st: 'Illinois', house: 'IL-07', senate: 'IL-S', place: 'Chicago, IL',
+    note: 'This ZIP spans more than one congressional district (sample: IL-07 and IL-02). Races for IL-07 are shown. Use your state election office to look up your exact address.' },
+};
+
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = (s) => String(s).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+const money = (n) => n >= 1e6 ? '$' + (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? '$' + Math.round(n / 1e3) + 'K' : '$' + n;
+function parseISO(iso) { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); }
+const fmtDate = (iso, withYear) => parseISO(iso).toLocaleDateString('en-US', withYear ? { month: 'short', day: 'numeric', year: 'numeric' } : { month: 'short', day: 'numeric' });
+function daysUntil(iso) { const n = new Date(); const t = new Date(n.getFullYear(), n.getMonth(), n.getDate()); return Math.round((parseISO(iso) - t) / 86400000); }
+function countdown(iso) { const d = daysUntil(iso); return d > 1 ? d + ' days away' : d === 1 ? 'Tomorrow' : d === 0 ? 'Today' : 'Election day has passed'; }
+function daysNumber(iso) { const d = daysUntil(iso); return d > 0 ? String(d) : d === 0 ? '0' : '-'; }
+const CHEV = '<svg class="chev" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const OFFICIAL = 'https://www.usa.gov/state-election-office';
+const BALLOTPEDIA = 'https://ballotpedia.org/';
+
+/* ---------- state ---------- */
+const state = { zip: null, race: null, expanded: false, lastTrigger: null };
+const body = document.body;
+const setView = (v) => { body.dataset.view = v; };
+const say = (t) => { const s = $('#status'); if (s) s.textContent = t; };
+const incumbentOf = (r) => (r.cands.find((x) => x.inc) || {}).name;
+
+/* ---------- render ---------- */
+function raceRow(id) {
+  const r = RACES[id];
+  return `<li><button type="button" class="race-row" data-race="${id}">
+    <span class="race-main"><span class="race-title">${esc(r.short)}${r.special ? ' <span class="tag tag-special">Special election</span>' : ''}</span>
+    <span class="race-sub">Incumbent: ${esc(incumbentOf(r))} · ${r.cands.length} filed with FEC</span></span>
+    <span class="race-go">View race ${CHEV}</span></button></li>`;
+}
+function renderResults() {
+  const z = ZIPS[state.zip];
+  const nRaces = 1 + (z.senate ? 1 : 0);
+  const senateHtml = z.senate ? raceRow(z.senate)
+    : `<li class="race-none"><p><strong>No U.S. Senate race in ${esc(z.st)} this cycle.</strong> Check your state election office for state and local races.</p></li>`;
+  $('#results').innerHTML = `
+    <div class="pane-head"><div>
+      <h2 id="res-h" tabindex="-1">Races for ZIP ${state.zip}</h2>
+      <p class="meta">${esc(z.place)} · Election ${fmtDate(ELECTION.date, true)} · ${countdown(ELECTION.date)}</p></div>
+      <button type="button" class="btn ghost" data-action="reset">Change ZIP</button></div>
+    <p class="caveat"><strong>Not the official ballot.</strong> These are races that may appear on a ballot for this ZIP, built from candidates who filed with the FEC. Data through ${fmtDate(ELECTION.dataThrough, true)}.</p>
+    ${z.note ? `<p class="note" role="note">${esc(z.note)}</p>` : ''}
+    <ul class="races">${raceRow(z.house)}${senateHtml}</ul>
+    <div class="links">
+      <a class="btn secondary" href="${OFFICIAL}" target="_blank" rel="noopener noreferrer">${esc(z.st)} election office<span class="vh"> (opens in new tab)</span></a>
+      <a class="btn secondary" href="${BALLOTPEDIA}" target="_blank" rel="noopener noreferrer">Ballotpedia<span class="vh"> (opens in new tab)</span></a>
+    </div>`;
+  say(`Showing ${nRaces} race${nRaces > 1 ? 's' : ''} for ZIP ${state.zip}.`);
+}
+function renderDetail() {
+  const r = RACES[state.race];
+  const z = ZIPS[state.zip];
+  const LIMIT = 6, THRESH = 8;
+  const collapsible = r.cands.length > THRESH;
+  const vis = state.expanded || !collapsible ? r.cands : r.cands.slice(0, LIMIT);
+  const items = vis.map((x) => `<li class="cand">
+      <span class="pdot pdot-${x.party}" aria-hidden="true"></span>
+      <span class="cand-main"><span class="cand-name">${esc(x.name)}${x.inc ? ' <span class="tag tag-inc">Incumbent</span>' : ''}</span>
+      <span class="cand-meta">${P[x.party]} · raised ${money(x.receipts)}</span></span></li>`).join('');
+  $('#detail').innerHTML = `
+    <div class="pane-head"><button type="button" class="btn ghost back" data-action="back"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg> All races for ${state.zip}</button></div>
+    <h2 id="det-h" tabindex="-1">${esc(r.title)}</h2>
+    <p class="meta">${r.special ? '<span class="tag tag-special">Special election</span> ' : ''}${fmtDate(ELECTION.date, true)} · ${countdown(ELECTION.date)}</p>
+    <p class="caveat"><strong>Not the official ballot.</strong> Candidates who filed with the FEC; the official ballot may differ. Data through ${fmtDate(ELECTION.dataThrough, true)}.</p>
+    <h3 class="cands-h">Filed with FEC <span class="count">${r.cands.length}</span></h3>
+    <ul class="cands">${items}</ul>
+    ${collapsible ? `<button type="button" class="btn ghost more" data-action="more" aria-expanded="${state.expanded}">${state.expanded ? 'Show fewer' : 'Show ' + (r.cands.length - LIMIT) + ' more'}</button>` : ''}
+    <div class="links">
+      <a class="btn secondary" href="${OFFICIAL}" target="_blank" rel="noopener noreferrer">Check the official ballot: ${esc(z.st)}<span class="vh"> (opens in new tab)</span></a>
+      <a class="btn secondary" href="${BALLOTPEDIA}" target="_blank" rel="noopener noreferrer">This race on Ballotpedia<span class="vh"> (opens in new tab)</span></a>
+    </div>`;
+}
+
+/* ---------- flow ---------- */
+function focusSoon(sel) { requestAnimationFrame(() => { const el = $(sel); if (el) el.focus({ preventScroll: true }); }); }
+function showResults(zip, focus = true) {
+  state.zip = zip; state.race = null; state.expanded = false;
+  renderResults(); setView('results'); document.title = `Races for ${zip} - RepMap (mock-up)`;
+  try { history.replaceState(null, '', '#zip=' + zip); } catch (e) { /* file:// quirks */ }
+  const dlg = $('#zipDialog'); if (dlg && dlg.open) dlg.close();
+  if (focus) focusSoon('#res-h');
+}
+function showDetail(id, trigger) {
+  state.race = id; state.expanded = false; state.lastTrigger = trigger || null;
+  renderDetail(); setView('detail');
+  try { history.replaceState(null, '', '#zip=' + state.zip + '&race=' + id); } catch (e) { /* noop */ }
+  focusSoon('#det-h');
+}
+function backToResults() {
+  const id = state.race; state.race = null; setView('results');
+  try { history.replaceState(null, '', '#zip=' + state.zip); } catch (e) { /* noop */ }
+  focusSoon(`[data-race="${id}"]`);
+}
+function reset() {
+  state.zip = null; state.race = null; setView(CFG.home); document.title = CFG.title;
+  try { history.replaceState(null, '', location.pathname); } catch (e) { /* noop */ }
+  say('Enter a ZIP code to see races.');
+  focusSoon(CFG.zipFocus);
+}
+function submitZip(form) {
+  const input = $('input', form), err = $('.zip-err', form);
+  const v = input.value.trim();
+  const fail = (html, plain) => {
+    err.innerHTML = html; err.hidden = false; input.setAttribute('aria-invalid', 'true'); say(plain); input.focus();
+  };
+  if (!/^\d{5}$/.test(v)) return fail('Enter a 5-digit ZIP code, like 94105.', 'Error: enter a 5-digit ZIP code.');
+  if (!ZIPS[v]) {
+    const chips = Object.keys(ZIPS).map((z) => `<button type="button" class="chip" data-zip="${z}">${z}</button>`).join('');
+    return fail(`No sample data for ZIP ${esc(v)}. The live app would say it could not find that ZIP and offer to browse the map. Try a sample ZIP: <span class="chips">${chips}</span>`, `Error: no sample data for ZIP ${v}.`);
+  }
+  err.hidden = true; err.textContent = ''; input.removeAttribute('aria-invalid');
+  showResults(v);
+}
+
+/* ---------- events ---------- */
+document.addEventListener('submit', (e) => { if (e.target.classList.contains('zip-form')) { e.preventDefault(); submitZip(e.target); } });
+/* Sandboxed viewers (iframe without allow-forms) silently block form submission, so the submit event never fires.
+   Drive the ZIP form from click/Enter directly; preventDefault stops the native submit in normal browsers. */
+document.addEventListener('click', (e) => {
+  const b = e.target.closest ? e.target.closest('.zip-form button[type=submit]') : null;
+  if (b) { e.preventDefault(); submitZip(b.closest('form')); }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.matches && e.target.matches('.zip-form input')) { e.preventDefault(); submitZip(e.target.closest('form')); }
+});
+document.addEventListener('input', (e) => {
+  if (e.target.matches('.zip-form input')) {
+    e.target.value = e.target.value.replace(/\D/g, '').slice(0, 5);
+    const err = $('.zip-err', e.target.closest('form')); if (err) { err.hidden = true; e.target.removeAttribute('aria-invalid'); }
+  }
+});
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-zip],[data-race],[data-action]'); if (!t) return;
+  if (t.dataset.zip) {
+    const f = t.closest('form') || $('.zip-form'); const i = $('input', f); i.value = t.dataset.zip; submitZip(f); return;
+  }
+  if (t.dataset.race) return showDetail(t.dataset.race, t);
+  const a = t.dataset.action;
+  if (a === 'back') backToResults();
+  else if (a === 'reset') reset();
+  else if (a === 'more') { state.expanded = !state.expanded; renderDetail(); focusSoon('[data-action="more"]'); }
+  else if (a === 'theme') toggleTheme();
+  else if (a === 'dismiss') { $('#banner').hidden = true; try { sessionStorage.setItem('mock-banner', '1'); } catch (x) { /* noop */ } }
+  else if (a === 'myballot') {
+    if (state.zip) { setView(state.race ? 'detail' : 'results'); focusSoon(state.race ? '#det-h' : '#res-h'); }
+    else if (CFG.dialog) { $('#zipDialog').showModal(); $('#zipDialog input').focus(); }
+    else { const b = $('#banner'); if (b) b.hidden = false; setView('landing'); focusSoon(CFG.zipFocus); }
+  }
+  else if (a === 'story') { setView('story'); focusSoon(CFG.zipFocus); }
+  else if (a === 'closedlg') $('#zipDialog').close();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const dlg = $('#zipDialog'); if (dlg && dlg.open) return;
+  const v = body.dataset.view;
+  if (v === 'detail') backToResults(); else if (v === 'results') reset();
+});
+
+/* ---------- theme ---------- */
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  const b = $('[data-action="theme"]'); if (b) { b.setAttribute('aria-pressed', String(t === 'dark')); b.querySelector('.theme-label').textContent = t === 'dark' ? 'Dark' : 'Light'; }
+}
+function toggleTheme() {
+  const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  applyTheme(t); try { localStorage.setItem('mock-theme', t); } catch (e) { /* noop */ }
+}
+let saved = null; try { saved = localStorage.getItem('mock-theme'); } catch (e) { /* noop */ }
+applyTheme(saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+
+/* ---------- boot ---------- */
+$$('[data-countdown]').forEach((el) => { el.textContent = countdown(ELECTION.date); });
+$$('[data-days]').forEach((el) => { el.textContent = daysNumber(ELECTION.date); });
+try { if (sessionStorage.getItem('mock-banner') && $('#banner')) $('#banner').hidden = true; } catch (e) { /* noop */ }
+setView(CFG.home);
+const m = /zip=(\d{5})(?:&race=([\w-]+))?/.exec(location.hash);
+if (m && ZIPS[m[1]]) { showResults(m[1], false); if (m[2] && RACES[m[2]]) showDetail(m[2]); }
+if (CFG.init) CFG.init();
+
+</script>
+</body>
+</html>

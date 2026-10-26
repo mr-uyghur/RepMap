@@ -3,1703 +3,267 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RepMap · Civic Cartography &amp; Legislative Atlas</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563eb'/%3E%3C/svg%3E">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <meta name="color-scheme" content="light dark">
+  <title>Civic Story · RepMap</title>
+  <!-- Links leave the iframe for the app. Inside RepMap they are intercepted by ScrollcraftStage. -->
+  <base target="_top">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b6146'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="scrollcraft.css">
-  <style>
-    :root {
-      --sc-canvas: #080c14;
-      --sc-surface: #0f172a;
-      --sc-elevated: #162038;
-      --sc-ink: #f4f1ea;
-      --sc-muted: #cbd5e1;
-      --sc-dim: #94a3b8;
-      --sc-accent: #f59e0b;
-      --sc-dem: #3b82f6;
-      --sc-dem-soft: rgba(59, 130, 246, 0.24);
-      --sc-rep: #ef4444;
-      --sc-rep-soft: rgba(239, 68, 68, 0.24);
-      --sc-rule: rgba(244, 241, 234, 0.12);
-      --sc-edge: inset 0 1px 0 rgba(244, 241, 234, 0.10);
-      --sc-font-display: "Fraunces", Georgia, serif;
-      --sc-font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
-      --sc-font-mono: "JetBrains Mono", monospace;
-      --sc-measure: 58ch;
-      --sc-gutter: clamp(1.25rem, 4vw, 3.5rem);
-      --sc-lerp: 0.14;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      background: var(--sc-canvas);
-      color: var(--sc-ink);
-      font-family: var(--sc-font-sans);
-      overflow-x: hidden;
-    }
-
-    /* Fixed Minimal Top Bar */
-    .atlas-chrome {
-      position: fixed;
-      inset: 0 0 auto 0;
-      z-index: 40;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      padding: 0.9rem var(--sc-gutter);
-      background: rgba(8, 12, 20, 0.82);
-      backdrop-filter: blur(14px);
-      border-bottom: 1px solid var(--sc-rule);
-    }
-
-    .atlas-brand {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.75rem;
-      text-decoration: none;
-      color: var(--sc-ink);
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      font-size: 1.05rem;
-    }
-
-    .atlas-brand__mark {
-      width: 28px;
-      height: 28px;
-      border-radius: 7px;
-      background: linear-gradient(135deg, #2563eb 0%, #dc2626 100%);
-      display: inline-grid;
-      place-items: center;
-      font-family: var(--sc-font-mono);
-      font-size: 0.72rem;
-      font-weight: 600;
-      color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.28);
-    }
-
-    .atlas-brand__meta {
-      font-family: var(--sc-font-mono);
-      font-size: 0.72rem;
-      color: var(--sc-muted);
-      letter-spacing: 0.08em;
-      padding-left: 0.75rem;
-      border-left: 1px solid var(--sc-rule);
-    }
-
-    .atlas-chrome__actions {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .atlas-active-pill {
-      font-family: var(--sc-font-mono);
-      font-size: 0.75rem;
-      color: var(--sc-ink);
-      background: rgba(15, 23, 42, 0.92);
-      border: 1px solid rgba(245, 158, 11, 0.45);
-      padding: 0.4rem 0.75rem;
-      border-radius: 999px;
-      letter-spacing: 0.04em;
-    }
-
-    .atlas-cta {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      min-height: 44px;
-      padding: 0.55rem 1.1rem;
-      border-radius: 8px;
-      background: #f59e0b;
-      color: #080c14;
-      font-family: var(--sc-font-sans);
-      font-weight: 700;
-      font-size: 0.86rem;
-      text-decoration: none;
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      transition: background-color 0.2s ease, transform 0.2s ease;
-      cursor: pointer;
-    }
-
-    .atlas-cta:hover,
-    .atlas-cta:focus-visible {
-      background: #fbbf24;
-    }
-
-    .atlas-cta--secondary {
-      background: rgba(15, 23, 42, 0.94);
-      color: var(--sc-ink);
-      border: 1px solid rgba(244, 241, 234, 0.24);
-    }
-
-    .atlas-cta--secondary:hover,
-    .atlas-cta--secondary:focus-visible {
-      background: #1e293b;
-    }
-
-    /* Shared Stage & Copy Plate Styling */
-    .sc-stage {
-      background: radial-gradient(circle at 68% 46%, #111c35 0%, #080c14 72%);
-    }
-
-    .stage-scrim {
-      position: absolute;
-      inset: 0;
-      z-index: 4;
-      pointer-events: none;
-      background: linear-gradient(90deg, rgba(8, 12, 20, 0.92) 0%, rgba(8, 12, 20, 0.78) 42%, rgba(8, 12, 20, 0.18) 76%, rgba(8, 12, 20, 0.55) 100%);
-    }
-
-    .cue-plate {
-      background-color: rgba(8, 12, 20, 0.94);
-      color: var(--sc-ink);
-      border: 1px solid rgba(244, 241, 234, 0.16);
-      border-radius: 14px;
-      padding: clamp(1.35rem, 2.4vw, 2.1rem);
-      box-shadow: var(--sc-e2), var(--sc-edge);
-      max-width: 34rem;
-    }
-
-    .cue-plate__eyebrow {
-      font-family: var(--sc-font-mono);
-      font-size: 0.74rem;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: #fbbf24;
-      margin: 0 0 0.7rem 0;
-    }
-
-    .cue-plate__title {
-      font-family: var(--sc-font-display);
-      font-weight: 600;
-      font-size: clamp(2rem, 3.8vw, 3.35rem);
-      line-height: 1.04;
-      letter-spacing: -0.025em;
-      color: var(--sc-ink);
-      margin: 0 0 0.85rem 0;
-      text-wrap: balance;
-    }
-
-    .cue-plate__title--md {
-      font-size: clamp(1.65rem, 2.9vw, 2.55rem);
-    }
-
-    .cue-plate__body {
-      font-size: clamp(0.98rem, 1.08vw, 1.08rem);
-      line-height: 1.6;
-      color: var(--sc-muted);
-      margin: 0 0 1.15rem 0;
-      max-width: 52ch;
-      text-wrap: pretty;
-    }
-
-    /* ACT 1: Multi-Plane Hero Depth */
-    .hero-plane {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      padding-right: clamp(1rem, 5vw, 5rem);
-    }
-
-    .hero-plane--graticule {
-      z-index: 1;
-      justify-content: center;
-      padding-right: 0;
-      opacity: 0.55;
-    }
-
-    .hero-plane--state {
-      z-index: 2;
-    }
-
-    .hero-plane--focal {
-      z-index: 3;
-    }
-
-    .hero-plane--hud {
-      z-index: 5;
-      justify-content: space-between;
-      align-items: flex-end;
-      padding: 5.5rem var(--sc-gutter) 2rem var(--sc-gutter);
-    }
-
-    .hero-state-wrap {
-      width: min(56vw, 720px);
-      height: min(74vh, 580px);
-      transition: transform 0.25s ease-out;
-      transform: scale(var(--hero-state-scale, 1));
-    }
-
-    .hero-focal-wrap {
-      width: min(36vw, 440px);
-      height: min(48vh, 390px);
-      margin-right: clamp(1rem, 4vw, 4rem);
-      transition: transform 0.25s ease-out;
-      transform: scale(var(--hero-focal-scale, 1));
-      filter: drop-shadow(0 24px 36px rgba(0, 0, 0, 0.72));
-    }
-
-    .hero-hud-Readout {
-      margin-left: auto;
-      font-family: var(--sc-font-mono);
-      font-size: 0.75rem;
-      color: var(--sc-ink);
-      background: rgba(8, 12, 20, 0.90);
-      border: 1px solid var(--sc-rule);
-      border-radius: 10px;
-      padding: 0.75rem 1rem;
-      display: flex;
-      gap: 1.35rem;
-      box-shadow: var(--sc-e1);
-    }
-
-    .hero-hud-Readout span {
-      display: block;
-      color: var(--sc-dim);
-      font-size: 0.66rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      margin-bottom: 0.2rem;
-    }
-
-    .hero-copy-layer {
-      position: relative;
-      z-index: 6;
-      width: 100%;
-      height: 100%;
-      display: grid;
-      align-items: center;
-      padding: 5.2rem var(--sc-gutter) 2.5rem var(--sc-gutter);
-    }
-
-    .hero-beat {
-      grid-area: 1 / 1;
-      justify-self: start;
-    }
-
-    /* Live ZIP Switcher inside Hero Beat 1 */
-    .zip-console {
-      margin-top: 1rem;
-      padding-top: 1rem;
-      border-top: 1px solid var(--sc-rule);
-    }
-
-    .zip-console__label {
-      font-family: var(--sc-font-mono);
-      font-size: 0.72rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--sc-muted);
-      margin-bottom: 0.55rem;
-      display: block;
-    }
-
-    .zip-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.45rem;
-      margin-bottom: 0.75rem;
-    }
-
-    .zip-chip {
-      min-height: 44px;
-      padding: 0.45rem 0.75rem;
-      border-radius: 8px;
-      border: 1px solid rgba(244, 241, 234, 0.20);
-      background: rgba(15, 23, 42, 0.95);
-      color: var(--sc-ink);
-      font-family: var(--sc-font-mono);
-      font-size: 0.76rem;
-      cursor: pointer;
-      transition: border-color 0.15s ease, background-color 0.15s ease;
-    }
-
-    .zip-chip[aria-pressed="true"] {
-      border-color: #f59e0b;
-      background: rgba(245, 158, 11, 0.18);
-      color: #fde68a;
-      font-weight: 600;
-    }
-
-    .zip-custom-form {
-      display: flex;
-      gap: 0.5rem;
-      align-items: center;
-    }
-
-    .zip-input {
-      min-height: 44px;
-      width: 150px;
-      padding: 0.45rem 0.75rem;
-      border-radius: 8px;
-      border: 1px solid rgba(244, 241, 234, 0.24);
-      background: #080c14;
-      color: var(--sc-ink);
-      font-family: var(--sc-font-mono);
-      font-size: 0.84rem;
-    }
-
-    .zip-status {
-      font-family: var(--sc-font-mono);
-      font-size: 0.74rem;
-      color: #fbbf24;
-    }
-
-    /* Hero Beat 2 Delegation Mini-List */
-    .hero-delegation-list {
-      display: grid;
-      gap: 0.55rem;
-      margin: 0.95rem 0 1.15rem 0;
-    }
-
-    .hero-rep-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-      padding: 0.6rem 0.85rem;
-      border-radius: 9px;
-      background: rgba(15, 23, 42, 0.96);
-      border: 1px solid rgba(244, 241, 234, 0.14);
-    }
-
-    .hero-rep-row__name {
-      font-weight: 600;
-      font-size: 0.94rem;
-      color: var(--sc-ink);
-    }
-
-    .hero-rep-row__role {
-      font-family: var(--sc-font-mono);
-      font-size: 0.73rem;
-      color: var(--sc-muted);
-    }
-
-    .party-pill {
-      font-family: var(--sc-font-mono);
-      font-size: 0.7rem;
-      font-weight: 600;
-      padding: 0.22rem 0.55rem;
-      border-radius: 999px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .party-pill--democrat {
-      background: rgba(59, 130, 246, 0.22);
-      color: #93c5fd;
-      border: 1px solid rgba(96, 165, 250, 0.45);
-    }
-
-    .party-pill--republican {
-      background: rgba(239, 68, 68, 0.22);
-      color: #fca5a5;
-      border: 1px solid rgba(248, 113, 113, 0.45);
-    }
-
-    /* ACT 2: Quiet Flow Census Ledger */
-    .act-scale {
-      padding: clamp(5rem, 11vh, 8.5rem) var(--sc-gutter);
-      background: #080c14;
-      position: relative;
-      z-index: 5;
-    }
-
-    .scale-inner {
-      max-width: 74rem;
-      margin: 0 auto;
-    }
-
-    .scale-rule {
-      height: 2px;
-      background: linear-gradient(90deg, #f59e0b 0%, rgba(244, 241, 234, 0.22) 60%, transparent 100%);
-      margin-bottom: clamp(2.5rem, 5vh, 4rem);
-      padding-block: 4px;
-    }
-
-    .scale-header {
-      display: grid;
-      grid-template-columns: 1.15fr 1fr;
-      gap: clamp(1.5rem, 4vw, 4rem);
-      align-items: end;
-      margin-bottom: clamp(2.5rem, 6vh, 4.5rem);
-    }
-
-    .scale-title {
-      font-family: var(--sc-font-display);
-      font-size: clamp(2rem, 3.6vw, 3.1rem);
-      line-height: 1.06;
-      letter-spacing: -0.02em;
-      margin: 0;
-      color: var(--sc-ink);
-    }
-
-    .scale-lede {
-      font-size: 1.04rem;
-      line-height: 1.65;
-      color: var(--sc-muted);
-      margin: 0;
-    }
-
-    .scale-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1.5rem;
-    }
-
-    .scale-card {
-      background: #0f172a;
-      border: 1px solid var(--sc-rule);
-      border-radius: 14px;
-      padding: 1.75rem;
-      box-shadow: var(--sc-edge);
-    }
-
-    .scale-card__num {
-      font-family: var(--sc-font-display);
-      font-size: clamp(2.6rem, 4.5vw, 4rem);
-      font-weight: 600;
-      line-height: 1;
-      letter-spacing: -0.03em;
-      color: #f4f1ea;
-      font-variant-numeric: tabular-nums;
-      margin-bottom: 0.65rem;
-    }
-
-    .scale-card__label {
-      font-weight: 600;
-      font-size: 0.98rem;
-      color: var(--sc-ink);
-      margin: 0 0 0.35rem 0;
-    }
-
-    .scale-card__meta {
-      font-family: var(--sc-font-mono);
-      font-size: 0.76rem;
-      color: var(--sc-muted);
-      margin: 0;
-    }
-
-    /* ACT 3: THE PEAK - North Carolina Redistricting Morph */
-    .redraw-stage {
-      background: radial-gradient(circle at 62% 52%, #131f3a 0%, #080c14 75%);
-    }
-
-    .redraw-map-viewport {
-      position: absolute;
-      inset: 0;
-      z-index: 2;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      justify-content: center;
-      padding: 4.5rem var(--sc-gutter) 2rem var(--sc-gutter);
-      pointer-events: none;
-    }
-
-    .redraw-map-frame {
-      width: min(60vw, 860px);
-      background: rgba(11, 17, 30, 0.86);
-      border: 1px solid rgba(244, 241, 234, 0.16);
-      border-radius: 16px;
-      padding: 1.25rem 1.5rem 1.4rem 1.5rem;
-      box-shadow: var(--sc-e3), var(--sc-edge);
-      pointer-events: auto;
-    }
-
-    .redraw-map-topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      margin-bottom: 0.85rem;
-      padding-bottom: 0.75rem;
-      border-bottom: 1px solid var(--sc-rule);
-      flex-wrap: wrap;
-    }
-
-    .redraw-epoch-badge {
-      font-family: var(--sc-font-mono);
-      font-size: 0.76rem;
-      font-weight: 600;
-      color: #fbbf24;
-      letter-spacing: 0.06em;
-    }
-
-    .redraw-mode-buttons {
-      display: inline-flex;
-      gap: 0.35rem;
-    }
-
-    .redraw-mode-btn {
-      min-height: 38px;
-      padding: 0.35rem 0.7rem;
-      border-radius: 6px;
-      border: 1px solid rgba(244, 241, 234, 0.2);
-      background: #080c14;
-      color: var(--sc-ink);
-      font-family: var(--sc-font-mono);
-      font-size: 0.72rem;
-      cursor: pointer;
-    }
-
-    .redraw-mode-btn[aria-pressed="true"] {
-      background: #f59e0b;
-      color: #080c14;
-      border-color: #f59e0b;
-      font-weight: 700;
-    }
-
-    .redraw-svg-stack {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 860 / 380;
-      overflow: hidden;
-      border-radius: 10px;
-      background: #060a11;
-      border: 1px solid rgba(244, 241, 234, 0.08);
-    }
-
-    .redraw-svg-layer {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-    }
-
-    .redraw-svg-layer--119 {
-      clip-path: inset(0 calc((1 - var(--nc-morph, 0.5)) * 100%) 0 0);
-    }
-
-    .redraw-caliper {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      left: calc(var(--nc-morph, 0.5) * 100%);
-      width: 2px;
-      background: #f59e0b;
-      box-shadow: 0 0 16px rgba(245, 158, 11, 0.9);
-      pointer-events: none;
-      z-index: 4;
-    }
-
-    .redraw-caliper__tag {
-      position: absolute;
-      top: 10px;
-      left: 8px;
-      font-family: var(--sc-font-mono);
-      font-size: 0.68rem;
-      font-weight: 600;
-      background: #f59e0b;
-      color: #080c14;
-      padding: 0.18rem 0.45rem;
-      border-radius: 4px;
-      white-space: nowrap;
-    }
-
-    .redraw-telemetry-bar {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.75rem;
-      margin-top: 0.9rem;
-      padding-top: 0.85rem;
-      border-top: 1px solid var(--sc-rule);
-      font-family: var(--sc-font-mono);
-      font-size: 0.75rem;
-    }
-
-    .redraw-telemetry-cell span {
-      display: block;
-      font-size: 0.66rem;
-      color: var(--sc-dim);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 0.2rem;
-    }
-
-    .redraw-copy-layer {
-      position: relative;
-      z-index: 6;
-      width: 100%;
-      height: 100%;
-      display: grid;
-      align-items: center;
-      padding: 5.2rem var(--sc-gutter) 2.5rem var(--sc-gutter);
-      pointer-events: none;
-    }
-
-    .redraw-beat {
-      grid-area: 1 / 1;
-      justify-self: start;
-      max-width: 29rem;
-      pointer-events: auto;
-    }
-
-    /* ACT 4: Horizontal Delegation Rail (pan) */
-    .delegation-stage {
-      background: #080c14;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      padding-top: 4.5rem;
-    }
-
-    .delegation-header {
-      padding: 0 var(--sc-gutter) 1.5rem var(--sc-gutter);
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 2rem;
-      flex-wrap: wrap;
-    }
-
-    .delegation-header__title {
-      font-family: var(--sc-font-display);
-      font-size: clamp(1.85rem, 3.2vw, 2.75rem);
-      line-height: 1.08;
-      letter-spacing: -0.02em;
-      margin: 0;
-      color: var(--sc-ink);
-    }
-
-    .delegation-header__sub {
-      font-size: 0.98rem;
-      color: var(--sc-muted);
-      max-width: 48ch;
-      margin: 0.35rem 0 0 0;
-    }
-
-    .delegation-rail {
-      display: flex;
-      gap: 1.35rem;
-      width: max-content;
-      padding: 0.5rem var(--sc-gutter) 1.5rem var(--sc-gutter);
-    }
-
-    .dossier-card {
-      width: 410px;
-      flex: 0 0 410px;
-      background: #0f172a;
-      border: 1px solid rgba(244, 241, 234, 0.16);
-      border-radius: 14px;
-      padding: 1.45rem;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 1rem;
-      box-shadow: var(--sc-e2), var(--sc-edge);
-    }
-
-    .dossier-card--active {
-      border-color: #f59e0b;
-      box-shadow: var(--sc-e2), 0 0 0 1px rgba(245, 158, 11, 0.45);
-    }
-
-    .dossier-card__top {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 0.75rem;
-    }
-
-    .dossier-card__id {
-      font-family: var(--sc-font-mono);
-      font-size: 0.72rem;
-      color: #fbbf24;
-      letter-spacing: 0.06em;
-      margin-bottom: 0.25rem;
-    }
-
-    .dossier-card__name {
-      font-family: var(--sc-font-display);
-      font-size: 1.45rem;
-      font-weight: 600;
-      margin: 0 0 0.2rem 0;
-      color: var(--sc-ink);
-    }
-
-    .dossier-card__seat {
-      font-family: var(--sc-font-mono);
-      font-size: 0.78rem;
-      color: var(--sc-muted);
-    }
-
-    .dossier-metrics {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.6rem;
-      padding: 0.75rem;
-      border-radius: 10px;
-      background: #080c14;
-      border: 1px solid var(--sc-rule);
-    }
-
-    .dossier-metric__val {
-      font-family: var(--sc-font-mono);
-      font-size: 1.05rem;
-      font-weight: 600;
-      color: var(--sc-ink);
-    }
-
-    .dossier-metric__lbl {
-      font-size: 0.7rem;
-      color: var(--sc-muted);
-      margin-top: 0.15rem;
-    }
-
-    .dossier-committees {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.4rem;
-    }
-
-    .dossier-comm-chip {
-      font-size: 0.74rem;
-      padding: 0.28rem 0.6rem;
-      border-radius: 6px;
-      background: rgba(22, 32, 56, 0.95);
-      border: 1px solid rgba(244, 241, 234, 0.14);
-      color: var(--sc-muted);
-    }
-
-    .dossier-card__footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-      padding-top: 0.8rem;
-      border-top: 1px solid var(--sc-rule);
-      font-family: var(--sc-font-mono);
-      font-size: 0.74rem;
-      color: var(--sc-muted);
-    }
-
-    .dossier-link {
-      color: #fbbf24;
-      text-decoration: none;
-      font-weight: 600;
-      min-height: 36px;
-      display: inline-flex;
-      align-items: center;
-    }
-
-    /* ACT 5: Committee Power Bipartite Graph */
-    .act-committees {
-      padding: clamp(5rem, 10vh, 8rem) var(--sc-gutter);
-      background: linear-gradient(180deg, #080c14 0%, #0b1221 100%);
-      position: relative;
-      z-index: 5;
-    }
-
-    .committees-inner {
-      max-width: 76rem;
-      margin: 0 auto;
-    }
-
-    .committees-header {
-      max-width: 46rem;
-      margin-bottom: 2rem;
-    }
-
-    .committees-title {
-      font-family: var(--sc-font-display);
-      font-size: clamp(2rem, 3.5vw, 3rem);
-      line-height: 1.06;
-      letter-spacing: -0.02em;
-      margin: 0 0 0.85rem 0;
-      color: var(--sc-ink);
-    }
-
-    .committees-filter-bar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .comm-filter-btn {
-      min-height: 44px;
-      padding: 0.5rem 0.9rem;
-      border-radius: 8px;
-      border: 1px solid rgba(244, 241, 234, 0.2);
-      background: #0f172a;
-      color: var(--sc-ink);
-      font-family: var(--sc-font-mono);
-      font-size: 0.76rem;
-      cursor: pointer;
-    }
-
-    .comm-filter-btn[aria-pressed="true"] {
-      background: #f59e0b;
-      color: #080c14;
-      border-color: #f59e0b;
-      font-weight: 700;
-    }
-
-    .committee-graph-plate {
-      background: #0f172a;
-      border: 1px solid rgba(244, 241, 234, 0.16);
-      border-radius: 16px;
-      padding: clamp(1rem, 2.5vw, 2rem);
-      box-shadow: var(--sc-e2), var(--sc-edge);
-    }
-
-    .committee-graph-svg {
-      width: 100%;
-      height: auto;
-      max-height: 420px;
-      display: block;
-    }
-
-    .committee-graph-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
-      margin-top: 1.25rem;
-      padding-top: 1rem;
-      border-top: 1px solid var(--sc-rule);
-    }
-
-    /* ACT 6: Resolved Hold Launch Stage */
-    .enter-stage {
-      background: radial-gradient(circle at 50% 42%, #172544 0%, #080c14 74%);
-      display: grid;
-      place-items: center;
-      padding: 5rem var(--sc-gutter) 2.5rem var(--sc-gutter);
-    }
-
-    .enter-console {
-      width: min(100%, 66rem);
-      display: grid;
-      gap: 1.35rem;
-      position: relative;
-      z-index: 6;
-    }
-
-    .enter-main-plate {
-      background-color: rgba(8, 12, 20, 0.95);
-      color: var(--sc-ink);
-      border: 1px solid rgba(245, 158, 11, 0.45);
-      border-radius: 16px;
-      padding: clamp(1.5rem, 3vw, 2.5rem);
-      box-shadow: var(--sc-e3), var(--sc-edge);
-      display: grid;
-      grid-template-columns: 1.35fr 1fr;
-      gap: 2rem;
-      align-items: center;
-    }
-
-    .enter-selection-readout {
-      background: #0f172a;
-      border: 1px solid var(--sc-rule);
-      border-radius: 12px;
-      padding: 1.25rem;
-      font-family: var(--sc-font-mono);
-      font-size: 0.8rem;
-      display: grid;
-      gap: 0.65rem;
-    }
-
-    .enter-dock-grid {
-      background-color: rgba(8, 12, 20, 0.95);
-      color: var(--sc-ink);
-      border: 1px solid rgba(244, 241, 234, 0.16);
-      border-radius: 14px;
-      padding: 1.25rem;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1rem;
-    }
-
-    .enter-dock-card {
-      display: block;
-      text-decoration: none;
-      color: var(--sc-ink);
-      background: #0f172a;
-      border: 1px solid var(--sc-rule);
-      border-radius: 10px;
-      padding: 1rem 1.15rem;
-      transition: border-color 0.15s ease, transform 0.15s ease;
-    }
-
-    .enter-dock-card:hover,
-    .enter-dock-card:focus-visible {
-      border-color: #f59e0b;
-      transform: translateY(-2px);
-    }
-
-    .enter-dock-card__title {
-      font-weight: 700;
-      font-size: 0.96rem;
-      margin: 0 0 0.35rem 0;
-      color: #fbbf24;
-    }
-
-    .enter-dock-card__desc {
-      font-size: 0.84rem;
-      color: var(--sc-muted);
-      margin: 0;
-      line-height: 1.45;
-    }
-
-    /* Mobile Art Direction (< 860px) */
-    @media (max-width: 860px) {
-      .atlas-brand__meta,
-      .atlas-active-pill {
-        display: none;
-      }
-
-      .stage-scrim {
-        background: linear-gradient(180deg, rgba(8, 12, 20, 0.92) 0%, rgba(8, 12, 20, 0.72) 55%, rgba(8, 12, 20, 0.94) 100%);
-      }
-
-      .hero-plane {
-        justify-content: center;
-        align-items: flex-end;
-        padding: 0 1rem 1.5rem 1rem;
-      }
-
-      .hero-state-wrap {
-        width: 88vw;
-        height: 36vh;
-      }
-
-      .hero-focal-wrap {
-        width: 62vw;
-        height: 28vh;
-        margin-right: 0;
-      }
-
-      .hero-plane--hud {
-        display: none;
-      }
-
-      .hero-copy-layer,
-      .redraw-copy-layer {
-        align-items: flex-start;
-        padding-top: 4.6rem;
-      }
-
-      .cue-plate {
-        padding: 1.1rem 1.2rem;
-        max-width: 100%;
-      }
-
-      .cue-plate__title {
-        font-size: clamp(1.55rem, 6.2vw, 2.1rem);
-      }
-
-      .scale-header,
-      .scale-grid,
-      .enter-main-plate,
-      .enter-dock-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .redraw-map-viewport {
-        justify-content: flex-end;
-        align-items: center;
-        padding: 1rem;
-      }
-
-      .redraw-map-frame {
-        width: 100%;
-        padding: 0.85rem;
-      }
-
-      .redraw-telemetry-bar {
-        grid-template-columns: 1fr;
-        gap: 0.35rem;
-      }
-
-      .dossier-card {
-        width: 310px;
-        flex: 0 0 310px;
-      }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .delegation-rail {
-        width: 100%;
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-      }
-      .dossier-card {
-        scroll-snap-align: start;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="story.css">
 </head>
 <body>
+  <!-- Every member name, seat count, room, phone and committee on this page is
+       filled in by story-init.js from story-data.js, which scripts/story-data.mjs
+       generates from public/data at build time (R-16, R-62). Do not type them here. -->
 
-  <!-- Persistent Minimal Chrome -->
   <header class="atlas-chrome">
-    <a href="/?mode=map" class="atlas-brand" id="top-brand-link">
-      <span class="atlas-brand__mark">RM</span>
+    <a href="/" class="atlas-brand" id="top-brand-link">
+      <span class="atlas-brand__mark" aria-hidden="true">RM</span>
       <span>RepMap</span>
-      <span class="atlas-brand__meta">119TH CONGRESS · 536 FEDERAL SEATS</span>
+      <span class="atlas-brand__meta">Civic Story<span data-bind="data-asof"></span></span>
     </a>
     <div class="atlas-chrome__actions">
-      <div class="atlas-active-pill" id="chrome-active-zip">ZIP 95112 · CA-18</div>
-      <a href="/?mode=map&amp;zip=95112&amp;rep=3353" class="atlas-cta" id="chrome-launch-cta" data-sc-magnet="0.22">
-        Launch 3D Globe &#8599;
-      </a>
+      <div class="atlas-active-pill" id="chrome-active-zip"></div>
+      <a href="/" class="atlas-cta" id="chrome-launch-cta">Open the map</a>
     </div>
   </header>
 
   <main data-sc-root>
 
-    <!-- ACT 1: MULTI-PLANE CARTOGRAPHIC HERO (pin + parallax + cue) -->
-    <section id="atlas" data-sc-act="pin" data-sc-span="2.4" aria-label="Civic Cartography Hero">
+    <!-- ACT 1: hero (pin + parallax + cue) -->
+    <section id="atlas" data-sc-act="pin" data-sc-span="2.4" aria-label="Your district and members">
       <div data-sc-stage class="sc-stage" id="hero-stage" data-sc-verify-state="hero:0:95112">
 
-        <!-- Plane 1: Far Continental Graticule & Survey Grid -->
         <div class="hero-plane hero-plane--graticule" data-sc-parallax="-0.08" aria-hidden="true">
           <svg width="100%" height="100%" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
             <defs>
               <pattern id="survey-grid" width="90" height="90" patternUnits="userSpaceOnUse">
-                <path d="M 90 0 L 0 0 0 90" fill="none" stroke="rgba(148,163,184,0.10)" stroke-width="1"/>
+                <path class="grid-line" d="M 90 0 L 0 0 0 90" fill="none" stroke-width="1"/>
               </pattern>
             </defs>
             <rect width="1440" height="900" fill="url(#survey-grid)"/>
-            <circle cx="960" cy="450" r="360" fill="none" stroke="rgba(245,158,11,0.14)" stroke-dasharray="4 8"/>
-            <circle cx="960" cy="450" r="240" fill="none" stroke="rgba(59,130,246,0.18)"/>
-            <line x1="520" y1="450" x2="1400" y2="450" stroke="rgba(244,241,234,0.08)"/>
-            <line x1="960" y1="60" x2="960" y2="840" stroke="rgba(244,241,234,0.08)"/>
           </svg>
         </div>
 
-        <!-- Plane 2: Midground State Congressional Districts Choropleth -->
         <div class="hero-plane hero-plane--state" data-sc-parallax="0.12" aria-hidden="true">
           <div class="hero-state-wrap">
             <svg id="hero-state-svg" viewBox="0 0 640 520" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"></svg>
           </div>
         </div>
 
-        <!-- Plane 3: Focal Active Congressional District Cutout -->
         <div class="hero-plane hero-plane--focal" data-sc-parallax="0.24" aria-hidden="true">
           <div class="hero-focal-wrap">
             <svg id="hero-focal-svg" viewBox="0 0 360 320" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"></svg>
           </div>
         </div>
 
-        <!-- Plane 4: Foreground Telemetry HUD -->
         <div class="hero-plane hero-plane--hud" data-sc-parallax="-0.16" aria-hidden="true">
           <div class="hero-hud-Readout">
-            <div>
-              <span>Active Coordinate</span>
-              <strong id="hud-coord">37.3446° N, 121.8834° W</strong>
-            </div>
-            <div>
-              <span>Jurisdiction</span>
-              <strong id="hud-district">CA · District 18</strong>
-            </div>
-            <div>
-              <span>Boundary Source</span>
-              <strong>Census TIGER CD119</strong>
-            </div>
+            <div><span>ZIP location</span><strong id="hud-coord"></strong></div>
+            <div><span>District</span><strong id="hud-district"></strong></div>
+            <div><span>Boundaries</span><strong>U.S. Census</strong></div>
           </div>
         </div>
 
-        <!-- Sibling Scrim for Contrast Guarantee -->
         <div class="stage-scrim" aria-hidden="true"></div>
 
-        <!-- Plane 5: Semantic Staged Copy & Live ZIP Selector -->
         <div class="hero-copy-layer">
 
-          <!-- Beat 1: Opening Thesis + Interactive ZIP Console -->
           <div class="cue-plate hero-beat" data-sc-cue="0 0.48 0 0.12">
-            <p class="cue-plate__eyebrow">Civic Cartography · 119th Congress</p>
-            <h1 class="cue-plate__title">Democracy has a boundary line.</h1>
+            <p class="cue-plate__eyebrow">Civic Story<span data-bind="congress-suffix"></span></p>
+            <a href="/" class="election-chip" id="hero-election-chip" hidden>
+              <span class="election-chip__when" id="hero-election-when"></span>
+              <span class="election-chip__go">See races for ZIP <span id="hero-election-zip"></span> &rarr;</span>
+            </a>
+            <h1 class="cue-plate__title">Who represents you in Congress?</h1>
             <p class="cue-plate__body">
-              Every street address in the United States resolves to one House polygon and two Senate seats. Lock the atlas onto a postal code below to inspect its real boundary geometry and Capitol Hill delegation.
+              Every address in a state sits in one U.S. House district and is also represented by that state's two senators. Pick a ZIP to see who holds those three seats today.
             </p>
             <div class="zip-console">
-              <span class="zip-console__label">Select Anchor Postal Code or Enter 5-Digit ZIP</span>
-              <div class="zip-chips" role="group" aria-label="Anchor ZIP presets">
-                <button type="button" class="zip-chip" data-zip="95112" aria-pressed="true">95112 · San Jose CA-18</button>
-                <button type="button" class="zip-chip" data-zip="27701" aria-pressed="false">27701 · Durham NC-4</button>
-                <button type="button" class="zip-chip" data-zip="10001" aria-pressed="false">10001 · New York NY-12</button>
-                <button type="button" class="zip-chip" data-zip="78701" aria-pressed="false">78701 · Austin TX-37</button>
-                <button type="button" class="zip-chip" data-zip="60601" aria-pressed="false">60601 · Chicago IL-7</button>
+              <span class="zip-console__label" id="zip-console-label">Try a ZIP</span>
+              <div class="zip-chips" role="group" aria-labelledby="zip-console-label">
+                <!-- Only the ZIP and its city are chosen here; the district is looked up. -->
+                <button type="button" class="zip-chip" data-zip="95112" data-city="San Jose" aria-pressed="true">95112 · San Jose</button>
+                <button type="button" class="zip-chip" data-zip="27701" data-city="Durham" aria-pressed="false">27701 · Durham</button>
+                <button type="button" class="zip-chip" data-zip="10001" data-city="New York" aria-pressed="false">10001 · New York</button>
+                <button type="button" class="zip-chip" data-zip="78701" data-city="Austin" aria-pressed="false">78701 · Austin</button>
+                <button type="button" class="zip-chip" data-zip="60601" data-city="Chicago" aria-pressed="false">60601 · Chicago</button>
               </div>
-              <form class="zip-custom-form" id="hero-zip-form" action="/?mode=map" method="get">
-                <input type="hidden" name="mode" value="map">
-                <input
-                  type="text"
-                  name="zip"
-                  id="hero-zip-input"
-                  class="zip-input"
-                  inputmode="numeric"
-                  pattern="[0-9]{5}"
-                  maxlength="5"
-                  placeholder="Try any ZIP..."
-                  aria-label="Enter 5-digit ZIP code"
-                >
-                <button type="submit" class="atlas-cta atlas-cta--secondary">Locate ZIP</button>
-                <span class="zip-status" id="hero-zip-status" aria-live="polite"></span>
+              <form class="zip-custom-form" id="hero-zip-form" action="/" method="get">
+                <label class="zip-console__label zip-console__label--form" for="hero-zip-input">Or enter any 5-digit ZIP</label>
+                <input type="text" name="zip" id="hero-zip-input" class="zip-input" inputmode="numeric" autocomplete="postal-code" pattern="[0-9]{5}" maxlength="5" placeholder="e.g. 68102">
+                <button type="submit" class="atlas-cta atlas-cta--secondary">Show on the map</button>
+                <span class="zip-status" id="hero-zip-status" role="status" aria-live="polite"></span>
               </form>
             </div>
           </div>
 
-          <!-- Beat 2: Focal District Zoom & Three-Member Delegation Lock -->
           <div class="cue-plate hero-beat" data-sc-cue="0.50 1.00 0.12 0">
-            <h2 class="cue-plate__title cue-plate__title--md" id="beat2-heading">One postal code. Three federal ballots.</h2>
-            <p class="cue-plate__body" id="beat2-sub">
-              ZIP 95112 in San Jose sits inside California Congressional District 18. Your ballot is represented simultaneously by one House member and two statewide Senators.
-            </p>
-            <div class="hero-delegation-list" id="hero-delegation-list">
-              <div class="hero-rep-row">
-                <div>
-                  <div class="hero-rep-row__name">Zoe Lofgren</div>
-                  <div class="hero-rep-row__role">U.S. House · CA District 18 · 1401 Longworth HOB</div>
-                </div>
-                <span class="party-pill party-pill--democrat">Democrat</span>
-              </div>
-              <div class="hero-rep-row">
-                <div>
-                  <div class="hero-rep-row__name">Alejandro Padilla</div>
-                  <div class="hero-rep-row__role">U.S. Senate · California · 331 Hart SOB</div>
-                </div>
-                <span class="party-pill party-pill--democrat">Democrat</span>
-              </div>
-              <div class="hero-rep-row">
-                <div>
-                  <div class="hero-rep-row__name">Adam Schiff</div>
-                  <div class="hero-rep-row__role">U.S. Senate · California · 112 Hart SOB</div>
-                </div>
-                <span class="party-pill party-pill--democrat">Democrat</span>
-              </div>
-            </div>
-            <a href="/?mode=map&amp;zip=95112&amp;rep=3353" class="atlas-cta" id="beat2-globe-link">
-              Inspect District on 3D Globe &#8599;
-            </a>
+            <h2 class="cue-plate__title cue-plate__title--md" id="beat2-heading">One ZIP. Three members of Congress.</h2>
+            <p class="cue-plate__body" id="beat2-sub"></p>
+            <div class="hero-delegation-list" id="hero-delegation-list"></div>
+            <a href="/" class="atlas-cta" id="beat2-globe-link">See this district on the map</a>
+            <p class="fine-print">Some ZIP codes cross district lines. The map shows each district a ZIP touches.</p>
           </div>
 
         </div>
       </div>
     </section>
 
-    <!-- ACT 2: QUIET BREATHING CENSUS LEDGER (flow + reveal + count + in) -->
-    <section id="scale" class="act-scale" data-sc-act="flow" aria-label="The Scale of Federal Representation">
+    <!-- ACT 2: counts (flow + reveal + count + in) -->
+    <section id="scale" class="act-scale" data-sc-act="flow" aria-label="What RepMap covers">
       <div class="scale-inner">
         <div class="scale-rule" data-sc-reveal="up" aria-hidden="true"></div>
         <div class="scale-header">
-          <h2 class="scale-title" data-sc-in>Every five-digit postal code maps to a living legislative record.</h2>
+          <h2 class="scale-title" data-sc-in>Every ZIP code and every seat in Congress, on one map.</h2>
           <p class="scale-lede" data-sc-in>
-            Civic data is usually scattered across separate federal silos. RepMap unifies Census TIGER boundary shapefiles, Congress.gov bill sponsorship, and GovTrack roll-call votes into one spatial index.
+            RepMap joins U.S. Census district boundaries, the current list of members of Congress and FEC candidate filings, so you can go from an address to the people who represent it.
           </p>
         </div>
         <div class="scale-grid" data-sc-stagger="90">
           <article class="scale-card" data-sc-in>
-            <div class="scale-card__num" data-sc-count="0 33,620" data-sc-count-at="0.05 0.45">33,620</div>
-            <h3 class="scale-card__label">Indexed U.S. Postal Codes</h3>
-            <p class="scale-card__meta">Centroid coordinates paired to House &amp; state chambers</p>
+            <div class="scale-card__num" data-bind-count="zips"></div>
+            <h3 class="scale-card__label">ZIP codes mapped</h3>
+            <p class="scale-card__meta">Each one matched to its U.S. House district</p>
           </article>
           <article class="scale-card" data-sc-in>
-            <div class="scale-card__num" data-sc-count="0 536" data-sc-count-at="0.05 0.45">536</div>
-            <h3 class="scale-card__label">Active Federal Lawmakers</h3>
-            <p class="scale-card__meta">436 House seats &amp; delegates plus 100 Senate desks</p>
+            <div class="scale-card__num" data-bind-count="members"></div>
+            <h3 class="scale-card__label">Members of Congress</h3>
+            <p class="scale-card__meta" id="scale-members-meta"></p>
           </article>
           <article class="scale-card" data-sc-in>
-            <div class="scale-card__num" data-sc-count="0 51" data-sc-count-at="0.05 0.45">51</div>
-            <h3 class="scale-card__label">Redistricting Jurisdictions</h3>
-            <p class="scale-card__meta">50 states &amp; DC comparing 116th vs. 119th Congress maps</p>
+            <div class="scale-card__num" data-bind-count="historicalStates"></div>
+            <h3 class="scale-card__label">States and DC with district history</h3>
+            <p class="scale-card__meta">Compare 116th and 119th Congress district lines</p>
           </article>
         </div>
       </div>
     </section>
 
-    <!-- ACT 3: THE PEAK - NORTH CAROLINA REDISTRICTING MORPH (pin + signature move) -->
-    <section id="redraw" data-sc-act="pin" data-sc-span="3.4" aria-label="North Carolina Redistricting Forensics">
+    <!-- ACT 3: North Carolina redistricting (pin + signature move) -->
+    <section id="redraw" data-sc-act="pin" data-sc-span="3.4" aria-label="North Carolina district lines">
       <div data-sc-stage class="sc-stage redraw-stage" id="redraw-stage" data-sc-verify-state="nc:caliper:2">
 
-        <!-- Interactive GeoJSON Comparison Frame -->
         <div class="redraw-map-viewport">
           <div class="redraw-map-frame">
             <div class="redraw-map-topbar">
-              <div class="redraw-epoch-badge" id="nc-epoch-readout">
-                NORTH CAROLINA · CD116 (13 SEATS) &#8594; CD119 (14 SEATS)
-              </div>
-              <div class="redraw-mode-buttons" role="group" aria-label="Redistricting comparison mode">
-                <button type="button" class="redraw-mode-btn" data-nc-mode="0">2013 (CD116)</button>
-                <button type="button" class="redraw-mode-btn" data-nc-mode="auto" aria-pressed="true">Scroll Sweep</button>
-                <button type="button" class="redraw-mode-btn" data-nc-mode="1">2023 (CD119)</button>
+              <div class="redraw-epoch-badge" id="nc-epoch-readout"></div>
+              <div class="redraw-mode-buttons" role="group" aria-label="Which North Carolina map to show">
+                <button type="button" class="redraw-mode-btn" data-nc-mode="0" aria-pressed="false">116th Congress</button>
+                <button type="button" class="redraw-mode-btn" data-nc-mode="auto" aria-pressed="true">Follow scroll</button>
+                <button type="button" class="redraw-mode-btn" data-nc-mode="1" aria-pressed="false">119th Congress</button>
               </div>
             </div>
 
             <div class="redraw-svg-stack" id="nc-svg-stack">
-              <svg id="nc-116-svg" class="redraw-svg-layer redraw-svg-layer--116" viewBox="0 0 860 380" preserveAspectRatio="xMidYMid meet" aria-label="North Carolina 116th Congress 13 districts"></svg>
-              <svg id="nc-119-svg" class="redraw-svg-layer redraw-svg-layer--119" viewBox="0 0 860 380" preserveAspectRatio="xMidYMid meet" aria-label="North Carolina 119th Congress 14 districts"></svg>
+              <svg id="nc-116-svg" class="redraw-svg-layer redraw-svg-layer--116" viewBox="0 0 860 380" preserveAspectRatio="xMidYMid meet" role="img" aria-label="North Carolina districts in the 116th Congress"></svg>
+              <svg id="nc-119-svg" class="redraw-svg-layer redraw-svg-layer--119" viewBox="0 0 860 380" preserveAspectRatio="xMidYMid meet" role="img" aria-label="North Carolina districts in the 119th Congress"></svg>
               <div class="redraw-caliper" id="nc-caliper" aria-hidden="true">
-                <span class="redraw-caliper__tag" id="nc-caliper-tag">CD119 SWEEP · 50%</span>
+                <span class="redraw-caliper__tag" id="nc-caliper-tag"></span>
               </div>
             </div>
 
             <div class="redraw-telemetry-bar">
-              <div class="redraw-telemetry-cell">
-                <span>116th Congress (2013 Cycle)</span>
-                <strong>13 Districts · 3 Dem / 10 Rep</strong>
-              </div>
-              <div class="redraw-telemetry-cell">
-                <span>Reapportionment Shift</span>
-                <strong id="nc-shift-metric">+1 Seat Added (District 14)</strong>
-              </div>
-              <div class="redraw-telemetry-cell">
-                <span>119th Congress (Current)</span>
-                <strong>14 Districts · 4 Dem / 10 Rep</strong>
-              </div>
+              <div class="redraw-telemetry-cell"><span>116th Congress (2019–2021)</span><strong id="nc-then"></strong></div>
+              <div class="redraw-telemetry-cell"><span>Change</span><strong id="nc-shift-metric"></strong></div>
+              <div class="redraw-telemetry-cell"><span>Held today</span><strong id="nc-now"></strong></div>
             </div>
           </div>
         </div>
 
-        <div class="stage-scrim" aria-hidden="true"></div>
-
-        <!-- Three Staged Copy Beats Synchronized with the Caliper Sweep -->
         <div class="redraw-copy-layer">
-
           <div class="cue-plate redraw-beat" data-sc-cue="0 0.30 0 0.15">
-            <p class="cue-plate__eyebrow">Boundary Forensics · North Carolina</p>
-            <h2 class="cue-plate__title cue-plate__title--md">Before a single ballot is cast, the map itself moves.</h2>
-            <p class="cue-plate__body">
-              During the 116th Congress, North Carolina was divided into 13 House districts. As you scroll, the census caliper sweeps from the Blue Ridge Mountains toward the Atlantic coast.
-            </p>
+            <p class="cue-plate__eyebrow">District lines · North Carolina</p>
+            <h2 class="cue-plate__title cue-plate__title--md">Before anyone votes, the map itself can move.</h2>
+            <p class="cue-plate__body" id="nc-beat1"></p>
           </div>
 
           <div class="cue-plate redraw-beat" data-sc-cue="0.33 0.67 0.15 0.15">
-            <h2 class="cue-plate__title cue-plate__title--md">One census adds a fourteenth seat and redraws the Piedmont.</h2>
-            <p class="cue-plate__body">
-              Following the 2020 Census, North Carolina gained a 14th congressional seat. Subsequent 2023 boundary lines reshaped Districts 6, 13, and 14 across Durham, Wake, Guilford, and Mecklenburg counties.
-            </p>
+            <h2 class="cue-plate__title cue-plate__title--md">A census can add a seat and redraw the lines.</h2>
+            <p class="cue-plate__body" id="nc-beat2"></p>
           </div>
 
           <div class="cue-plate redraw-beat" data-sc-cue="0.70 1.00 0.15 0">
-            <h2 class="cue-plate__title cue-plate__title--md">Ten Republican seats. Four Democratic seats.</h2>
-            <p class="cue-plate__body">
-              In the 119th Congress, Democrats hold NC-1, NC-2, NC-4, and NC-12 while Republicans hold ten districts. Open RepMap's Redistricting Mode to scrub 2013 vs. 2023 boundaries across all 50 states.
-            </p>
-            <a href="/?mode=map&amp;redistrict=NC" class="atlas-cta">
-              Open NC Redistricting Slider &#8599;
-            </a>
+            <h2 class="cue-plate__title cue-plate__title--md" id="nc-beat3-title"></h2>
+            <p class="cue-plate__body" id="nc-beat3"></p>
+            <a href="/?redistrict=NC" class="atlas-cta">Open North Carolina district history</a>
           </div>
-
         </div>
       </div>
     </section>
 
-    <!-- ACT 4: HORIZONTAL DELEGATION DOSSIER RAIL (pan) -->
-    <section id="delegation" data-sc-act="pan" data-sc-span="2.4" aria-label="Federal Delegation Accountability Dossiers">
+    <!-- ACT 4: delegation rail (pan) -->
+    <section id="delegation" data-sc-act="pan" data-sc-span="2.4" aria-label="Who holds each seat">
       <div data-sc-stage class="sc-stage delegation-stage">
         <div class="delegation-header">
           <div>
-            <h2 class="delegation-header__title">Three voices per ballot. Inspect the record.</h2>
-            <p class="delegation-header__sub">
-              Every lawmaker dossier combines Congress.gov bill sponsorship, GovTrack roll-call attendance, and standing committee assignments.
-            </p>
+            <h2 class="delegation-header__title">Three seats per address. Here is who holds them.</h2>
+            <p class="delegation-header__sub">Office, phone and committee assignments come from the current member list.</p>
           </div>
-          <a href="/?mode=map&amp;compare=3353,3633" class="atlas-cta atlas-cta--secondary">
-            Compare Lawmakers Side-by-Side &#8599;
-          </a>
+          <a href="/" class="atlas-cta atlas-cta--secondary" id="compare-link">Compare two members</a>
         </div>
-
-        <div class="delegation-rail" id="delegation-rail" data-sc-pan>
-          <!-- Card 1: Dynamically bound to active ZIP House Rep -->
-          <article class="dossier-card dossier-card--active" id="active-dossier-card">
-            <div>
-              <div class="dossier-card__top">
-                <div>
-                  <div class="dossier-card__id" id="active-card-bioguide">ACTIVE ZIP 95112 · BIOGUIDE L000397</div>
-                  <h3 class="dossier-card__name" id="active-card-name">Zoe Lofgren</h3>
-                  <div class="dossier-card__seat" id="active-card-seat">U.S. House · California District 18</div>
-                </div>
-                <span class="party-pill party-pill--democrat" id="active-card-party">Democrat</span>
-              </div>
-            </div>
-            <div class="dossier-metrics">
-              <div>
-                <div class="dossier-metric__val" id="active-card-att">97.4%</div>
-                <div class="dossier-metric__lbl">Floor Attendance</div>
-              </div>
-              <div>
-                <div class="dossier-metric__val" id="active-card-bills">100+</div>
-                <div class="dossier-metric__lbl">Bills Sampled</div>
-              </div>
-              <div>
-                <div class="dossier-metric__val" id="active-card-collab">64.2%</div>
-                <div class="dossier-metric__lbl">Cosponsor Ratio</div>
-              </div>
-            </div>
-            <div class="dossier-committees" id="active-card-comms">
-              <span class="dossier-comm-chip">House Science, Space, and Technology</span>
-              <span class="dossier-comm-chip">House Committee on the Judiciary</span>
-            </div>
-            <div class="dossier-card__footer">
-              <span id="active-card-room">1401 Longworth HOB · 202-225-3072</span>
-              <a href="/?mode=map&amp;rep=3353" class="dossier-link" id="active-card-link">Open on Globe &#8599;</a>
-            </div>
-          </article>
-
-          <!-- Card 2: Alejandro Padilla (CA Senate) -->
-          <article class="dossier-card">
-            <div class="dossier-card__top">
-              <div>
-                <div class="dossier-card__id">BIOGUIDE P000145 · GOVTRACK 456856</div>
-                <h3 class="dossier-card__name">Alejandro Padilla</h3>
-                <div class="dossier-card__seat">U.S. Senate · California</div>
-              </div>
-              <span class="party-pill party-pill--democrat">Democrat</span>
-            </div>
-            <div class="dossier-metrics">
-              <div>
-                <div class="dossier-metric__val">98.1%</div>
-                <div class="dossier-metric__lbl">Floor Attendance</div>
-              </div>
-              <div>
-                <div class="dossier-metric__val">3</div>
-                <div class="dossier-metric__lbl">Standing Committees</div>
-              </div>
-              <div>
-                <div class="dossier-metric__val">68.5%</div>
-                <div class="dossier-metric__lbl">Cosponsor Ratio</div>
-              </div>
-            </div>
-            <div class="dossier-committees">
-              <span class="dossier-comm-chip">Senate Energy and Natural Resources</span>
-              <span class="dossier-comm-chip">Senate Environment and Public Works</span>
-              <span class="dossier-comm-chip">Senate Rules and Administration</span>
-            </div>
-            <div class="dossier-card__footer">
-              <span>331 Hart SOB · 202-224-3553</span>
-              <a href="/?mode=map&amp;rep=3294" class="dossier-link">Open on Globe &#8599;</a>
-            </div>
-          </article>
-
-          <!-- Card 3: Valerie Foushee (NC-4) -->
-          <article class="dossier-card">
-            <div class="dossier-card__top">
-              <div>
-                <div class="dossier-card__id">BIOGUIDE F000477 · ZIP 27701 DURHAM</div>
-                <h3 class="dossier-card__name">Valerie Foushee</h3>
-                <div class="dossier-card__seat">U.S. House · North Carolina District 4</div>
-              </div>
-              <span class="party-pill party-pill--democrat">Democrat</span>
-            </div>
-            <div class="dossier-metrics">
-              <div>
-                <div class="dossier-metric__val">96.8%</div>
-                <div class="dossier-metric__lbl">Floor Attendance</div>
-              </div>
-              <div>
-                <div class="dossier-metric__val">2</div>
-                <div class="dossier-metric__lbl">Standing Committees</div>
-              </div>
-              <div>
-                <div class="dossier-metric__val">71.0%</div>
-                <div class="dossier-metric__lbl">Cosponsor Ratio</div>
-              </div>
-            </div>
-            <div class="dossier-committees">
-              <span class="dossier-comm-chip">House Transportation and Infrastructure</span>
-              <span class="dossier-comm-chip">House Science, Space, and Technology</span>
-            </div>
-            <div class="dossier-card__footer">
-              <span>2452 Rayburn HOB · 202-225-1784</span>
-              <a href="/?mode=map&amp;rep=3633" class="dossier-link">Open on Globe &#8599;</a>
-            </div>
-          </article>
-
-          <!-- Card 4: Ted Budd (NC Senate) -->
-          <article class="dossier-card">
-            <div class="dossier-card__top">
-              <div>
-                <div class="dossier-card__id">BIOGUIDE B001305 · NORTH CAROLINA</div>
-                <h3 class="dossier-card__name">Ted Budd</h3>
-                <div class="dossier-card__seat">U.S. Senate · North Carolina</div>
-              </div>
-              <span class="party-pill party-pill--republican">Republican</span>
-            </div>
-            <div class="dossier-metrics">
-              <div>
-                <div class="dossier-metric__val">95.9%</div>
-                <div class="dossier-metric__lbl">Floor Attendance</div>
-              </div>
-              <div>
-                <div class="dossier-metric__val">3</div>
-                <div class="dossier-metric__lbl">Standing Committees</div>
-              </div>
-              <div>
-                <div class="dossier-metric__val">59.4%</div>
-                <div class="dossier-metric__lbl">Cosponsor Ratio</div>
-              </div>
-            </div>
-            <div class="dossier-committees">
-              <span class="dossier-comm-chip">Senate Committee on Armed Services</span>
-              <span class="dossier-comm-chip">Senate Commerce, Science, and Transportation</span>
-            </div>
-            <div class="dossier-card__footer">
-              <span>354 Russell SOB · 202-224-3154</span>
-              <a href="/?mode=map&amp;rep=3280" class="dossier-link">Open on Globe &#8599;</a>
-            </div>
-          </article>
-
-          <!-- Card 5: Jerrold Nadler (NY-12) -->
-          <article class="dossier-card">
-            <div class="dossier-card__top">
-              <div>
-                <div class="dossier-card__id">BIOGUIDE N000002 · ZIP 10001 NEW YORK</div>
-                <h3 class="dossier-card__name">Jerrold Nadler</h3>
-                <div class="dossier-card__seat">U.S. House · New York District 12</div>
-              </div>
-              <span class="party-pill party-pill--democrat">Democrat</span>
-            </div>
-            <div class="dossier-metrics">
-              <div>
-                <div class="dossier-metric__val">96.2%</div>
-                <div class="dossier-metric__lbl">Floor Attendance</div>
-              </div>
-              <div>
-                <div class="dossier-metric__val">2</div>
-                <div class="dossier-metric__lbl">Standing Committees</div>
-              </div>
-              <div>
-                <div class="dossier-metric__val">66.8%</div>
-                <div class="dossier-metric__lbl">Cosponsor Ratio</div>
-              </div>
-            </div>
-            <div class="dossier-committees">
-              <span class="dossier-comm-chip">House Committee on the Judiciary</span>
-              <span class="dossier-comm-chip">House Transportation and Infrastructure</span>
-            </div>
-            <div class="dossier-card__footer">
-              <span>2132 Rayburn HOB · 202-225-5635</span>
-              <a href="/?mode=map&amp;rep=3363" class="dossier-link">Open on Globe &#8599;</a>
-            </div>
-          </article>
-
-          <!-- Card 6: Lloyd Doggett (TX-37) -->
-          <article class="dossier-card">
-            <div class="dossier-card__top">
-              <div>
-                <div class="dossier-card__id">BIOGUIDE D000399 · ZIP 78701 AUSTIN</div>
-                <h3 class="dossier-card__name">Lloyd Doggett</h3>
-                <div class="dossier-card__seat">U.S. House · Texas District 37</div>
-              </div>
-              <span class="party-pill party-pill--democrat">Democrat</span>
-            </div>
-            <div class="dossier-metrics">
-              <div>
-                <div class="dossier-metric__val">98.7%</div>
-                <div class="dossier-metric__lbl">Floor Attendance</div>
-              </div>
-              <div>
-                <div class="dossier-metric__val">3</div>
-                <div class="dossier-metric__lbl">Standing Committees</div>
-              </div>
-              <div>
-                <div class="dossier-metric__val">62.1%</div>
-                <div class="dossier-metric__lbl">Cosponsor Ratio</div>
-              </div>
-            </div>
-            <div class="dossier-committees">
-              <span class="dossier-comm-chip">House Committee on Ways and Means</span>
-              <span class="dossier-comm-chip">House Committee on the Budget</span>
-              <span class="dossier-comm-chip">Joint Committee on Taxation</span>
-            </div>
-            <div class="dossier-card__footer">
-              <span>2307 Rayburn HOB · 202-225-4865</span>
-              <a href="/?mode=map&amp;rep=3332" class="dossier-link">Open on Globe &#8599;</a>
-            </div>
-          </article>
-        </div>
+        <div class="delegation-rail" id="delegation-rail" data-sc-pan></div>
       </div>
     </section>
 
-    <!-- ACT 5: BIPARTITE COMMITTEE POWER NETWORK (flow + in + tilt) -->
-    <section id="committees" class="act-committees" data-sc-act="flow" aria-label="Committee Power Network">
+    <!-- ACT 5: committees (flow + in + tilt) -->
+    <section id="committees" class="act-committees" data-sc-act="flow" aria-label="Committees">
       <div class="committees-inner">
         <div class="committees-header">
-          <h2 class="committees-title" data-sc-in>Floor votes are the final act. Policy is written in committee.</h2>
+          <h2 class="committees-title" data-sc-in>Floor votes come last. Bills are shaped in committee.</h2>
           <p class="scale-lede" data-sc-in>
-            Lawmakers from distant states share jurisdiction over science, taxation, infrastructure, and the courts. Select a standing committee below to trace cross-state membership links.
+            Members from different states sit on the same committees. Pick a committee to see which of the House members above share it.
           </p>
         </div>
 
-        <div class="committees-filter-bar" role="group" aria-label="Filter bipartite committee graph" data-sc-in>
-          <button type="button" class="comm-filter-btn" data-comm="all" aria-pressed="true">All Key Jurisdictions</button>
-          <button type="button" class="comm-filter-btn" data-comm="House Committee on Science, Space, and Technology" aria-pressed="false">Science, Space &amp; Tech</button>
-          <button type="button" class="comm-filter-btn" data-comm="House Committee on the Judiciary" aria-pressed="false">Judiciary</button>
-          <button type="button" class="comm-filter-btn" data-comm="House Committee on Transportation and Infrastructure" aria-pressed="false">Transportation</button>
-          <button type="button" class="comm-filter-btn" data-comm="Senate Committee on Armed Services" aria-pressed="false">Armed Services</button>
-          <button type="button" class="comm-filter-btn" data-comm="House Committee on Ways and Means" aria-pressed="false">Ways &amp; Means</button>
-        </div>
+        <div class="committees-filter-bar" role="group" aria-label="Filter by committee" id="comm-filter-bar" data-sc-in></div>
 
-        <div class="committee-graph-plate" data-sc-in data-sc-tilt="4">
-          <svg class="committee-graph-svg" id="bipartite-svg" viewBox="0 0 1060 360" aria-label="Bipartite network linking federal lawmakers to standing committees">
-            <!-- Edges -->
-            <g id="bipartite-edges" stroke-width="2" fill="none">
-              <path data-edge-comm="House Committee on Science, Space, and Technology" d="M 210 65 C 370 65, 370 75, 530 75" stroke="rgba(59,130,246,0.65)"/>
-              <path data-edge-comm="House Committee on the Judiciary" d="M 210 65 C 370 65, 370 145, 530 145" stroke="rgba(59,130,246,0.65)"/>
-              <path data-edge-comm="House Committee on Science, Space, and Technology" d="M 210 130 C 370 130, 370 75, 530 75" stroke="rgba(59,130,246,0.65)"/>
-              <path data-edge-comm="House Committee on Transportation and Infrastructure" d="M 210 130 C 370 130, 370 215, 530 215" stroke="rgba(59,130,246,0.65)"/>
-              <path data-edge-comm="House Committee on the Judiciary" d="M 210 195 C 370 195, 370 145, 530 145" stroke="rgba(59,130,246,0.65)"/>
-              <path data-edge-comm="House Committee on Transportation and Infrastructure" d="M 210 195 C 370 195, 370 215, 530 215" stroke="rgba(59,130,246,0.65)"/>
-              <path data-edge-comm="Senate Committee on Armed Services" d="M 210 260 C 370 260, 370 285, 530 285" stroke="rgba(239,68,68,0.68)"/>
-              <path data-edge-comm="Senate Committee on Armed Services" d="M 850 110 C 690 110, 690 285, 530 285" stroke="rgba(59,130,246,0.65)"/>
-              <path data-edge-comm="House Committee on Ways and Means" d="M 850 190 C 690 190, 690 330, 530 330" stroke="rgba(59,130,246,0.65)"/>
-              <path data-edge-comm="House Committee on Ways and Means" d="M 850 270 C 690 270, 690 330, 530 330" stroke="rgba(59,130,246,0.65)"/>
-              <path data-edge-comm="House Committee on the Judiciary" d="M 850 325 C 690 325, 690 145, 530 145" stroke="rgba(239,68,68,0.68)"/>
-            </g>
-
-            <!-- Left Lawmaker Nodes -->
-            <g font-family="Plus Jakarta Sans, sans-serif" font-size="13" fill="#f4f1ea">
-              <g transform="translate(20, 44)">
-                <rect width="190" height="42" rx="8" fill="#162038" stroke="#3b82f6" stroke-width="1.5"/>
-                <text x="14" y="20" font-weight="700">Zoe Lofgren (D)</text>
-                <text x="14" y="34" font-size="11" fill="#94a3b8" font-family="JetBrains Mono, monospace">CA-18 · San Jose</text>
-              </g>
-              <g transform="translate(20, 109)">
-                <rect width="190" height="42" rx="8" fill="#162038" stroke="#3b82f6" stroke-width="1.5"/>
-                <text x="14" y="20" font-weight="700">Valerie Foushee (D)</text>
-                <text x="14" y="34" font-size="11" fill="#94a3b8" font-family="JetBrains Mono, monospace">NC-4 · Durham</text>
-              </g>
-              <g transform="translate(20, 174)">
-                <rect width="190" height="42" rx="8" fill="#162038" stroke="#3b82f6" stroke-width="1.5"/>
-                <text x="14" y="20" font-weight="700">Jerrold Nadler (D)</text>
-                <text x="14" y="34" font-size="11" fill="#94a3b8" font-family="JetBrains Mono, monospace">NY-12 · New York</text>
-              </g>
-              <g transform="translate(20, 239)">
-                <rect width="190" height="42" rx="8" fill="#162038" stroke="#ef4444" stroke-width="1.5"/>
-                <text x="14" y="20" font-weight="700">Ted Budd (R)</text>
-                <text x="14" y="34" font-size="11" fill="#94a3b8" font-family="JetBrains Mono, monospace">NC · U.S. Senate</text>
-              </g>
-            </g>
-
-            <!-- Center Committee Hubs -->
-            <g font-family="JetBrains Mono, monospace" font-size="12" fill="#f4f1ea" text-anchor="middle">
-              <g transform="translate(385, 52)" data-hub-comm="House Committee on Science, Space, and Technology">
-                <rect width="290" height="44" rx="22" fill="#080c14" stroke="#f59e0b" stroke-width="1.8"/>
-                <text x="145" y="27" font-weight="600" fill="#fde68a">House Science, Space &amp; Tech</text>
-              </g>
-              <g transform="translate(385, 122)" data-hub-comm="House Committee on the Judiciary">
-                <rect width="290" height="44" rx="22" fill="#080c14" stroke="#f59e0b" stroke-width="1.8"/>
-                <text x="145" y="27" font-weight="600" fill="#fde68a">House &amp; Senate Judiciary</text>
-              </g>
-              <g transform="translate(385, 192)" data-hub-comm="House Committee on Transportation and Infrastructure">
-                <rect width="290" height="44" rx="22" fill="#080c14" stroke="#f59e0b" stroke-width="1.8"/>
-                <text x="145" y="27" font-weight="600" fill="#fde68a">Transportation &amp; Infrastructure</text>
-              </g>
-              <g transform="translate(385, 262)" data-hub-comm="Senate Committee on Armed Services">
-                <rect width="290" height="44" rx="22" fill="#080c14" stroke="#f59e0b" stroke-width="1.8"/>
-                <text x="145" y="27" font-weight="600" fill="#fde68a">Senate Armed Services</text>
-              </g>
-              <g transform="translate(385, 312)" data-hub-comm="House Committee on Ways and Means">
-                <rect width="290" height="40" rx="20" fill="#080c14" stroke="#f59e0b" stroke-width="1.8"/>
-                <text x="145" y="25" font-weight="600" fill="#fde68a">House Ways and Means</text>
-              </g>
-            </g>
-
-            <!-- Right Lawmaker Nodes -->
-            <g font-family="Plus Jakarta Sans, sans-serif" font-size="13" fill="#f4f1ea">
-              <g transform="translate(850, 88)">
-                <rect width="190" height="42" rx="8" fill="#162038" stroke="#3b82f6" stroke-width="1.5"/>
-                <text x="14" y="20" font-weight="700">Kirsten Gillibrand (D)</text>
-                <text x="14" y="34" font-size="11" fill="#94a3b8" font-family="JetBrains Mono, monospace">NY · U.S. Senate</text>
-              </g>
-              <g transform="translate(850, 168)">
-                <rect width="190" height="42" rx="8" fill="#162038" stroke="#3b82f6" stroke-width="1.5"/>
-                <text x="14" y="20" font-weight="700">Lloyd Doggett (D)</text>
-                <text x="14" y="34" font-size="11" fill="#94a3b8" font-family="JetBrains Mono, monospace">TX-37 · Austin</text>
-              </g>
-              <g transform="translate(850, 248)">
-                <rect width="190" height="42" rx="8" fill="#162038" stroke="#3b82f6" stroke-width="1.5"/>
-                <text x="14" y="20" font-weight="700">Danny Davis (D)</text>
-                <text x="14" y="34" font-size="11" fill="#94a3b8" font-family="JetBrains Mono, monospace">IL-7 · Chicago</text>
-              </g>
-              <g transform="translate(850, 304)">
-                <rect width="190" height="42" rx="8" fill="#162038" stroke="#ef4444" stroke-width="1.5"/>
-                <text x="14" y="20" font-weight="700">Thom Tillis (R)</text>
-                <text x="14" y="34" font-size="11" fill="#94a3b8" font-family="JetBrains Mono, monospace">NC · U.S. Senate</text>
-              </g>
-            </g>
-          </svg>
-
+        <div class="committee-graph-plate" data-sc-in data-sc-tilt="2">
+          <ul class="comm-rows" id="comm-rows" aria-label="Committees shared by these members"></ul>
           <div class="committee-graph-footer">
-            <div class="zip-status" id="comm-status-readout">
-              Showing all 5 standing committee hubs across 8 federal lawmakers (536 members available in full force-directed graph).
-            </div>
-            <a href="/?mode=map&amp;committee=House%20Committee%20on%20Science%2C%20Space%2C%20and%20Technology" class="atlas-cta" id="comm-launch-link">
-              Open Force-Directed Committee Graph &#8599;
-            </a>
+            <p class="zip-status" id="comm-status-readout" role="status"></p>
+            <a href="/" class="atlas-cta" id="comm-launch-link">Open the committee graph</a>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ACT 6: RESOLVED HOLD LAUNCH CONSOLE (pin + one-value hold cue) -->
-    <section id="enter" data-sc-act="pin" data-sc-span="1.6" aria-label="Launch the Interactive 3D Globe">
+    <!-- ACT 6: hold (pin + one-value hold cue) -->
+    <section id="enter" data-sc-act="pin" data-sc-span="1.6" aria-label="Open the map">
       <div data-sc-stage class="sc-stage enter-stage" id="enter-stage" data-sc-verify-state="enter:ready">
         <div class="enter-console">
-
-          <!-- One-value hold cue: arrives and never fades out -->
           <div class="enter-main-plate" data-sc-cue="-0.20">
             <div>
-              <h2 class="cue-plate__title cue-plate__title--md">Step into the full 3D Civic Atlas.</h2>
+              <h2 class="cue-plate__title cue-plate__title--md">Open the full map.</h2>
               <p class="cue-plate__body">
-                Your selected postal code and district parameters are locked below. Launch the interactive Mapbox GL globe to inspect every congressional and state legislative district, live roll-call vote, and bill report card.
+                Search any ZIP, state, district or name. See who holds each seat now and who has filed with the FEC to run for it.
               </p>
-              <div style="display:flex; flex-wrap:wrap; gap:0.75rem; margin-top:1rem;">
-                <a href="/?mode=map&amp;zip=95112&amp;rep=3353" class="atlas-cta" id="close-primary-cta" data-sc-magnet="0.22" data-sc-rise="0">
-                  Enter Interactive 3D Globe &#8599;
-                </a>
-                <a href="/?mode=map" class="atlas-cta atlas-cta--secondary">
-                  Browse Full National Map
-                </a>
+              <div class="enter-actions">
+                <a href="/" class="atlas-cta" id="close-primary-cta">Open ZIP on the map</a>
+                <a href="/" class="atlas-cta atlas-cta--secondary">Open the national map</a>
               </div>
             </div>
-
-            <div class="enter-selection-readout">
-              <div>
-                <span style="color:var(--sc-dim); display:block; font-size:0.68rem; text-transform:uppercase;">Locked Postal Coordinate</span>
-                <strong id="close-readout-zip" style="font-size:1.05rem; color:#fbbf24;">ZIP 95112 · San Jose, CA</strong>
-              </div>
-              <div>
-                <span style="color:var(--sc-dim); display:block; font-size:0.68rem; text-transform:uppercase;">Federal House Seat</span>
-                <strong id="close-readout-rep">CA District 18 · Rep. Zoe Lofgren (D)</strong>
-              </div>
-              <div>
-                <span style="color:var(--sc-dim); display:block; font-size:0.68rem; text-transform:uppercase;">Statewide U.S. Senators</span>
-                <strong id="close-readout-senate">Alejandro Padilla (D) · Adam Schiff (D)</strong>
-              </div>
-            </div>
+            <dl class="enter-selection-readout">
+              <div><dt>ZIP</dt><dd id="close-readout-zip"></dd></div>
+              <div><dt>U.S. House</dt><dd id="close-readout-rep"></dd></div>
+              <div><dt>U.S. Senate</dt><dd id="close-readout-senate"></dd></div>
+            </dl>
           </div>
 
           <div class="enter-dock-grid" data-sc-cue="0.02">
-            <a href="/?mode=map&amp;redistrict=NC" class="enter-dock-card">
-              <h3 class="enter-dock-card__title">Redistricting Time Slider &#8599;</h3>
-              <p class="enter-dock-card__desc">Overlay 2013 (CD116) and 2023 (CD119) congressional boundaries across any state.</p>
+            <a href="/?redistrict=NC" class="enter-dock-card">
+              <h3 class="enter-dock-card__title">District history</h3>
+              <p class="enter-dock-card__desc">Compare 116th and 119th Congress district lines in any state.</p>
             </a>
-            <a href="/?mode=map&amp;compare=3353,3633" class="enter-dock-card">
-              <h3 class="enter-dock-card__title">Side-by-Side Rep Compare &#8599;</h3>
-              <p class="enter-dock-card__desc">Measure voting alignment percentages, attendance, and shared committees between any two lawmakers.</p>
+            <a href="/" class="enter-dock-card" id="close-compare-card">
+              <h3 class="enter-dock-card__title">Compare members</h3>
+              <p class="enter-dock-card__desc">Put two members of Congress side by side.</p>
             </a>
-            <a href="/?mode=map&amp;committee=House%20Committee%20on%20the%20Judiciary" class="enter-dock-card" id="close-comm-card">
-              <h3 class="enter-dock-card__title">Bipartite Committee Graph &#8599;</h3>
-              <p class="enter-dock-card__desc">Explore all 536 lawmakers and their standing committee power web in an interactive D3 force layout.</p>
+            <a href="/" class="enter-dock-card" id="close-comm-card">
+              <h3 class="enter-dock-card__title">Committee graph</h3>
+              <p class="enter-dock-card__desc" id="close-comm-desc">See every member's committee assignments as a network.</p>
             </a>
           </div>
-
         </div>
       </div>
     </section>
@@ -1707,6 +271,7 @@
   </main>
 
   <script src="atlas-data.js"></script>
+  <script src="story-data.js"></script>
   <script src="scrollcraft.js"></script>
   <script src="story-init.js"></script>
 </body>

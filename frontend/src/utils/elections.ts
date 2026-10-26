@@ -130,3 +130,60 @@ export function formatDate(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number)
   return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
+
+/** Whole days from today (user's local date) to an ISO date; negative once it has passed. */
+export function daysUntil(iso: string): number {
+  const [y, m, d] = iso.split('-').map(Number)
+  const target = new Date(y, m - 1, d).getTime()
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  return Math.round((target - today) / 86_400_000)
+}
+
+export function countdownText(iso: string): string {
+  const days = daysUntil(iso)
+  if (days > 1) return `${days} days away`
+  if (days === 1) return 'Tomorrow'
+  if (days === 0) return 'Today'
+  return 'Election day has passed'
+}
+
+/** The next general election that hasn't happened yet (local date). After election
+ *  day this rolls over to the following cycle automatically, no deploy needed. */
+export function upcomingCycle(cycles: ElectionCycleSummary[]): ElectionCycleSummary | null {
+  return cycles.find((c) => daysUntil(c.general_date) >= 0) ?? null
+}
+
+/** How many days before a general election the map and Story reminders appear. */
+export const ELECTION_SEASON_DAYS = 60
+
+/** The upcoming cycle only while it is close enough to promote (0..ELECTION_SEASON_DAYS
+ *  days away). Returns null the day after the election, so reminders retire on their
+ *  own instead of counting down two years to the next cycle. */
+export function cycleInSeason(cycles: ElectionCycleSummary[]): ElectionCycleSummary | null {
+  const next = upcomingCycle(cycles)
+  return next && daysUntil(next.general_date) <= ELECTION_SEASON_DAYS ? next : null
+}
+
+/** "Tue, Nov 3" */
+export function formatShortDate(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+}
+
+export interface LocationRaces {
+  house: { id: string; race: ElectionRace } | null
+  senate: { id: string; race: ElectionRace }[]
+}
+
+/** Congressional races on the cycle's ballot for a state + House district. */
+export function racesForLocation(data: ElectionCycleData, state: string, district: number | null): LocationRaces {
+  const houseId = houseRaceId(state, district)
+  const senate = [senateRaceId(state, false), senateRaceId(state, true)]
+    .filter((id) => data.races[id])
+    .map((id) => ({ id, race: data.races[id] }))
+  return {
+    house: data.races[houseId] ? { id: houseId, race: data.races[houseId] } : null,
+    senate,
+  }
+}

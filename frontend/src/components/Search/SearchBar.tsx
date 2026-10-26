@@ -1,9 +1,10 @@
-import { useId, useState } from 'react'
-import { resolveZip } from '../../utils/zipLookup'
+import { forwardRef, useId, useMemo, useState } from 'react'
+import { lookupZipLocation } from '../../utils/zipLookup'
 import { searchReps } from '../../utils/repSearch'
-import { resolveZipSearchFallback } from '../../utils/zipFallback'
-import type { Representative, ZipSearchResult } from '../../types'
-import NameSearchDropdown from './NameSearchDropdown'
+import { stateName } from '../../utils/elections'
+import { parseRaceId, parseSearch, raceShortLabel, suggestStates, type SearchContext } from '../../utils/searchParse'
+import type { Representative } from '../../types'
+import NameSearchDropdown, { type SearchOption } from './NameSearchDropdown'
 
 function SearchIcon() {
   return (
@@ -21,186 +22,223 @@ function SpinnerIcon() {
     </svg>
   )
 }
+
 interface Props {
   allRepresentatives: Representative[]
-  onZipSearchComplete: (result: ZipSearchResult) => void
-  onZipSearchReset: () => void
-  onRepSelect: (rep: Representative) => void
+  onSelectZip: (zip: string) => void
+  onSelectState: (code: string) => void
+  onSelectRace: (raceId: string) => void
+  onSelectRep: (rep: Representative) => void
 }
 
-export default function SearchBar({
-  allRepresentatives,
-  onZipSearchComplete,
-  onZipSearchReset,
-  onRepSelect,
-}: Props) {
+const HELP = 'Try a ZIP code, a state, a district like NE-2, or a member’s name.'
+
+/** House seats per state, from the member list (1 = at-large). */
+function seatCounts(reps: Representative[]): Record<string, number> {
+  const seats: Record<string, number> = {}
+  for (const r of reps) if (r.level === 'us_house') seats[r.state] = (seats[r.state] ?? 0) + 1
+  return seats
+}
+
+/** One search box: ZIP -> race, state -> State, "NE-2" -> race, name -> member. */
+const SearchBar = forwardRef<HTMLInputElement, Props>(function SearchBar(
+  { allRepresentatives, onSelectZip, onSelectState, onSelectRace, onSelectRep },
+  inputRef,
+) {
   const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [dropdownResults, setDropdownResults] = useState<Representative[]>([])
   const [activeIndex, setActiveIndex] = useState(-1)
   const listboxId = useId()
+  const errorId = useId()
 
-  const trimmedQuery = query.trim()
-  const isNameSearch = trimmedQuery.length > 0 && !/^\d+$/.test(trimmedQuery)
+  const ctx: SearchContext = useMemo(() => ({ houseSeats: seatCounts(allRepresentatives) }), [allRepresentatives])
+  const federalReps = useMemo(
+    () => allRepresentatives.filter((r) => r.level === 'us_house' || r.level === 'us_senate'),
+    [allRepresentatives],
+  )
 
-  const handleQueryChange = (value: string) => {
-    setQuery(value)
-    setError(null)
-    setActiveIndex(-1)
-
-    const trimmedValue = value.trim()
-    if (!trimmedValue) {
-      setDropdownResults([])
-      onZipSearchReset()
-      return
+  const options: SearchOption[] = useMemo(() => {
+    const intent = parseSearch(query, ctx)
+    if (intent.kind === 'empty' || intent.kind === 'zip' || intent.kind === 'partialZip') return []
+    const out: SearchOption[] = []
+    if (intent.kind === 'district') {
+      const race = parseRaceId(intent.raceId)
+      if (race) {
+        out.push({
+          kind: 'race',
+          raceId: intent.raceId,
+          label: `${stateName(race.state)} · ${raceShortLabel(race)}`,
+          detail: 'U.S. House race',
+        })
+      }
     }
+    for (const code of suggestStates(query)) out.push({ kind: 'state', state: code })
+    if (intent.kind === 'state' && !out.some((o) => o.kind === 'state' && o.state === intent.state)) {
+      out.unshift({ kind: 'state', state: intent.state })
+    }
+    if (intent.kind === 'name' || intent.kind === 'state') {
+      for (const rep of searchReps(query, federalReps).slice(0, 8 - out.length)) out.push({ kind: 'rep', rep })
+    }
+    return out
+  }, [query, ctx, federalReps])
 
-    setDropdownResults(
-      /^\d+$/.test(trimmedValue) ? [] : searchReps(trimmedValue, allRepresentatives),
-    )
+  const showDropdown = open && options.length > 0
+
+  const reset = (label: string) => {
+    setQuery(label)
+    setOpen(false)
+    setActiveIndex(-1)
+    setError(null)
   }
 
-  const handleSelect = (rep: Representative) => {
-    onZipSearchReset()
-    onRepSelect(rep)
-    setQuery('')
-    setDropdownResults([])
-    setActiveIndex(-1)
+  const choose = (option: SearchOption) => {
+    if (option.kind === 'rep') {
+      reset(option.rep.name)
+      onSelectRep(option.rep)
+    } else if (option.kind === 'state') {
+      reset(stateName(option.state))
+      onSelectState(option.state)
+    } else {
+      const race = parseRaceId(option.raceId)
+      reset(race?.office === 'H' ? `${race.state}-${race.district || 'AL'}` : query)
+      onSelectRace(option.raceId)
+    }
   }
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Escape') {
-      setDropdownResults([])
-      setActiveIndex(-1)
+      // Close the list first; a second Esc (list closed) goes up a level in App.
+      if (showDropdown) {
+        event.preventDefault()
+        setOpen(false)
+        setActiveIndex(-1)
+      }
       return
     }
-
-    if (!isNameSearch || dropdownResults.length === 0) return
-
+    if (!showDropdown) {
+      if (event.key === 'ArrowDown' && options.length) {
+        event.preventDefault()
+        setOpen(true)
+        setActiveIndex(0)
+      }
+      return
+    }
     if (event.key === 'ArrowDown') {
       event.preventDefault()
-      setActiveIndex((current) => (current + 1) % dropdownResults.length)
+      setActiveIndex((i) => (i + 1) % options.length)
     } else if (event.key === 'ArrowUp') {
       event.preventDefault()
-      setActiveIndex((current) =>
-        current <= 0 ? dropdownResults.length - 1 : current - 1,
-      )
-    } else if (event.key === 'Enter' && activeIndex >= 0) {
-      event.preventDefault()
-      handleSelect(dropdownResults[activeIndex])
+      setActiveIndex((i) => (i <= 0 ? options.length - 1 : i - 1))
     }
-  }
-
-  const handleBlur = () => {
-    setDropdownResults([])
-    setActiveIndex(-1)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const trimmed = query.trim()
-    if (!trimmed) return
-
-    if (isNameSearch) {
-      if (activeIndex >= 0 && dropdownResults[activeIndex]) {
-        handleSelect(dropdownResults[activeIndex])
-      }
+    if (showDropdown && activeIndex >= 0 && options[activeIndex]) {
+      choose(options[activeIndex])
       return
     }
-
-    setError(null)
-    setSearching(true)
-    onZipSearchReset()
-
-    if (/^\d{5}$/.test(trimmed)) {
-      try {
-        const resolved = await resolveZip(trimmed, allRepresentatives).catch(() => null)
-        const fallback = resolved ? null : resolveZipSearchFallback(trimmed, allRepresentatives)
-
-        const representatives = resolved?.representatives ?? fallback?.representatives ?? []
-        const location = resolved ?? fallback ?? null
-
-        if (!location || !representatives.length) {
-          throw new Error('ZIP code not found')
+    const intent = parseSearch(query, ctx)
+    switch (intent.kind) {
+      case 'empty':
+        return
+      case 'partialZip':
+        setError('Enter a 5-digit ZIP code.')
+        return
+      case 'invalidDistrict':
+        setError(
+          intent.seats
+            ? `${stateName(intent.state)} has ${intent.seats === 1 ? 'one at-large House seat' : `${intent.seats} House districts`}.`
+            : `That district doesn’t exist in ${stateName(intent.state)}.`,
+        )
+        return
+      case 'district':
+        reset(query.trim())
+        onSelectRace(intent.raceId)
+        return
+      case 'state':
+        reset(stateName(intent.state))
+        onSelectState(intent.state)
+        return
+      case 'zip': {
+        setSearching(true)
+        setError(null)
+        try {
+          const loc = await lookupZipLocation(intent.zip)
+          if (!loc) {
+            setError(`We couldn’t find ZIP ${intent.zip}. Check the number, or pick a state on the map.`)
+          } else {
+            reset(intent.zip)
+            onSelectZip(intent.zip)
+          }
+        } catch {
+          setError('ZIP data could not be loaded. Check your connection and try again.')
+        } finally {
+          setSearching(false)
         }
-
-        onZipSearchComplete({
-          zipcode: trimmed,
-          lat: location.lat,
-          lng: location.lng,
-          representatives,
-          isApproximate: !resolved,
-          note: !resolved ? fallback?.note : undefined,
-        })
-      } catch {
-        setError('ZIP code not found.')
+        return
       }
-    } else {
-      setError('Enter a 5-digit ZIP code to navigate the map.')
+      case 'name': {
+        const first = options[0]
+        if (first) choose(first)
+        else setError(`No match for “${intent.query}”. ${HELP}`)
+      }
     }
-
-    setSearching(false)
   }
-
-  const showDropdown = isNameSearch && dropdownResults.length > 0
 
   return (
     <div className="searchbar-container">
-      <form
-        onSubmit={handleSubmit}
-        className="searchbar"
-        role="search"
-        aria-label="Search representatives by ZIP code or name"
-      >
+      <form onSubmit={handleSubmit} className="searchbar" role="search" aria-label="Search places and members">
         <label htmlFor="map-search" className="sr-only">
-          Search by ZIP code or name
+          Search by ZIP code, state, district or member name
         </label>
         <input
+          ref={inputRef}
           id="map-search"
           type="search"
           value={query}
-          onChange={(e) => handleQueryChange(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value)
+            setOpen(true)
+            setError(null)
+            setActiveIndex(-1)
+          }}
           onKeyDown={handleKeyDown}
-          onBlur={handleBlur}
-          placeholder="Search by ZIP or name"
+          onFocus={() => setOpen(true)}
+          onBlur={() => { setOpen(false); setActiveIndex(-1) }}
+          placeholder="ZIP, state, district or name"
           className="searchbar-input"
           role="combobox"
-          aria-describedby={error ? 'searchbar-error' : undefined}
-          aria-autocomplete={isNameSearch ? 'list' : undefined}
+          aria-describedby={error ? errorId : undefined}
+          aria-autocomplete="list"
           aria-controls={showDropdown ? listboxId : undefined}
-          aria-activedescendant={
-            showDropdown && activeIndex >= 0
-              ? `${listboxId}-option-${activeIndex}`
-              : undefined
-          }
+          aria-activedescendant={showDropdown && activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined}
           aria-expanded={showDropdown}
           autoComplete="off"
-          inputMode="text"
+          enterKeyHint="search"
         />
-        <button
-          type="submit"
-          disabled={searching}
-          className="searchbar-btn"
-          aria-label="Search"
-        >
+        <button type="submit" disabled={searching} className="searchbar-btn" aria-label="Search">
           {searching ? <SpinnerIcon /> : <SearchIcon />}
         </button>
         {error && (
-          <p id="searchbar-error" className="searchbar-error" role="alert">
+          <p id={errorId} className="searchbar-error" role="alert">
             {error}
           </p>
         )}
       </form>
       {showDropdown && (
         <NameSearchDropdown
-          results={dropdownResults}
+          options={options}
           activeIndex={activeIndex}
-          onSelect={handleSelect}
+          onSelect={choose}
           onSetActiveIndex={setActiveIndex}
           listboxId={listboxId}
         />
       )}
     </div>
   )
-}
+})
+
+export default SearchBar

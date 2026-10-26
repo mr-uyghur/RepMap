@@ -1,18 +1,17 @@
 .report-card {
   margin-top: 20px;
   padding: 16px;
-  background: var(--color-bg-elevated);
+  background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
 }
 
 .report-card-title {
   margin: 0 0 14px;
-  font-size: 11px;
+  font-family: var(--font-body);
+  font-size: 16px;
   font-weight: 700;
-  color: var(--color-text-subtle, var(--color-text-muted));
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  color: var(--color-text-primary);
 }
 
 .report-card-gauges {
@@ -55,13 +54,13 @@
 
 .report-card-gauge-subtitle {
   margin: 3px 0 0;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-text-muted);
 }
 
 .report-card-note {
   margin: 14px 0 0;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-text-muted);
   font-style: italic;
 }

@@ -791,7 +791,10 @@
         q.el.style.transform = reduce ? 'none'
           : 'translate3d(0,' + ((0.5 - wp) * 4).toFixed(2) + 'vh,0)';
         var on = vis > 0.5;
-        if (on !== (q.state === 1)) { q.state = on ? 1 : 0; q.el.style.pointerEvents = on ? 'auto' : 'none'; }
+        // Compare against the stored state, not "=== 1": cues start at -1, and a cue that
+        // starts hidden must still get pointer-events:none, or its invisible box sits on
+        // top of the visible cue it shares a grid cell with and swallows its clicks.
+        if ((on ? 1 : 0) !== q.state) { q.state = on ? 1 : 0; q.el.style.pointerEvents = on ? 'auto' : 'none'; }
       }
 
       // Publish the route, draw none of it. A gauge, a map, a leg counter and a
@@ -930,7 +933,10 @@
               : 'translate3d(0,' + ((1 - vis) * 2.4 * q.rise).toFixed(2) + 'vh,0)';
           }
           var on = vis > 0.5;
-          if (on !== (q.state === 1)) { q.state = on ? 1 : 0; q.el.style.pointerEvents = on ? 'auto' : 'none'; }
+          // Compare against the stored state, not "=== 1": cues start at -1, and a cue that
+          // starts hidden must still get pointer-events:none, or its invisible box sits on
+          // top of the visible cue it shares a grid cell with and swallows its clicks.
+          if ((on ? 1 : 0) !== q.state) { q.state = on ? 1 : 0; q.el.style.pointerEvents = on ? 'auto' : 'none'; }
         }
 
         // parallax

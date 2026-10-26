@@ -61,7 +61,9 @@ export default defineConfig({
       devOptions: { enabled: false },
       manifest: false, // We provide our own public/manifest.json
       workbox: {
-        // Pre-cache the entire app shell (JS/CSS/HTML bundles + static assets)
+        // Pre-cache the entire app shell (JS/CSS/HTML bundles + static assets).
+        // No .json here: the data files (incl. the 2.3 MB zips.json and its
+        // ~900 shards) are runtime-cached on demand below.
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // Serve index.html for all navigation requests (SPA fallback)
         navigateFallback: 'index.html',
@@ -95,12 +97,14 @@ export default defineConfig({
             },
           },
           {
-            // ZIP lookup table — large and changes rarely; still SWR (never
-            // CacheFirst) so a data refresh is picked up within a session.
-            urlPattern: /\/data\/zips\.json$/,
+            // ZIP lookup shards (public/data/zips/<3-digit prefix>.json, split
+            // from zips.json at build time) — only the shards a user searched
+            // are cached; never precached. SWR (never CacheFirst) so a data
+            // refresh is picked up within a session.
+            urlPattern: /\/data\/zips\/\d{3}\.json$/,
             handler: 'StaleWhileRevalidate',
             options: {
-              cacheName: 'data-zips-v2',
+              cacheName: 'data-zips-v3',
               expiration: { maxAgeSeconds: 60 * 60 * 24 * 7 }, // 7 days
             },
           },
@@ -127,23 +131,6 @@ export default defineConfig({
             },
           },
           {
-            // Google Fonts CSS
-            urlPattern: /^https:\/\/fonts\.googleapis\.com/,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'google-fonts-stylesheets',
-            },
-          },
-          {
-            // Google Fonts binary files — long-lived, CacheFirst
-            urlPattern: /^https:\/\/fonts\.gstatic\.com/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-webfonts',
-              expiration: { maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
-            },
-          },
-          {
             // Mapbox GL CSS served from their CDN
             urlPattern: /^https:\/\/api\.mapbox\.com\/mapbox-gl-js/,
             handler: 'CacheFirst',
@@ -166,6 +153,18 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        // React + router change far less often than app code: a separate,
+        // long-cached vendor chunk survives app deploys. mapbox-gl and
+        // react-map-gl stay in the lazy map chunks.
+        manualChunks(id) {
+          if (/node_modules\/(react|react-dom|scheduler|react-router|react-router-dom|cookie|set-cookie-parser)\//.test(id)) return 'vendor'
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     // usePolling ensures file-system change events work inside Docker on all

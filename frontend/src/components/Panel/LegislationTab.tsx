@@ -6,106 +6,36 @@ import type { Bill, LegislationResponse } from '../../types'
 interface Props {
   bioguide_id: string
   congressUrl?: string
-  darkMode?: boolean
 }
 
 function formatIntroDate(dateStr: string): string {
   if (!dateStr) return ''
   // Use UTC noon to avoid date shifting from local timezone offset.
   const d = new Date(dateStr + 'T12:00:00Z')
-  return 'Introduced ' + d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+  return 'Introduced ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
 }
 
-const titleStyle: React.CSSProperties = {
-  display: '-webkit-box',
-  WebkitLineClamp: 2,
-  WebkitBoxOrient: 'vertical',
-  overflow: 'hidden',
-  fontSize: '13px',
-  fontWeight: '500',
-  margin: '0 0 4px',
-  lineHeight: '1.4',
-}
-
-function BillCard({ bill }: { bill: Bill }) {
+function BillRow({ bill }: { bill: Bill }) {
   return (
-    <div style={{
-      padding: '10px 12px',
-      background: 'var(--color-bg-elevated)',
-      borderRadius: 'var(--radius-md)',
-      border: '1px solid var(--color-border)',
-      marginBottom: '8px',
-      transition: 'border-color var(--transition-fast), box-shadow var(--transition-fast)',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p className="leg-tab-bill-num">
-            {bill.bill_number}
-          </p>
-          {bill.congress_url ? (
-            <a
-              href={bill.congress_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ ...titleStyle, color: 'var(--color-link)', textDecoration: 'none' }}
-            >
-              {bill.title}
-            </a>
-          ) : (
-            <p style={{ ...titleStyle, color: 'var(--color-text-primary)' }}>
-              {bill.title}
-            </p>
-          )}
-          {bill.introduced_date && (
-            <p style={{ margin: '0 0 3px', fontSize: '11px', color: 'var(--color-text-muted)' }}>
-              {formatIntroDate(bill.introduced_date)}
-            </p>
-          )}
-          {bill.latest_action && (
-            <p style={{
-              margin: 0, fontSize: '11px',
-              color: 'var(--color-text-muted)',
-              overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
-            }}>
-              {bill.latest_action}
-            </p>
-          )}
-        </div>
-        {bill.became_law && (
-          <span style={{
-            flexShrink: 0,
-            fontSize: '11px',
-            fontWeight: '600',
-            color: 'var(--color-success)',
-            background: 'var(--color-success-bg)',
-            border: '1px solid var(--color-success-border)',
-            borderRadius: '999px',
-            padding: '2px 8px',
-            whiteSpace: 'nowrap',
-          }}>
-            ✓ Became Law
-          </span>
+    <li className="rec-item">
+      <div className="rec-item-main">
+        <p className="rec-num">{bill.bill_number}</p>
+        {bill.congress_url ? (
+          <a href={bill.congress_url} target="_blank" rel="noopener noreferrer" className="rec-title">
+            {bill.title}
+          </a>
+        ) : (
+          <p className="rec-title">{bill.title}</p>
         )}
+        {bill.introduced_date && <p className="rec-meta">{formatIntroDate(bill.introduced_date)}</p>}
+        {bill.latest_action && <p className="rec-meta">Latest: {bill.latest_action}</p>}
       </div>
-    </div>
+      {bill.became_law && <span className="rec-tag rec-tag--yes">Became law</span>}
+    </li>
   )
 }
 
-function SectionHeader({ label }: { label: string }) {
-  return (
-    <h3 style={{
-      margin: '0 0 10px',
-      fontSize: '11px',
-      fontWeight: '700',
-      color: 'var(--color-text-subtle)',
-      textTransform: 'uppercase',
-      letterSpacing: '0.08em',
-    }}>
-      {label}
-    </h3>
-  )
-}
-
+/** The member "Bills" tab: sponsored and cosponsored legislation. */
 export default function LegislationTab({ bioguide_id, congressUrl }: Props) {
   const [data, setData] = useState<LegislationResponse | null>(null)
   const [loading, setLoading] = useState(false)
@@ -113,7 +43,7 @@ export default function LegislationTab({ bioguide_id, congressUrl }: Props) {
 
   useEffect(() => {
     if (!bioguide_id) {
-      setError('No bioguide ID for this representative — legislation unavailable.')
+      setError('No bioguide ID for this representative, so bills are unavailable.')
       return
     }
     setLoading(true)
@@ -122,7 +52,7 @@ export default function LegislationTab({ bioguide_id, congressUrl }: Props) {
       .then((response) => setData(response))
       .catch((err) => {
         const message = err instanceof ApiError ? err.body?.detail ?? err.body?.error : undefined
-        setError(message ?? 'Failed to load legislation. Please try again.')
+        setError(message ?? 'Bills couldn’t be loaded. Please try again.')
       })
       .finally(() => setLoading(false))
   }, [bioguide_id])
@@ -132,67 +62,35 @@ export default function LegislationTab({ bioguide_id, congressUrl }: Props) {
   const isEmpty = data !== null && !hasSponsored && !hasCosponsored
 
   return (
-    <div style={{ padding: '16px 0' }}>
-      {loading && (
-        <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-          Loading legislation…
-        </div>
-      )}
-
-      {error && (
-        <div style={{
-          padding: '12px',
-          background: 'var(--color-error-bg)',
-          borderRadius: 'var(--radius-md)',
-          color: 'var(--color-error)',
-          fontSize: '14px',
-        }}>
-          {error}
-        </div>
-      )}
+    <div className="rec">
+      {loading && <p className="rec-status" role="status">Loading bills…</p>}
+      {error && <p className="rec-status rec-status--error" role="status">{error}</p>}
 
       {isEmpty && (
-        <div style={{
-          padding: '16px',
-          background: 'var(--color-bg-elevated)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-md)',
-          color: 'var(--color-text-secondary)',
-          fontSize: '14px',
-          lineHeight: 1.45,
-        }}>
-          <p style={{ margin: '0 0 10px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-            No recent sponsored or cosponsored bills were returned.
-          </p>
+        <p className="rec-status">
+          <strong>No recent sponsored or cosponsored bills were returned.</strong>
           {congressUrl && (
-            <a
-              href={congressUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: 'var(--color-link)', fontWeight: 700, textDecoration: 'none' }}
-            >
-              Open full Congress.gov profile
-            </a>
+            <a href={congressUrl} target="_blank" rel="noopener noreferrer">Open the full Congress.gov profile</a>
           )}
-        </div>
+        </p>
       )}
 
       {hasSponsored && (
-        <div style={{ marginBottom: '20px' }}>
-          <SectionHeader label="Sponsored Bills" />
-          {data!.sponsored.map((bill, i) => (
-            <BillCard key={bill.bill_number + i} bill={bill} />
-          ))}
-        </div>
+        <section className="rec-section">
+          <h3 className="rec-heading">Sponsored bills</h3>
+          <ul className="rec-list">
+            {data!.sponsored.map((bill, i) => <BillRow key={bill.bill_number + i} bill={bill} />)}
+          </ul>
+        </section>
       )}
 
       {hasCosponsored && (
-        <div>
-          <SectionHeader label="Cosponsored Bills" />
-          {data!.cosponsored.map((bill, i) => (
-            <BillCard key={bill.bill_number + i} bill={bill} />
-          ))}
-        </div>
+        <section className="rec-section">
+          <h3 className="rec-heading">Cosponsored bills</h3>
+          <ul className="rec-list">
+            {data!.cosponsored.map((bill, i) => <BillRow key={bill.bill_number + i} bill={bill} />)}
+          </ul>
+        </section>
       )}
     </div>
   )

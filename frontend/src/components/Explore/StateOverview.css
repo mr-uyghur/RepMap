@@ -1,0 +1,113 @@
+/* ── State level: race rows, member rows, how-to-vote links ─────────────────── */
+.state-ov-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.state-ov-race,
+.state-ov-member,
+.state-ov-link {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+:is(.state-ov-race, .state-ov-member, .state-ov-link):hover {
+  border-color: var(--color-border-control);
+  background: var(--color-bg-surface);
+}
+
+:is(.state-ov-race, .state-ov-member) > svg {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.state-ov-race--empty {
+  cursor: default;
+  border-style: dashed;
+  background: transparent;
+}
+.state-ov-race--empty:hover { border-color: var(--color-border); background: transparent; }
+
+.state-ov-race-text,
+.state-ov-member-text,
+.state-ov-link-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.state-ov-race-title,
+.state-ov-member-name,
+.state-ov-link-title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.state-ov-race-line,
+.state-ov-member-meta,
+.state-ov-link-sub {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.state-ov-tag {
+  display: inline-block;
+  margin-left: var(--space-2);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.state-ov-tag--special {
+  padding: 1px 6px;
+  border: 1px solid var(--color-accent-text);
+  border-radius: var(--radius-sm);
+  color: var(--color-accent-text);
+  font-weight: 700;
+  vertical-align: 1px;
+}
+
+/* ── Members ─────────────────────────────────────────────────────────────── */
+.state-ov-party { font-weight: 600; }
+.state-ov-party--democrat { color: var(--color-democrat-text); }
+.state-ov-party--republican { color: var(--color-republican-text); }
+.state-ov-party--independent,
+.state-ov-party--other { color: var(--color-independent-text); }
+
+.state-ov-member-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+.state-ov-member-status--up { color: var(--color-accent-text); }
+
+/* ── Links ───────────────────────────────────────────────────────────────── */
+.state-ov-link-title { color: var(--color-link); text-decoration: underline; text-underline-offset: 3px; }
+.state-ov-link::after {
+  content: '↗';
+  flex: none;
+  color: var(--color-link);
+  font-weight: 700;
+}

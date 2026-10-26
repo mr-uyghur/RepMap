@@ -1,0 +1,183 @@
+/* ── Level shell: left column (desktop) / bottom sheet (phone) ─────────────── */
+.explore-panel {
+  position: relative;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 var(--panel-width);
+  width: var(--panel-width);
+  min-height: 0;
+  background: var(--color-bg-primary);
+  border-right: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+}
+
+/* Programmatic focus target only (moves screen readers to the new level). */
+.explore-panel:focus { outline: none; }
+
+.explore-panel-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-4) var(--space-5) var(--space-8);
+}
+
+.explore-sheet-toggle { display: none; }
+
+/* ── Breadcrumb ───────────────────────────────────────────────────────────── */
+.breadcrumb { margin: calc(-1 * var(--space-2)) 0 var(--space-2); }
+
+.breadcrumb-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.breadcrumb-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 0 2px;
+  border-radius: var(--radius-sm);
+  color: var(--color-accent-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+.breadcrumb-link:hover { text-decoration: underline; }
+
+.breadcrumb-back { display: none; font-size: 18px; line-height: 1; }
+
+.breadcrumb-sep {
+  padding: 0 6px;
+  color: var(--color-text-muted);
+}
+
+.breadcrumb-item--current span {
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* ── Status / errors rendered by the shell itself ─────────────────────────── */
+.explore-status {
+  margin: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.explore-status--error {
+  border-color: var(--color-error);
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+}
+
+.explore-status a,
+.explore-status-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: var(--space-2);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-accent-text);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* ── Member level: the representative panel lives inside the shell ────────── */
+.explore-panel .panel {
+  position: static;
+  inset: auto;
+  width: auto;
+  height: auto;
+  margin: 0 calc(-1 * var(--space-5));
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  overflow: visible;
+  animation: none;
+  z-index: auto;
+}
+:root.dark .explore-panel .panel {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.explore-panel .panel-header { border-radius: 0; }
+.explore-panel .panel-drag-handle { display: none; }
+.explore-panel .panel-body { overflow: visible; flex: none; }
+
+/* ── Phone: bottom sheet under the map ────────────────────────────────────── */
+@media (max-width: 768px) {
+  .explore-panel {
+    order: 2;
+    flex: 0 0 auto;
+    width: 100%;
+    height: 60%;
+    max-height: calc(100% - 96px);
+    margin-top: calc(-1 * var(--radius-xl));
+    border-right: 0;
+    border-top: 1px solid var(--color-border);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    box-shadow: var(--shadow-lg);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .explore-panel--expanded { height: calc(100% - 96px); }
+
+  .explore-sheet-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 100%;
+    min-height: 44px;
+    border: 0;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .explore-sheet-grip {
+    width: 40px;
+    height: 4px;
+    border-radius: var(--radius-full);
+    background: var(--color-text-muted);
+  }
+
+  .explore-panel-scroll { padding: 0 var(--space-4) var(--space-8); }
+  .explore-panel .panel { margin: 0 calc(-1 * var(--space-4)); }
+
+  /* Breadcrumb shrinks to one "‹ Parent" back link. */
+  .breadcrumb-item { display: none; }
+  .breadcrumb-item--parent { display: inline-flex; }
+  .breadcrumb-item--parent .breadcrumb-sep { display: none; }
+  .breadcrumb-back { display: inline; }
+}
+
+@media (max-width: 768px) and (prefers-reduced-motion: no-preference) {
+  .explore-panel { transition: height var(--transition-spring); }
+}

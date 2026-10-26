@@ -3,13 +3,18 @@ import { PARTY_COLORS } from '../../constants'
 import { useRepStore } from '../../store/repStore'
 import { useMapStore } from '../../store/mapStore'
 import type { Representative } from '../../types'
+import StateOverview from '../Explore/StateOverview'
 import './StateTray.css'
 
 interface Props {
   stateCode: string
   onClose: () => void
   onSelectRep: (rep: Representative) => void
+  /** Opens a race (`US-HOU-NE-02`). Phase 1: optional, a no-op until the shell wires `?race=`. */
+  onSelectRace?: (raceId: string) => void
 }
+
+const noop = () => {}
 
 const STATE_NAMES: Record<string, string> = {
   AL: 'Alabama',
@@ -111,7 +116,7 @@ function RepCard({ rep, onClick }: { rep: Representative; onClick: () => void })
   )
 }
 
-export default function StateTray({ stateCode, onClose, onSelectRep }: Props) {
+export default function StateTray({ stateCode, onClose, onSelectRep, onSelectRace = noop }: Props) {
   const allReps = useRepStore((state) => state.allReps)
   const viewLevel = useMapStore((s) => s.viewLevel)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
@@ -139,6 +144,26 @@ export default function StateTray({ stateCode, onClose, onSelectRep }: Props) {
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
   }, [onClose])
+
+  // Federal view: the State level (races + members). The state-legislature view keeps its list.
+  if (!isStateView) {
+    return (
+      <aside className="state-tray state-tray--overview" aria-label={`${stateName} overview`}>
+        <button
+          className="state-tray-close state-tray-close--floating"
+          type="button"
+          ref={closeButtonRef}
+          onClick={onClose}
+          aria-label={`Close ${stateName} overview`}
+        >
+          {'\u00d7'}
+        </button>
+        <div className="state-tray-body">
+          <StateOverview stateCode={stateCode} onSelectRace={onSelectRace} onSelectRep={onSelectRep} />
+        </div>
+      </aside>
+    )
+  }
 
   return (
     <aside className="state-tray" aria-labelledby="state-tray-title">

@@ -13,10 +13,16 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' https://api.mapbox.com https://events.mapbox.com; worker-src 'self' blob:; connect-src 'self' https://*.mapbox.com https://events.mapbox.com; img-src 'self' data: blob: https://*.mapbox.com https://bioguide.congress.gov; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.mapbox.com; font-src 'self' https://fonts.gstatic.com;"
+          "value": "default-src 'self'; script-src 'self' https://api.mapbox.com https://events.mapbox.com; worker-src 'self' blob:; connect-src 'self' https://*.mapbox.com https://events.mapbox.com; img-src 'self' data: blob: https://*.mapbox.com https://bioguide.congress.gov; style-src 'self' 'unsafe-inline' https://api.mapbox.com; font-src 'self';"
         },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     },
     {

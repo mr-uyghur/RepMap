@@ -5,12 +5,10 @@
   width: min(360px, calc(100vw - 48px));
   z-index: 18;
   padding: 14px;
-  border: 1px solid var(--color-bg-glass-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  background: var(--color-bg-glass);
+  background: var(--color-bg-primary);
   box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(22px) saturate(1.5);
-  -webkit-backdrop-filter: blur(22px) saturate(1.5);
 }
 
 .zip-results-header {
@@ -26,7 +24,7 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: var(--color-accent);
+  color: var(--color-accent-text);
 }
 
 .zip-results-title {
@@ -60,6 +58,32 @@
   color: var(--color-text-primary);
 }
 
+.zip-results-races {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.zip-results-races:hover { filter: brightness(1.06); }
+.zip-results-races > span:first-child { display: flex; flex-direction: column; gap: 1px; }
+.zip-results-races-title { font-size: 15px; font-weight: 700; }
+.zip-results-races-sub { font-size: 12px; font-weight: 600; }
+
+.zip-results-clear { min-height: 44px; min-width: 44px; }
+
 .zip-results-list {
   display: flex;
   flex-direction: column;
@@ -74,7 +98,7 @@
   gap: 10px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-bg-primary);
   color: inherit;
   cursor: pointer;
   font-family: var(--font-body);
@@ -87,19 +111,8 @@
     background var(--transition-fast);
 }
 
-:root:not(.dark) .zip-result-card {
-  background: rgba(255, 255, 255, 0.72);
-}
-
-.zip-result-card:hover,
-.zip-result-card--selected {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-accent-glow);
-}
-
-.zip-result-card:hover {
-  transform: translateY(-1px);
-}
+.zip-result-card:hover { border-color: var(--color-border-control); background: var(--color-bg-surface); }
+.zip-result-card--selected { border-color: var(--color-accent); box-shadow: inset 3px 0 0 var(--color-accent); }
 
 .zip-result-avatar {
   width: 42px;
@@ -110,9 +123,9 @@
   overflow: hidden;
   border: 2px solid;
   border-radius: 50%;
-  background: var(--color-bg-elevated);
+  background: var(--color-bg-surface);
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .zip-result-avatar img {
@@ -131,10 +144,9 @@
 .zip-result-name {
   overflow: hidden;
   color: var(--color-text-primary);
-  font-size: 14px;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 15px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .zip-result-meta {
@@ -146,12 +158,10 @@
 .zip-result-party {
   align-self: center;
   border-radius: var(--radius-full);
-  color: white;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  padding: 4px 7px;
-  text-transform: uppercase;
+  color: var(--color-on-party);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
   white-space: nowrap;
 }
 

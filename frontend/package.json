@@ -4,10 +4,14 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/split-zips.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/split-zips.mjs && node scripts/story-data.mjs",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "playwright test",
+    "check:design": "node scripts/check-design.mjs"
   },
   "dependencies": {
     "@types/d3": "^7.4.3",
@@ -20,6 +24,8 @@
     "zustand": "^5.0.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.64.0",
     "@types/mapbox-gl": "^3.4.0",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",

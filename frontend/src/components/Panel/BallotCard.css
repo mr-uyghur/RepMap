@@ -1,0 +1,82 @@
+/* "On the Nov 3 ballot" card + "How to vote in <State>" in the member panel. */
+.bc { padding: 16px 0; display: flex; flex-direction: column; gap: 18px; }
+
+.bc-card {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 14px 16px;
+  background: color-mix(in srgb, var(--color-accent) 7%, var(--color-bg-primary));
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-lg);
+}
+.bc-card--idle { border-left-color: var(--color-text-subtle); }
+
+.bc-eyebrow {
+  margin: 0;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--color-accent-text);
+}
+.bc-card--idle .bc-eyebrow { color: var(--color-text-muted); }
+.bc-title {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 17px; font-weight: 700; line-height: 1.3;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+.bc-date { margin: 0; font-size: 14px; color: var(--color-text-secondary); }
+.bc-date strong { color: var(--color-text-primary); }
+.bc-sub { margin: 0; font-size: 13px; line-height: 1.5; color: var(--color-text-secondary); }
+
+.bc-filers { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.bc-filers-label {
+  margin: 0;
+  font-size: 12px; font-weight: 700; color: var(--color-text-muted);
+}
+.bc-filers-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.bc-filer {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: 14px;
+}
+.bc-filer-name { font-weight: 600; color: var(--color-text-primary); min-width: 0; overflow-wrap: anywhere; }
+.bc-filer-party { font-weight: 500; color: var(--color-text-muted); }
+.bc-filer-money {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  color: var(--color-text-secondary); font-variant-numeric: tabular-nums;
+}
+.bc-more { margin: 2px 0 0; font-size: 12px; color: var(--color-text-muted); }
+.bc-note { margin: 4px 0 0; font-size: 12px; line-height: 1.45; color: var(--color-text-muted); }
+
+.bc-cta {
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 44px; margin-top: 2px; padding: 0 16px;
+  border: 0; border-radius: var(--radius-md);
+  background: var(--color-accent); color: var(--color-on-accent);
+  font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.bc-cta:hover { filter: brightness(1.06); }
+
+/* Summary variant: sits under the member header (no How to vote block). */
+.bc--summary { padding: 0; gap: 0; }
+.bc--summary .bc-skeleton { height: 96px; }
+.bc--summary .bc-title { font-size: 16px; }
+.bc-next {
+  margin: 0;
+  font-size: 14px; line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+.bc-next strong { color: var(--color-text-primary); font-weight: 600; }
+
+.bc-message { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; font-size: 14px; color: var(--color-text-secondary); }
+.bc-message p { margin: 0; }
+.bc-button {
+  min-height: 44px; padding: 0 16px;
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  background: var(--color-bg-surface); color: var(--color-link);
+  font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+
+.bc-skeleton { height: 120px; border-radius: var(--radius-md); background: var(--color-bg-surface); }
+.bc-skeleton--short { height: 72px; }

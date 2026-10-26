@@ -1,0 +1,56 @@
+/* ── A–Z state list: 2-up grid in the 400px panel, 1-up on very narrow screens ── */
+.state-list-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: var(--space-2);
+}
+
+.state-list-item {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.state-list-item:hover {
+  border-color: var(--color-border-control);
+  background: var(--color-bg-surface);
+}
+
+.state-list-item:focus-visible {
+  outline: 2px solid var(--color-accent-text);
+  outline-offset: 2px;
+}
+
+.state-list-item--current {
+  border-color: var(--color-accent-text);
+  background: var(--color-accent-soft);
+  box-shadow: inset 3px 0 0 var(--color-accent-text);
+}
+
+.state-list-name {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.state-list-meta {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--color-text-muted);
+}

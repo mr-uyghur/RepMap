@@ -1,3 +1,8 @@
+/* ── "Plain Map" tokens (REDESIGN_PROPOSAL.md › Visual direction) ─────────────
+   White and cool grey surfaces, near-black text, one deep green accent, the
+   device's own font. Light is the default theme; :root.dark is the dark set.
+   Every colour token is defined in BOTH blocks (R-25). Contrast ratios in the
+   comments are WCAG 2.x, measured against the surface named. */
 :root {
   /* ── Layout ────────────────────────────────────────────────────────────── */
   --nav-height:  56px;
@@ -7,7 +12,7 @@
   --radius-sm:   4px;
   --radius-md:   8px;
   --radius-lg:   12px;
-  --radius-xl:   20px;
+  --radius-xl:   16px;
   --radius-full: 9999px;
 
   /* ── 8pt Spacing Scale ─────────────────────────────────────────────────── */
@@ -20,100 +25,146 @@
   --space-7: 28px;
   --space-8: 32px;
 
-  /* ── Shadows ───────────────────────────────────────────────────────────── */
-  --shadow-sm:      0 1px 4px rgba(15, 23, 42, 0.10);
-  --shadow-md:      0 4px 16px rgba(15, 23, 42, 0.12);
-  --shadow-lg:      0 8px 32px rgba(15, 23, 42, 0.16);
-  --shadow-glow:    0 0 0 1px var(--color-accent-glow);
-  --shadow-premium: 0 10px 15px -3px rgba(0, 0, 0, 0.10), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  /* ── Shadows (flat: only floating layers get a soft lift) ──────────────── */
+  --shadow-sm:      0 1px 2px rgba(16, 24, 40, 0.08);
+  --shadow-md:      0 2px 8px rgba(16, 24, 40, 0.10);
+  --shadow-lg:      0 8px 24px rgba(16, 24, 40, 0.14);
+  --shadow-glow:    0 0 0 1px var(--color-accent);
+  --shadow-premium: var(--shadow-md);
 
   /* ── Transitions ───────────────────────────────────────────────────────── */
   --transition-fast:   0.15s ease;
-  --transition-base:   0.25s ease;
+  --transition-base:   0.2s ease;
   --transition-spring: 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* ── Typography (Archival Civic Cartography) ───────────────────────────── */
-  --font-display: 'Instrument Serif', Georgia, serif;
-  --font-body:    'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono:    'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', ui-monospace, monospace;
+  /* ── Typography: the device's own font, nothing downloaded ─────────────── */
+  --font-body:    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-display: var(--font-body);
+  --font-mono:    ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
 
-  /* ── Party / Brand ─────────────────────────────────────────────────────── */
+  /* ── Party fills (bars, map tints, swatches). Text uses the -text set. ── */
   --color-democrat:    #2563eb;
   --color-republican:  #dc2626;
-  --color-independent: #64748b;
+  --color-independent: #6b7280;
 
-  /* ── Accent (Survey Caliper Amber) ─────────────────────────────────────── */
-  --color-accent:      #d97706;
-  --color-accent-rgb:  217, 119, 6;
-  --color-accent-glow: rgba(245, 158, 11, 0.22);
+  /* ── Accent: deep green (neither party's colour) ───────────────────────── */
+  --color-accent:      #0b6146;          /* 7.5:1 on white */
+  --color-accent-rgb:  11, 97, 70;
+  --color-accent-glow: rgba(11, 97, 70, 0.18);
+  --color-accent-text: #0b6146;          /* 7.5 white · 6.8 surface · 6.3 elevated */
+  --color-accent-soft: #e6f2ed;          /* tinted background for selected rows */
+  --color-on-accent:   #ffffff;          /* 7.5:1 on the accent */
 
-  /* ── Text (Vellum Archival Light Mode) ─────────────────────────────────── */
-  --color-text-primary:   #0c121e;
-  --color-text-secondary: #1e293b;
-  --color-text-muted:     #475569;
-  --color-text-subtle:    #64748b;
+  /* Party colours as TEXT (>=5.4:1 on every light surface). */
+  --color-democrat-text:    #1d4ed8;     /* 6.7 on white */
+  --color-republican-text:  #b91c1c;     /* 6.5 on white */
+  --color-independent-text: #4f5563;     /* 7.5 on white */
+  /* Text on a party fill from PARTY_COLORS (#2563eb 5.2 · #dc2626 4.8 · #6b7280 4.8). */
+  --color-on-party: #ffffff;
 
-  /* ── Backgrounds (Warm Archival Parchment) ─────────────────────────────── */
-  --color-bg-primary:      #f4f1ea;
-  --color-bg-surface:      #ebe6dc;
-  --color-bg-elevated:     #e2dcd0;
-  --color-bg-glass:        rgba(244, 241, 234, 0.88);
-  --color-bg-glass-border: rgba(12, 18, 30, 0.12);
+  /* ── Text ──────────────────────────────────────────────────────────────── */
+  --color-text-primary:   #15191f;       /* 17.6 on white */
+  --color-text-secondary: #303743;       /* 12.0 on white */
+  --color-text-muted:     #4b5361;       /* 7.1 on surface */
+  --color-text-subtle:    #59616e;       /* 5.3 on elevated */
+
+  /* ── Backgrounds (flat; "glass" is now an opaque surface) ──────────────── */
+  --color-bg-primary:      #ffffff;
+  --color-bg-surface:      #f4f5f7;
+  --color-bg-elevated:     #e9ecf0;
+  --color-bg-glass:        #ffffff;
+  --color-bg-glass-border: #dde1e6;
 
   /* ── Border ────────────────────────────────────────────────────────────── */
-  --color-border:        rgba(12, 18, 30, 0.16);
-  --color-border-subtle: rgba(12, 18, 30, 0.08);
+  --color-border:         #d5d9df;       /* decorative card edges */
+  --color-border-subtle:  #e6e9ed;
+  --color-border-control: #7b8492;       /* inputs/controls: 3.8:1 on white (needs 3:1) */
+
+  /* ── Data note (amber box: "Who filed with the FEC, not the official ballot") */
+  --color-note-bg:     #fff6dc;
+  --color-note-text:   #5a3e00;          /* 9.2 on note-bg */
+  --color-note-border: #c58b00;
+
+  /* ── Map overlays ──────────────────────────────────────────────────────── */
+  --color-map-bg: #eef0f3;               /* behind the map canvas / no-token fallback */
+  --color-scrim:  rgba(16, 19, 23, 0.45); /* dialog backdrop */
 
   /* ── Semantic ──────────────────────────────────────────────────────────── */
-  --color-link:             #d97706;
-  --color-error:            #e11d48;
-  --color-error-bg:         #fff1f2;
-  --color-success:          #0f766e;
-  --color-success-bg:       #f0fdfa;
-  --color-success-border:   #99f6e4;
+  --color-link:             #0b6146;
+  --color-error:            #c81e3c;
+  --color-error-bg:         #fdecef;
+  --color-error-text:       #b4183a;     /* 5.9 on error-bg */
+  --color-success:          #0f766e;     /* 5.0 on success-bg */
+  --color-success-bg:       #ecf7f3;
+  --color-success-border:   #9ed2bf;
+
+  /* Aliases for older component CSS that referenced these names. */
+  --color-surface: var(--color-bg-surface);
+  --color-hover:   var(--color-bg-elevated);
 }
 
-/* ── Dark Mode (Default: Archival Civic Cartography Obsidian Slate) ──────── */
+/* ── Dark theme ─────────────────────────────────────────────────────────────── */
 :root.dark {
   /* ── Shadows ─────────────────────────────────────────────────────────── */
-  --shadow-sm:      0 1px 4px rgba(0, 0, 0, 0.48);
-  --shadow-md:      0 8px 28px rgba(0, 0, 0, 0.58);
-  --shadow-lg:      0 16px 56px rgba(0, 0, 0, 0.68);
-  --shadow-glow:    0 0 24px var(--color-accent-glow);
-  --shadow-premium: 0 12px 24px -4px rgba(0, 0, 0, 0.45), 0 4px 8px -2px rgba(0, 0, 0, 0.28);
+  --shadow-sm:      0 1px 2px rgba(0, 0, 0, 0.40);
+  --shadow-md:      0 4px 12px rgba(0, 0, 0, 0.45);
+  --shadow-lg:      0 12px 32px rgba(0, 0, 0, 0.55);
+  --shadow-glow:    0 0 0 1px var(--color-accent);
+  --shadow-premium: var(--shadow-md);
 
-  /* ── Party ────────────────────────────────────────────────────────────── */
+  /* ── Party fills ──────────────────────────────────────────────────────── */
   --color-democrat:    #3b82f6;
   --color-republican:  #ef4444;
   --color-independent: #94a3b8;
 
-  /* ── Accent (Survey Caliper Amber) ───────────────────────────────────── */
-  --color-accent:      #f59e0b;
-  --color-accent-rgb:  245, 158, 11;
-  --color-accent-glow: rgba(245, 158, 11, 0.22);
+  /* ── Accent: mint on near-black ───────────────────────────────────────── */
+  --color-accent:      #5cd3a6;          /* 10.0 on bg */
+  --color-accent-rgb:  92, 211, 166;
+  --color-accent-glow: rgba(92, 211, 166, 0.24);
+  --color-accent-text: #5cd3a6;          /* 10.0 bg · 9.2 surface · 8.0 elevated */
+  --color-accent-soft: #13261f;
+  --color-on-accent:   #08130e;          /* 10.2 on the accent */
 
-  /* ── Text (Vellum Ink on Obsidian) ───────────────────────────────────── */
-  --color-text-primary:   #f4f1ea;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted:     #64748b;
-  --color-text-subtle:    #475569;
+  --color-democrat-text:    #8ab4ff;     /* 8.9 on bg */
+  --color-republican-text:  #ff8f8f;     /* 8.5 on bg */
+  --color-independent-text: #b4bcc8;     /* 9.7 on bg */
+  --color-on-party: #ffffff;             /* PARTY_COLORS fills are the same in both themes */
 
-  /* ── Backgrounds (Obsidian Survey Slate) ─────────────────────────────── */
-  --color-bg-primary:      #080c14;
-  --color-bg-surface:      #0f1624;
-  --color-bg-elevated:     #162033;
-  --color-bg-glass:        rgba(8, 12, 20, 0.86);
-  --color-bg-glass-border: rgba(244, 241, 234, 0.11);
+  /* ── Text ─────────────────────────────────────────────────────────────── */
+  --color-text-primary:   #eef1f5;       /* 16.4 on bg */
+  --color-text-secondary: #cdd3db;
+  --color-text-muted:     #a7b0bd;       /* 7.8 on surface */
+  --color-text-subtle:    #98a2b0;       /* 5.7 on elevated */
+
+  /* ── Backgrounds ──────────────────────────────────────────────────────── */
+  --color-bg-primary:      #101317;
+  --color-bg-surface:      #181c22;
+  --color-bg-elevated:     #222831;
+  --color-bg-glass:        #101317;
+  --color-bg-glass-border: #2c333c;
 
   /* ── Border ───────────────────────────────────────────────────────────── */
-  --color-border:        rgba(244, 241, 234, 0.14);
-  --color-border-subtle: rgba(244, 241, 234, 0.08);
+  --color-border:         #333a44;
+  --color-border-subtle:  #242a32;
+  --color-border-control: #6f7987;       /* 4.2 on bg · 3.9 on surface */
+
+  /* ── Data note ────────────────────────────────────────────────────────── */
+  --color-note-bg:     #2a2312;
+  --color-note-text:   #ffd98a;          /* 11.5 on note-bg */
+  --color-note-border: #a77c1c;
+
+  --color-map-bg: #181c22;
+  --color-scrim:  rgba(0, 0, 0, 0.62);
 
   /* ── Semantic ─────────────────────────────────────────────────────────── */
-  --color-link:             #f59e0b;
-  --color-error:            #f43f5e;
-  --color-error-bg:         rgba(244, 63, 94, 0.12);
-  --color-success:          #10b981;
-  --color-success-bg:       rgba(16, 185, 129, 0.12);
-  --color-success-border:   rgba(16, 185, 129, 0.28);
+  --color-link:             #5cd3a6;
+  --color-error:            #ff6b81;
+  --color-error-bg:         #2a1519;
+  --color-error-text:       #ff8a9a;     /* 7.7 on error-bg */
+  --color-success:          #5cd3a6;
+  --color-success-bg:       #13261f;
+  --color-success-border:   #2f6b55;
+
+  --color-surface: var(--color-bg-surface);
+  --color-hover:   var(--color-bg-elevated);
 }

@@ -18,12 +18,12 @@ export default function ScrollcraftStage({ onNavigateToMap }: Props) {
       const handleClick = (e: MouseEvent) => {
         const target = e.target as HTMLElement | null
         const anchor = target?.closest('a[href]') as HTMLAnchorElement | null
-        if (!anchor) return
+        if (!anchor || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
         const href = anchor.getAttribute('href') || ''
-        if (href.startsWith('/?mode=map')) {
+        // Same-origin links to the map (`/`, `/?zip=…`, legacy `/?mode=map…`) stay in the SPA.
+        if (href === '/' || href.startsWith('/?')) {
           e.preventDefault()
-          const q = href.split('?')[1] || 'mode=map'
-          onNavigateToMap(new URLSearchParams(q))
+          onNavigateToMap(new URLSearchParams(href.slice(2)))
         }
       }
 
@@ -32,11 +32,10 @@ export default function ScrollcraftStage({ onNavigateToMap }: Props) {
         if (!form || form.id !== 'hero-zip-form') return
         const input = form.querySelector('#hero-zip-input') as HTMLInputElement | null
         const val = input?.value?.trim() || ''
-        // If it's a 5-digit ZIP that isn't one of the 5 inline presets, transition straight to the 3D Globe
-        const presets = new Set(['95112', '27701', '10001', '78701', '60601'])
-        if (/^\d{5}$/.test(val) && !presets.has(val)) {
+        // A 5-digit ZIP that isn't one of the Story's preset chips opens the map at that ZIP.
+        if (/^\d{5}$/.test(val) && !doc.querySelector(`.zip-chip[data-zip="${val}"]`)) {
           e.preventDefault()
-          onNavigateToMap(new URLSearchParams(`mode=map&zip=${val}`))
+          onNavigateToMap(new URLSearchParams({ zip: val }))
         }
       }
 
@@ -66,19 +65,19 @@ export default function ScrollcraftStage({ onNavigateToMap }: Props) {
   }, [onNavigateToMap])
 
   return (
-    <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', background: '#080c14' }}>
+    // <main> gives the page its one main landmark; the Story itself lives in the iframe.
+    <main aria-label="Civic Story" style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
       <iframe
         ref={iframeRef}
         src="/scrollcraft/index.html"
-        title="RepMap Civic Cartography Story"
+        title="RepMap Civic Story"
         style={{
           width: '100%',
           height: '100%',
           border: 'none',
           display: 'block',
-          background: '#080c14',
         }}
       />
-    </div>
+    </main>
   )
 }
