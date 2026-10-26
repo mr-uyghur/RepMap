@@ -42,7 +42,8 @@ export type SearchIntent =
   | { kind: 'zip'; zip: string }
   | { kind: 'partialZip' }
   | { kind: 'state'; state: string }
-  | { kind: 'district'; state: string; district: number; raceId: string }
+  /** A House district; `param` is its `?district=` value ("NE-2", "AK-AL"). */
+  | { kind: 'district'; state: string; district: number; raceId: string; param: string }
   | { kind: 'invalidDistrict'; state: string; seats: number | null }
   | { kind: 'name'; query: string }
 
@@ -80,7 +81,7 @@ const NAME_DISTRICT = new RegExp(String.raw`^(.+?)(?:\s*-\s*|\s+)(?:district\s+)
 /**
  * What the user meant by a search query:
  *  - "95112" / "95112-1234" -> ZIP
- *  - "NE-2", "NE 2", "ne2", "NE-02", "NE-AL", "Nebraska 2" -> House district race
+ *  - "NE-2", "NE 2", "ne2", "NE-02", "NE-AL", "Nebraska 2" -> House district (members first)
  *  - "NE", "Nebraska" -> state
  *  - anything else -> member name
  */
@@ -101,7 +102,7 @@ export function parseSearch(raw: string, ctx?: SearchContext): SearchIntent {
     if (state) {
       const district = resolveDistrict(state, match[1], ctx)
       if (district == null) return { kind: 'invalidDistrict', state, seats: ctx?.houseSeats?.[state] ?? null }
-      return { kind: 'district', state, district, raceId: houseRaceId(state, district) }
+      return { kind: 'district', state, district, raceId: houseRaceId(state, district), param: districtParam(state, district) }
     }
   }
 
@@ -118,6 +119,33 @@ export function suggestStates(raw: string, limit = 3): string[] {
   const exactCode = q.length === 2 && isStateCode(q) ? [q.toUpperCase()] : []
   const byName = STATE_CODES.filter((code) => stateName(code).toLowerCase().startsWith(q))
   return [...new Set([...exactCode, ...byName])].slice(0, limit)
+}
+
+// -- District params (`?district=CA-18`) ------------------------------------------
+
+export interface DistrictRef {
+  state: string
+  /** House seat number; 0 = at-large (or DC's delegate). */
+  district: number
+}
+
+/** Canonical `?district=` value: "CA-18", "NE-2", "AK-AL". */
+export function districtParam(state: string, district: number | null): string {
+  return `${state.toUpperCase()}-${district ? district : 'AL'}`
+}
+
+/**
+ * Parse a `?district=` value. Accepts "CA-18", "ca18", "CA 18", "CA-01", "AK-AL",
+ * "AK-1" (at-large states). Returns null when the state or seat can't exist; pass
+ * `ctx.houseSeats` to also reject seats beyond the state's count ("NE-9").
+ */
+export function parseDistrictParam(raw: string | null | undefined, ctx?: SearchContext): DistrictRef | null {
+  if (!raw) return null
+  const m = CODE_DISTRICT.exec(raw.trim().replace(/\s+/g, ' '))
+  if (!m || !isStateCode(m[1])) return null
+  const state = m[1].toUpperCase()
+  const district = resolveDistrict(state, m[2] ?? m[3], ctx)
+  return district == null ? null : { state, district }
 }
 
 // -- Race IDs -----------------------------------------------------------------
@@ -165,12 +193,12 @@ export function raceSearchLabel(race: ParsedRace): string {
 
 // -- Map clicks -----------------------------------------------------------------
 
-export type MapClickTarget = { kind: 'state'; state: string } | { kind: 'race'; raceId: string }
+export type MapClickTarget = { kind: 'state'; state: string } | { kind: 'district'; state: string; district: number }
 
 /**
  * A click on the congressional-district fill layer goes one level deeper:
  * a district in a state other than the one in focus opens that state; a
- * district inside the focused state opens its House race.
+ * district inside the focused state opens its members-first district page.
  * `props` are the Mapbox feature properties (state_abbr, CD119).
  */
 export function mapClickTarget(
@@ -183,5 +211,5 @@ export function mapClickTarget(
   const cd = parseInt(String(props?.CD119 ?? ''), 10)
   // Census uses 98/99/ZZ for non-voting or water parts; those just stay on the state.
   if (!Number.isInteger(cd) || cd < 0 || cd > 60) return { kind: 'state', state }
-  return { kind: 'race', raceId: houseRaceId(state, cd) }
+  return { kind: 'district', state, district: cd }
 }

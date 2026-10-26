@@ -425,7 +425,8 @@ export default function RepMap({ mapRef, onRepSelect, onRepCompare, onMapTarget,
   const handleMouseLeave = useCallback(() => setHoverInfo(null), [])
 
   // Clicking the map always goes one level deeper: another state opens that
-  // state; a district inside the state in focus opens its race. Empty water
+  // state; a district inside the state in focus opens its members-first
+  // district page (`?district=`, via App's onMapTarget). Empty water
   // does nothing (it used to close the panel, which lost the user's place).
   const handleMapClick = useCallback(
     (e: Parameters<NonNullable<React.ComponentProps<typeof Map>['onClick']>>[0]) => {

@@ -2,7 +2,7 @@ import { forwardRef, useId, useMemo, useState } from 'react'
 import { lookupZipLocation } from '../../utils/zipLookup'
 import { searchReps } from '../../utils/repSearch'
 import { stateName } from '../../utils/elections'
-import { parseRaceId, parseSearch, raceShortLabel, suggestStates, type SearchContext } from '../../utils/searchParse'
+import { districtParam, parseRaceId, parseSearch, raceShortLabel, suggestStates, type SearchContext } from '../../utils/searchParse'
 import type { Representative } from '../../types'
 import NameSearchDropdown, { type SearchOption } from './NameSearchDropdown'
 
@@ -28,6 +28,8 @@ interface Props {
   onSelectZip: (zip: string) => void
   onSelectState: (code: string) => void
   onSelectRace: (raceId: string) => void
+  /** A House district ("NE-2" -> `NE-2`), opened members first. */
+  onSelectDistrict: (district: string) => void
   onSelectRep: (rep: Representative) => void
 }
 
@@ -40,9 +42,9 @@ function seatCounts(reps: Representative[]): Record<string, number> {
   return seats
 }
 
-/** One search box: ZIP -> race, state -> State, "NE-2" -> race, name -> member. */
+/** One search box: ZIP -> its members, state -> State, "NE-2" -> district, name -> member. */
 const SearchBar = forwardRef<HTMLInputElement, Props>(function SearchBar(
-  { allRepresentatives, onSelectZip, onSelectState, onSelectRace, onSelectRep },
+  { allRepresentatives, onSelectZip, onSelectState, onSelectRace, onSelectDistrict, onSelectRep },
   inputRef,
 ) {
   const [query, setQuery] = useState('')
@@ -70,7 +72,7 @@ const SearchBar = forwardRef<HTMLInputElement, Props>(function SearchBar(
           kind: 'race',
           raceId: intent.raceId,
           label: `${stateName(race.state)} · ${raceShortLabel(race)}`,
-          detail: 'U.S. House race',
+          detail: 'House district · members and race',
         })
       }
     }
@@ -102,8 +104,13 @@ const SearchBar = forwardRef<HTMLInputElement, Props>(function SearchBar(
       onSelectState(option.state)
     } else {
       const race = parseRaceId(option.raceId)
-      reset(race?.office === 'H' ? `${race.state}-${race.district || 'AL'}` : query)
-      onSelectRace(option.raceId)
+      if (race?.office === 'H') {
+        reset(`${race.state}-${race.district || 'AL'}`)
+        onSelectDistrict(districtParam(race.state, race.district))
+      } else {
+        reset(query)
+        onSelectRace(option.raceId)
+      }
     }
   }
 
@@ -156,7 +163,7 @@ const SearchBar = forwardRef<HTMLInputElement, Props>(function SearchBar(
         return
       case 'district':
         reset(query.trim())
-        onSelectRace(intent.raceId)
+        onSelectDistrict(intent.param)
         return
       case 'state':
         reset(stateName(intent.state))
@@ -208,7 +215,7 @@ const SearchBar = forwardRef<HTMLInputElement, Props>(function SearchBar(
           onKeyDown={handleKeyDown}
           onFocus={() => setOpen(true)}
           onBlur={() => { setOpen(false); setActiveIndex(-1) }}
-          placeholder="ZIP, state, district or name"
+          placeholder="ZIP, state or member name"
           className="searchbar-input"
           role="combobox"
           aria-describedby={error ? errorId : undefined}

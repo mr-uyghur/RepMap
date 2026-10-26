@@ -11,7 +11,10 @@ interface Props {
   onSelectZip: (zip: string) => void
   onSelectState: (code: string) => void
   onSelectRace: (raceId: string) => void
+  onSelectDistrict: (district: string) => void
   onSelectRep: (rep: Representative) => void
+  /** Menu link to the races view ("2026 elections"); only passed in season, final and post phases. */
+  electionsLink?: { label: string; href: string } | null
   onCommitteesClick: () => void
   onRedistrictingClick: () => void
 }
@@ -51,7 +54,9 @@ const NavBar = forwardRef<HTMLInputElement, Props>(function NavBar(
     onSelectZip,
     onSelectState,
     onSelectRace,
+    onSelectDistrict,
     onSelectRep,
+    electionsLink,
     onCommitteesClick,
     onRedistrictingClick,
   },
@@ -112,6 +117,7 @@ const NavBar = forwardRef<HTMLInputElement, Props>(function NavBar(
           onSelectZip={onSelectZip}
           onSelectState={onSelectState}
           onSelectRace={onSelectRace}
+          onSelectDistrict={onSelectDistrict}
           onSelectRep={onSelectRep}
         />
       </div>
@@ -134,6 +140,11 @@ const NavBar = forwardRef<HTMLInputElement, Props>(function NavBar(
           <button type="button" className="navbar-menu-item navbar-menu-item--about" onClick={run(() => setAboutOpen(true))}>
             About the data
           </button>
+          {electionsLink && (
+            <a href={electionsLink.href} className="navbar-menu-item" onClick={linkClick(electionsLink.href)}>
+              {electionsLink.label}
+            </a>
+          )}
           <a href="/story" className="navbar-menu-item" onClick={linkClick('/story')}>
             Civic Story
           </a>
