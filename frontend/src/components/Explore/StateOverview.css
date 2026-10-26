@@ -9,7 +9,6 @@
 }
 
 .state-ov-race,
-.state-ov-member,
 .state-ov-link {
   width: 100%;
   min-height: 44px;
@@ -28,12 +27,12 @@
   transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
-:is(.state-ov-race, .state-ov-member, .state-ov-link):hover {
+:is(.state-ov-race, .state-ov-link):hover {
   border-color: var(--color-border-control);
   background: var(--color-bg-surface);
 }
 
-:is(.state-ov-race, .state-ov-member) > svg {
+.state-ov-race > svg {
   flex: none;
   color: var(--color-text-muted);
 }
@@ -46,7 +45,6 @@
 .state-ov-race--empty:hover { border-color: var(--color-border); background: transparent; }
 
 .state-ov-race-text,
-.state-ov-member-text,
 .state-ov-link-text {
   flex: 1;
   min-width: 0;
@@ -56,7 +54,6 @@
 }
 
 .state-ov-race-title,
-.state-ov-member-name,
 .state-ov-link-title {
   font-size: 15px;
   font-weight: 700;
@@ -65,7 +62,6 @@
 }
 
 .state-ov-race-line,
-.state-ov-member-meta,
 .state-ov-link-sub {
   font-size: 13px;
   line-height: 1.4;
@@ -89,20 +85,6 @@
   vertical-align: 1px;
 }
 
-/* ── Members ─────────────────────────────────────────────────────────────── */
-.state-ov-party { font-weight: 600; }
-.state-ov-party--democrat { color: var(--color-democrat-text); }
-.state-ov-party--republican { color: var(--color-republican-text); }
-.state-ov-party--independent,
-.state-ov-party--other { color: var(--color-independent-text); }
-
-.state-ov-member-status {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-}
-.state-ov-member-status--up { color: var(--color-accent-text); }
-
 /* ── Links ───────────────────────────────────────────────────────────────── */
 .state-ov-link-title { color: var(--color-link); text-decoration: underline; text-underline-offset: 3px; }
 .state-ov-link::after {
@@ -111,3 +93,56 @@
   color: var(--color-link);
   font-weight: 700;
 }
+
+/* ── Jump chips (season and final only) ─────────────────────────────────── */
+.state-ov-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.state-ov-chip {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  color: var(--color-accent-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.state-ov-chip:hover { background: var(--color-bg-surface); }
+
+.state-ov-compare { align-self: flex-start; }
+
+/* Focus is moved here by the "How to vote" chip; it isn't a control. */
+.state-ov-focus-target:focus { outline: none; }
+
+/* ── Races: a disclosure whose default follows the election phase ────────── */
+.state-ov-races-heading { margin: var(--space-2) 0 0; font-size: 16px; }
+.state-ov-disclosure {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+}
+.state-ov-disclosure:hover { border-color: var(--color-border-control); }
+.state-ov-disclosure-text { min-width: 0; overflow-wrap: anywhere; }
+.state-ov-disclosure-count { font-weight: 600; color: var(--color-text-muted); }
+.state-ov-disclosure-icon { flex: none; color: var(--color-text-muted); transition: transform var(--transition-fast); }
+.state-ov-disclosure[aria-expanded='true'] .state-ov-disclosure-icon { transform: rotate(90deg); }
+.state-ov-races-body { display: flex; flex-direction: column; gap: var(--space-2); }
+.state-ov-races-body[hidden] { display: none; }

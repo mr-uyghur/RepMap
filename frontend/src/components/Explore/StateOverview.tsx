@@ -1,16 +1,16 @@
-import { useId, useMemo } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useRepStore } from '../../store/repStore'
 import type { ElectionCycleData, Representative } from '../../types'
 import {
-  ballotpediaStateUrl, cycleInSeason, formatDate, seatUpInCycle, stateName, upcomingCycle,
+  ballotpediaStateUrl, electionPhase, formatDate, stateName, upcomingCycle,
 } from '../../utils/elections'
 import {
-  countReporting, hasPreElectionReports, houseSeatLabel, isKnownState, partyAbbr, partyName,
-  racesForState, seatHolder, stateMembers, termEndYear, type StateRace,
+  countReporting, hasPreElectionReports, houseSeatLabel, isKnownState, partyAbbr,
+  racesForState, seatHolder, seatStatus, stateMembers, type StateRace,
 } from '../../utils/stateRaces'
 import { STATE_VOTING_RESOURCES } from '../Panel/HowToVoteTab'
-import ElectionDayCard from './ElectionDayCard'
-import { useUpcomingCycle } from './useElection'
+import MemberCard from './MemberCard'
+import { useElectionIndex, useUpcomingCycle } from './useElection'
 import './Overview.css'
 import './StateOverview.css'
 
@@ -18,6 +18,10 @@ interface Props {
   stateCode: string
   onSelectRace: (raceId: string) => void
   onSelectRep: (rep: Representative) => void
+  /** Open the races section and scroll it into view (`?state=NE&view=races`). */
+  focusRaces?: boolean
+  /** Compare the state's two senators. Without it the link is hidden. */
+  onCompare?: (aId: number, bId: number) => void
 }
 
 function plural(n: number, one: string, many = `${one}s`) {
@@ -29,20 +33,38 @@ function monthDay(iso: string): string {
   return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-function ChevronIcon() {
+function ChevronIcon({ className }: { className?: string }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
       <polyline points="9 6 15 12 9 18" />
     </svg>
   )
 }
 
-/** "Nebraska · 2 senators · 3 House districts" (DC: a non-voting delegate, no senators). */
+function BallotIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <line x1="8" y1="8" x2="16" y2="8" />
+      <line x1="8" y1="12" x2="16" y2="12" />
+      <line x1="8" y1="16" x2="12" y2="16" />
+    </svg>
+  )
+}
+
+/** "2 senators · 3 House districts" (DC: a non-voting delegate, no senators). */
 function headline(code: string, senators: number, house: Representative[]): string {
   if (code === 'DC') return '1 non-voting House delegate · no U.S. senators'
   const atLarge = house.length === 1 && !house[0].district_number
   const houseText = atLarge ? '1 at-large House seat' : plural(house.length, 'House district')
   return `${plural(senators, 'senator')} · ${houseText}`
+}
+
+function scrollToSection(el: HTMLElement | null, focusEl?: HTMLElement | null) {
+  if (!el) return
+  const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
+  focusEl?.focus({ preventScroll: true })
 }
 
 function RaceRow({ entry, data, reps, onSelect }: {
@@ -84,51 +106,48 @@ function RaceRow({ entry, data, reps, onSelect }: {
   )
 }
 
-function MemberRow({ rep, cycle, onSelect }: {
-  rep: Representative
-  cycle: { cycle: number; date: string } | null
-  onSelect: (rep: Representative) => void
-}) {
-  const role = rep.level === 'us_senate'
-    ? 'Senator'
-    : rep.state === 'DC'
-      ? houseSeatLabel(rep.state, rep.district_number)
-      : `Representative · ${houseSeatLabel(rep.state, rep.district_number)}`
-  const up = cycle && seatUpInCycle(rep.term_end, cycle.cycle)
-  const ends = termEndYear(rep.term_end)
-  const status = up ? `Up for election ${monthDay(cycle.date)}` : ends ? `Term ends ${ends}` : null
-  return (
-    <li>
-      <button type="button" className="state-ov-member" onClick={() => onSelect(rep)}>
-        <span className="state-ov-member-text">
-          <span className="state-ov-member-name">{rep.name}</span>
-          <span className="state-ov-member-meta">
-            {role} · <span className={`state-ov-party state-ov-party--${rep.party}`}>{partyName(rep.party)}</span>
-          </span>
-          {status && <span className={`state-ov-member-status${up ? ' state-ov-member-status--up' : ''}`}>{status}</span>}
-        </span>
-        <ChevronIcon />
-      </button>
-    </li>
-  )
-}
-
-/** State level: who represents the state and the cycle's congressional races in it.
- *  Loads the cycle JSON (via the memoized helper) — it is the first level that needs it. */
-export default function StateOverview({ stateCode, onSelectRace, onSelectRep }: Props) {
+/** State level: the delegation first (Senators, then House), then the cycle's races as a
+ *  section whose prominence follows `electionPhase()`:
+ *  - off: one collapsed row at the bottom
+ *  - season: collapsed below the members, with jump chips at the top
+ *  - final: open, with jump chips
+ *  - post: a link to the state's official results, then next cycle's races collapsed
+ *  Loads the cycle JSON (memoized) for the race rows. */
+export default function StateOverview({ stateCode, onSelectRace, onSelectRep, focusRaces = false, onCompare }: Props) {
   const code = stateCode.toUpperCase()
   const allReps = useRepStore((s) => s.allReps)
   const repsLoading = useRepStore((s) => s.loading)
+  const { state: index } = useElectionIndex()
   const { state: load, retry } = useUpcomingCycle()
   const titleId = useId()
   const racesId = useId()
-  const membersId = useId()
+  const racesBodyId = useId()
+  const senatorsId = useId()
+  const houseId = useId()
   const voteId = useId()
+  const racesRef = useRef<HTMLElement>(null)
+  const racesButtonRef = useRef<HTMLButtonElement>(null)
+  const voteRef = useRef<HTMLElement>(null)
+  const voteHeadingRef = useRef<HTMLHeadingElement>(null)
 
+  const phase = index.status === 'ready' ? electionPhase(index.value.cycles) : null
+  const next = index.status === 'ready' ? upcomingCycle(index.value.cycles) : null
   const name = stateName(code)
   const { senators, house } = useMemo(() => stateMembers(allReps, code), [allReps, code])
-  const members = [...senators, ...house]
   const races = useMemo(() => (load.status === 'ready' ? racesForState(load.data, code) : []), [load, code])
+
+  // Open by default only in the final stretch; `focusRaces` opens it in any phase.
+  const [userOpen, setUserOpen] = useState<boolean | null>(null)
+  useEffect(() => setUserOpen(null), [code])
+  const open = userOpen ?? (focusRaces || phase?.phase === 'final')
+
+  // Deep link (`view=races`): scroll to the races once the content above has its height.
+  const membersReady = senators.length + house.length > 0
+  useEffect(() => {
+    if (!focusRaces) return
+    const id = requestAnimationFrame(() => racesRef.current?.scrollIntoView({ block: 'start' }))
+    return () => cancelAnimationFrame(id)
+  }, [focusRaces, code, membersReady, load.status])
 
   if (!isKnownState(code)) {
     return (
@@ -141,19 +160,23 @@ export default function StateOverview({ stateCode, onSelectRace, onSelectRep }: 
     )
   }
 
-  const cycles = load.status === 'ready' ? load.index.cycles : null
-  const next = cycles ? upcomingCycle(cycles) : null
-  const inSeason = cycles ? cycleInSeason(cycles) !== null : false
   const board = STATE_VOTING_RESOURCES[code]?.boardUrl
   const senateRaces = races.filter((r) => r.race.office === 'S')
   const houseRaces = races.filter((r) => r.race.office === 'H')
+  const raceCycle = load.status === 'ready' ? load.data.cycle : next?.cycle ?? null
+  const showChips = phase?.phase === 'season' || phase?.phase === 'final'
+  const atBottom = !phase || phase.phase === 'off' || phase.phase === 'post'
+
+  function openRaces() {
+    setUserOpen(true)
+    requestAnimationFrame(() => scrollToSection(racesRef.current, racesButtonRef.current))
+  }
 
   let racesBody: React.ReactNode
   if (load.status === 'loading') {
     racesBody = (
       <div role="status" className="overview-status">
         <span className="sr-only">Loading races in {name}…</span>
-        <span className="overview-skeleton" aria-hidden="true" />
         <span className="overview-skeleton" aria-hidden="true" />
         <span className="overview-skeleton" aria-hidden="true" />
       </div>
@@ -179,7 +202,7 @@ export default function StateOverview({ stateCode, onSelectRace, onSelectRep }: 
           FEC filings, not the official ballot
           {data.data_through && <> · data through {formatDate(data.data_through)}</>}
         </p>
-        <ul className="state-ov-list" aria-labelledby={racesId}>
+        <ul className="state-ov-list">
           {senateRaces.length === 0 && (
             <li className="state-ov-race state-ov-race--empty">
               <span className="state-ov-race-text">
@@ -206,82 +229,158 @@ export default function StateOverview({ stateCode, onSelectRace, onSelectRep }: 
     )
   }
 
+  const raceTitle = raceCycle ? `${raceCycle} races in ${name}` : `Races in ${name}`
   const racesSection = (
-    <section className="overview-section" aria-labelledby={racesId}>
-      <h3 id={racesId} className="overview-subhead">
-        {load.status === 'ready' ? `${load.data.cycle} races in ${name}` : `Races in ${name}`}
+    <section ref={racesRef} className="overview-section state-ov-races" aria-labelledby={racesId}>
+      {phase?.phase === 'post' && phase.cycle && board && (
+        <a className="state-ov-link" href={board} target="_blank" rel="noopener noreferrer">
+          <span className="state-ov-link-text">
+            <span className="state-ov-link-title">{phase.cycle.cycle} results</span>
+            <span className="state-ov-link-sub">Official results from the {name} elections office</span>
+          </span>
+          <span className="sr-only"> (opens in a new tab)</span>
+        </a>
+      )}
+      <h3 id={racesId} className="state-ov-races-heading">
+        <button
+          ref={racesButtonRef}
+          type="button"
+          className="state-ov-disclosure"
+          aria-expanded={open}
+          aria-controls={racesBodyId}
+          onClick={() => setUserOpen(!open)}
+        >
+          <span className="state-ov-disclosure-text">
+            {raceTitle}
+            {races.length > 0 && <span className="state-ov-disclosure-count"> ({races.length})</span>}
+          </span>
+          <ChevronIcon className="state-ov-disclosure-icon" />
+        </button>
       </h3>
-      {racesBody}
+      <div id={racesBodyId} className="state-ov-races-body" hidden={!open}>
+        {racesBody}
+      </div>
     </section>
   )
 
-  const membersSection = (
-    <section className="overview-section" aria-labelledby={membersId}>
-      <h3 id={membersId} className="overview-subhead">Current members</h3>
-      {members.length > 0 ? (
-        <ul className="state-ov-list">
-          {members.map((rep) => (
-            <MemberRow
-              key={rep.id}
-              rep={rep}
-              cycle={next ? { cycle: next.cycle, date: next.general_date } : null}
-              onSelect={onSelectRep}
-            />
-          ))}
-        </ul>
-      ) : repsLoading ? (
-        <div role="status" className="overview-status">
-          <span className="sr-only">Loading members…</span>
-          <span className="overview-skeleton" aria-hidden="true" />
-        </div>
-      ) : (
-        <p className="overview-message">No members found for {name}.</p>
-      )}
+  const voteSection = (
+    <section ref={voteRef} className="overview-section" aria-labelledby={voteId}>
+      <h3 id={voteId} ref={voteHeadingRef} tabIndex={-1} className="overview-subhead state-ov-focus-target">How to vote in {name}</h3>
+      <ul className="state-ov-list">
+        {board && (
+          <li>
+            <a className="state-ov-link" href={board} target="_blank" rel="noopener noreferrer">
+              <span className="state-ov-link-text">
+                <span className="state-ov-link-title">Registration, polling places and official sample ballots</span>
+                <span className="state-ov-link-sub">{name} elections office</span>
+              </span>
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
+          </li>
+        )}
+        <li>
+          <a
+            className="state-ov-link"
+            href={ballotpediaStateUrl(code, next?.cycle ?? new Date().getFullYear())}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="state-ov-link-text">
+              <span className="state-ov-link-title">State and local races, ballot measures</span>
+              <span className="state-ov-link-sub">{name} {next?.cycle ?? ''} elections on Ballotpedia</span>
+            </span>
+            <span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        </li>
+      </ul>
     </section>
   )
+
+  const membersLoading = !membersReady && repsLoading
+  const memberStatus = (rep: Representative) => seatStatus(rep, phase, next) ?? undefined
 
   return (
     <section className="overview state-ov" aria-labelledby={titleId}>
       <header>
         <h2 id={titleId} className="overview-title" tabIndex={-1}>{name}</h2>
-        {members.length > 0 && <p className="overview-subtitle">{headline(code, senators.length, house)}</p>}
+        {membersReady && <p className="overview-subtitle">{headline(code, senators.length, house)}</p>}
       </header>
 
-      <ElectionDayCard cycles={cycles} failed={load.status === 'error'} />
+      {showChips && phase?.cycle && (
+        <div className="state-ov-chips">
+          <button type="button" className="state-ov-chip" onClick={openRaces}>
+            <BallotIcon />
+            {phase.cycle.cycle} races{races.length > 0 ? ` (${races.length})` : ''} · {monthDay(phase.cycle.general_date)}
+          </button>
+          <button
+            type="button"
+            className="state-ov-chip"
+            onClick={() => scrollToSection(voteRef.current, voteHeadingRef.current)}
+          >
+            How to vote
+          </button>
+        </div>
+      )}
 
-      {/* Until election day the races lead; afterwards current members do. */}
-      {inSeason ? <>{racesSection}{membersSection}</> : <>{membersSection}{racesSection}</>}
-
-      <section className="overview-section" aria-labelledby={voteId}>
-        <h3 id={voteId} className="overview-subhead">How to vote in {name}</h3>
-        <ul className="state-ov-list">
-          {board && (
-            <li>
-              <a className="state-ov-link" href={board} target="_blank" rel="noopener noreferrer">
-                <span className="state-ov-link-text">
-                  <span className="state-ov-link-title">Registration, polling places and official sample ballots</span>
-                  <span className="state-ov-link-sub">{name} elections office</span>
-                </span>
-                <span className="sr-only"> (opens in a new tab)</span>
-              </a>
-            </li>
+      {membersLoading ? (
+        <div role="status" className="overview-status">
+          <span className="sr-only">Loading members…</span>
+          <span className="overview-skeleton" aria-hidden="true" />
+          <span className="overview-skeleton" aria-hidden="true" />
+        </div>
+      ) : !membersReady ? (
+        <p role="status" className="overview-message">No members found for {name}.</p>
+      ) : (
+        <>
+          {code !== 'DC' && (
+            <section className="overview-section" aria-labelledby={senatorsId}>
+              <h3 id={senatorsId} className="overview-subhead">Senators</h3>
+              {senators.length > 0 ? (
+                <ul className="state-ov-list">
+                  {senators.map((rep) => (
+                    <li key={rep.id}>
+                      <MemberCard rep={rep} variant="row" status={memberStatus(rep)} onSelect={onSelectRep} />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="overview-message">No senators found for {name}.</p>
+              )}
+              {senators.length < 2 && senators.length > 0 && (
+                <p className="overview-note">One Senate seat is vacant in our data.</p>
+              )}
+              {onCompare && senators.length === 2 && (
+                <button
+                  type="button"
+                  className="overview-text-button state-ov-compare"
+                  onClick={() => onCompare(senators[0].id, senators[1].id)}
+                >
+                  Compare {name}&apos;s senators ›
+                </button>
+              )}
+            </section>
           )}
-          <li>
-            <a
-              className="state-ov-link"
-              href={ballotpediaStateUrl(code, next?.cycle ?? new Date().getFullYear())}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <span className="state-ov-link-text">
-                <span className="state-ov-link-title">State and local races, ballot measures</span>
-                <span className="state-ov-link-sub">{name} {next?.cycle ?? ''} elections on Ballotpedia</span>
-              </span>
-              <span className="sr-only"> (opens in a new tab)</span>
-            </a>
-          </li>
-        </ul>
-      </section>
+          <section className="overview-section" aria-labelledby={houseId}>
+            <h3 id={houseId} className="overview-subhead">{code === 'DC' ? 'Delegate to the U.S. House' : 'House'}</h3>
+            {house.length > 0 ? (
+              <ul className="state-ov-list">
+                {house.map((rep) => (
+                  <li key={rep.id}>
+                    <MemberCard rep={rep} variant="row" status={memberStatus(rep)} onSelect={onSelectRep} />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="overview-message">No House members found for {name}.</p>
+            )}
+            {code === 'DC' && (
+              <p className="overview-note">D.C. elects a delegate who can vote in committees but not on final passage, and has no U.S. senators.</p>
+            )}
+          </section>
+        </>
+      )}
+
+      {atBottom ? <>{voteSection}{racesSection}</> : <>{racesSection}{voteSection}</>}
     </section>
   )
 }
