@@ -1,38 +1,47 @@
 import { useMemo, useRef } from 'react'
 import { useRepStore } from '../../store/repStore'
 import { stateName, upcomingCycle } from '../../utils/elections'
-import { STATE_CODES, stateSummary, type StateSummary } from '../../utils/stateRaces'
+import { STATE_CODES, memberCountText, stateSummary, type StateSummary } from '../../utils/stateRaces'
 import { useElectionIndex } from './useElection'
 import './StateList.css'
 
 interface Props {
   onSelectState: (code: string) => void
   currentState?: string
+  /** Add each state's race counts for the upcoming cycle (`/?view=races`). */
+  showRaceCounts?: boolean
 }
 
 function plural(n: number, one: string, many = `${one}s`) {
   return `${n} ${n === 1 ? one : many}`
 }
 
-function metaText(code: string, s: StateSummary, cycleKnown: boolean): string {
+function raceText(code: string, s: StateSummary): string {
   if (!s.houseSeats && !s.senators) return ''
-  if (code === 'DC') return cycleKnown ? 'Delegate race' : 'Non-voting delegate'
-  if (!cycleKnown) return `${plural(s.houseSeats, 'House seat')} · ${plural(s.senators, 'senator')}`
+  if (code === 'DC') return 'Delegate race'
   const house = plural(s.houseSeats, 'House race')
   if (!s.senateUp) return house
   return `${house} · ${s.senateUp === 1 ? 'Senate' : plural(s.senateUp, 'Senate race')}`
 }
 
-/** A–Z list of the 50 states and DC. Works without the map (keyboard, screen readers,
+/** A–Z list of the 50 states and DC with member counts ("2 senators · 3 House"); race
+ *  counts only with `showRaceCounts`. Works without the map (keyboard, screen readers,
  *  or when Mapbox fails), so it needs only the member list and the small election index. */
-export default function StateList({ onSelectState, currentState }: Props) {
+export default function StateList({ onSelectState, currentState, showRaceCounts = false }: Props) {
   const allReps = useRepStore((s) => s.allReps)
   const { state: index } = useElectionIndex()
   const listRef = useRef<HTMLUListElement>(null)
 
-  const cycle = index.status === 'ready' ? upcomingCycle(index.value.cycles)?.cycle ?? null : null
+  const cycle = showRaceCounts && index.status === 'ready' ? upcomingCycle(index.value.cycles)?.cycle ?? null : null
   const items = useMemo(
-    () => STATE_CODES.map((code) => ({ code, meta: metaText(code, stateSummary(allReps, code, cycle), cycle != null) })),
+    () => STATE_CODES.map((code) => {
+      const summary = stateSummary(allReps, code, cycle)
+      return {
+        code,
+        meta: memberCountText(code, summary),
+        races: cycle != null ? `${cycle}: ${raceText(code, summary)}` : '',
+      }
+    }),
     [allReps, cycle],
   )
 
@@ -57,7 +66,7 @@ export default function StateList({ onSelectState, currentState }: Props) {
   return (
     <nav aria-label="States A to Z" className="state-list">
       <ul className="state-list-grid" ref={listRef} onKeyDown={onKeyDown}>
-        {items.map(({ code, meta }) => {
+        {items.map(({ code, meta, races }) => {
           const current = code === currentState
           return (
             <li key={code}>
@@ -69,6 +78,7 @@ export default function StateList({ onSelectState, currentState }: Props) {
               >
                 <span className="state-list-name">{stateName(code)}</span>
                 {meta && <span className="state-list-meta">{meta}</span>}
+                {races && <span className="state-list-meta state-list-meta--races">{races}</span>}
               </button>
             </li>
           )
