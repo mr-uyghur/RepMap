@@ -38,7 +38,7 @@ test.describe('RepMap navigation shell', () => {
     await expect(page.locator('iframe')).toHaveCount(0) // the Story is no longer the front door
     await expect(breadcrumb(page)).toHaveCount(0)
     await expect(page.getByRole('link', { name: /RepMap home/ })).toHaveAttribute('href', '/')
-    await expect(page.locator('#map-search')).toHaveAttribute('placeholder', 'ZIP, state, district or name')
+    await expect(page.locator('#map-search')).toHaveAttribute('placeholder', 'ZIP, state or member name')
     expect.soft(await smallTargets(page, '.navbar'), 'targets < 44px').toEqual([])
     await page.waitForTimeout(1000)
     await finish(page, info, 'home', rec)
@@ -87,8 +87,9 @@ test.describe('RepMap navigation shell', () => {
     await expect(page).toHaveURL(/\/\?state=NE$/)
     await expect(current(page)).toHaveText('Nebraska')
 
+    // A district search opens its members first (MEMBERS_FIRST_CONTRACT.md).
     await search(page, 'NE-2')
-    await expect(page).toHaveURL(/\/\?race=US-HOU-NE-02$/)
+    await expect(page).toHaveURL(/\/\?district=NE-2$/)
     await expect(current(page)).toHaveText('District 2')
     await expectParent(page, 'Nebraska', /\?state=NE$/)
     if (!isPhone(page)) {
@@ -96,17 +97,18 @@ test.describe('RepMap navigation shell', () => {
     }
     expect.soft(await smallTargets(page, '.navbar, .breadcrumb'), 'targets < 44px').toEqual([])
     await page.waitForTimeout(500)
-    await finish(page, info, 'race', rec)
+    await finish(page, info, 'district-search', rec)
 
     // "NE 2" spelling also works, and focus is no longer in the box afterwards for Esc.
     await search(page, 'NE 2')
-    await expect(page).toHaveURL(/race=US-HOU-NE-02$/)
+    await expect(page).toHaveURL(/district=NE-2$/)
 
     await page.locator('#map-search').blur()
     await page.keyboard.press('Escape')
     await expect(page).toHaveURL(/\/\?state=NE$/)
     // Wait for the state level to render, as a person would, before going up again.
-    await expect(page.getByRole('heading', { name: '2026 races in Nebraska' })).toBeVisible()
+    await expect(page.getByRole('main', { name: 'Nebraska' })).toBeVisible()
+    await expect(current(page)).toHaveText('Nebraska')
     await page.keyboard.press('Escape')
     await expect(page).toHaveURL(/\/$/)
     await expect(page.getByRole('main', { name: 'United States' })).toBeVisible()
@@ -114,11 +116,14 @@ test.describe('RepMap navigation shell', () => {
     await page.goBack()
     await expect(page).toHaveURL(/\/\?state=NE$/)
     await page.goBack()
-    await expect(page).toHaveURL(/race=US-HOU-NE-02$/)
+    await expect(page).toHaveURL(/district=NE-2$/)
   })
 
   test('S4 breadcrumb links are real links', async ({ page }) => {
     await page.goto('/?race=US-HOU-NE-02')
+    await expect(current(page)).toHaveText('House race')
+    await breadcrumb(page).locator('.breadcrumb-item--parent a').click()
+    await expect(page).toHaveURL(/\/\?district=NE-2$/)
     await expect(current(page)).toHaveText('District 2')
     await breadcrumb(page).locator('.breadcrumb-item--parent a').click()
     await expect(page).toHaveURL(/\/\?state=NE$/)
@@ -134,17 +139,17 @@ test.describe('RepMap navigation shell', () => {
     await expect(panel).toBeVisible({ timeout: 20_000 })
     await expect(page.locator('[aria-modal="true"]')).toHaveCount(0) // part of the shell, not a modal
     await expect(current(page)).toHaveText('Zoe Lofgren')
-    await expectParent(page, 'District 18', /\?zip=95112$/)
+    await expectParent(page, 'ZIP 95112', /\?zip=95112$/)
     await expect(page).toHaveTitle('Zoe Lofgren · RepMap')
     expect.soft(await smallTargets(page, '.navbar, .breadcrumb'), 'targets < 44px').toEqual([])
     await page.waitForTimeout(800)
     await finish(page, info, 'member', rec)
 
-    // Esc: member -> the ZIP's district -> California.
+    // Esc: member -> the ZIP's members -> California.
     await page.locator('#main-content').focus()
     await page.keyboard.press('Escape')
     await expect(page).toHaveURL(/\/\?zip=95112$/)
-    await expect(current(page)).toHaveText('District 18')
+    await expect(current(page)).toHaveText('ZIP 95112')
     await page.keyboard.press('Escape')
     await expect(page).toHaveURL(/\/\?state=CA$/)
   })
@@ -153,12 +158,13 @@ test.describe('RepMap navigation shell', () => {
     const rec = record(page)
     await page.goto('/?mode=map&view=ballot&zip=95112')
     await applyAppTheme(page, scheme(info))
+    // Now the ZIP's members first; the ballot strip and the race are one tap away.
     await expect(page).toHaveURL(/\/\?zip=95112$/)
-    await expect(current(page)).toHaveText('District 18')
+    await expect(current(page)).toHaveText('ZIP 95112')
     await expectParent(page, 'California', /\?state=CA$/)
     await expect(page.locator('.explore-panel')).not.toContainText(/your ballot/i) // R-60
     await page.waitForTimeout(800)
-    await finish(page, info, 'zip-race', rec)
+    await finish(page, info, 'zip-legacy', rec)
   })
 
   test('S7 first-time voter: ZIP search is one action (R-01)', async ({ page }, info) => {
@@ -168,7 +174,7 @@ test.describe('RepMap navigation shell', () => {
     const t0 = Date.now()
     await search(page, '95112')
     await expect(page).toHaveURL(/\/\?zip=95112$/)
-    await expect(current(page)).toHaveText('District 18')
+    await expect(current(page)).toHaveText('ZIP 95112')
     info.annotations.push({ type: 'R-01 flow ms (after first paint)', description: String(Date.now() - t0) })
 
     // Unknown ZIPs and bad districts explain themselves.
@@ -385,7 +391,8 @@ test.describe('RepMap level content', () => {
   test('L3 race from a ZIP: CA-18 with ZIP note and top-two rule', async ({ page }, info) => {
     const rec = record(page)
     await page.clock.setFixedTime(BEFORE_ELECTION)
-    await page.goto('/?zip=95112')
+    // ?zip= alone now opens the members first; the race keeps the ZIP context.
+    await page.goto('/?race=US-HOU-CA-18&zip=95112')
     await applyAppTheme(page, scheme(info))
     const race = page.locator('.race')
     await expect(race.getByRole('heading', { level: 2 })).toHaveText('California 18th District', { timeout: 20_000 })
@@ -501,5 +508,153 @@ test.describe('Compare view', () => {
   test('C2 compare deep link with bioguide IDs', async ({ page }) => {
     await page.goto('/?compare=L000397,B001298')
     await expect(page.getByRole('dialog', { name: 'Zoe Lofgren and Don Bacon' })).toBeVisible({ timeout: 20_000 })
+  })
+})
+
+// Members first (MEMBERS_FIRST_CONTRACT.md): URLs, levels and the shell around them.
+// Level content (DistrictView, StateOverview, BallotStrip) is checked by its owners.
+test.describe('Members first: navigation', () => {
+  const FINAL = new Date('2026-10-26T12:00:00') // 8 days out
+  const OFF = new Date('2027-03-01T12:00:00')
+
+  test('M1 /?zip=95112 opens the district level with the ZIP crumb', async ({ page }, info) => {
+    const rec = record(page)
+    await page.clock.setFixedTime(FINAL)
+    await page.goto('/?zip=95112')
+    await applyAppTheme(page, scheme(info))
+    await expect(page.getByRole('main', { name: 'ZIP 95112' })).toBeVisible()
+    await expect(current(page)).toHaveText('ZIP 95112')
+    await expectParent(page, 'California', /\?state=CA$/)
+    if (!isPhone(page)) {
+      await expect(breadcrumb(page).getByRole('link', { name: 'United States' })).toHaveAttribute('href', '/')
+    }
+    await expect(page).toHaveTitle('ZIP 95112 · California District 18 · RepMap')
+    await expect(page.locator('.race')).toHaveCount(0) // not the race page any more
+    expect.soft(await smallTargets(page, '.navbar, .breadcrumb'), 'targets < 44px').toEqual([])
+    await page.waitForTimeout(800)
+    await finish(page, info, 'mf-zip', rec)
+
+    await page.locator('#main-content').focus()
+    await page.keyboard.press('Escape')
+    await expect(page).toHaveURL(/\/\?state=CA$/)
+  })
+
+  test('M2 /?district=NE-2, its spellings, bad districts and member crumbs', async ({ page }, info) => {
+    const rec = record(page)
+    await page.clock.setFixedTime(FINAL)
+    await page.goto('/?district=ne2')
+    await applyAppTheme(page, scheme(info))
+    await expect(page).toHaveURL(/\/\?district=NE-2$/)
+    await expect(page.getByRole('main', { name: 'District 2' })).toBeVisible()
+    await expect(current(page)).toHaveText('District 2')
+    await expectParent(page, 'Nebraska', /\?state=NE$/)
+    await expect(page).toHaveTitle('Nebraska District 2 · RepMap')
+    await page.waitForTimeout(800)
+    await finish(page, info, 'mf-district', rec)
+
+    await page.goto('/?district=AK-1')
+    await expect(page).toHaveURL(/\/\?district=AK-AL$/)
+    await expect(current(page)).toHaveText('At-large district')
+
+    await page.goto('/?district=NE-9')
+    await expect(page.getByRole('status').filter({ hasText: 'There is no NE-9' })).toContainText(
+      'Nebraska has 3 House districts',
+      { timeout: 20_000 },
+    )
+    await expect(page.getByRole('link', { name: 'See Nebraska’s members' })).toHaveAttribute('href', '/?state=NE')
+    await page.goto('/?district=XX-1')
+    await expect(page.getByRole('status').filter({ hasText: 'isn’t a congressional district' })).toBeVisible()
+
+    // A House member's breadcrumb points to their district page.
+    await page.goto('/?rep=B001298')
+    await expect(page.getByRole('region', { name: 'Representative details' })).toBeVisible({ timeout: 20_000 })
+    await expectParent(page, 'District 2', /\?district=NE-2$/)
+    await page.locator('#main-content').focus()
+    await page.keyboard.press('Escape')
+    await expect(page).toHaveURL(/\/\?district=NE-2$/)
+  })
+
+  test('M3 legacy /?race= still opens the full race page', async ({ page }) => {
+    await page.clock.setFixedTime(FINAL)
+    await page.goto('/?race=US-HOU-NE-02')
+    await expect(page.locator('.race').getByRole('heading', { level: 2 })).toHaveText('Nebraska 2nd District', {
+      timeout: 20_000,
+    })
+    await expect(current(page)).toHaveText('House race')
+    await expectParent(page, 'District 2', /\?district=NE-2$/)
+    await expect(page).toHaveTitle('Nebraska District 2 race · RepMap')
+    await page.locator('#main-content').focus()
+    await page.keyboard.press('Escape')
+    await expect(page).toHaveURL(/\/\?district=NE-2$/)
+  })
+
+  test('M4 search "NE-2" opens ?district=NE-2', async ({ page }) => {
+    await page.clock.setFixedTime(FINAL)
+    await page.goto('/')
+    await expect(page.getByRole('main', { name: 'United States' })).toBeVisible()
+    await page.locator('#map-search').fill('NE-2')
+    const option = page.getByRole('option', { name: /Nebraska · District 2/ })
+    await expect(option).toBeVisible({ timeout: 20_000 })
+    await option.click()
+    await expect(page).toHaveURL(/\/\?district=NE-2$/)
+    await expect(current(page)).toHaveText('District 2')
+    await search(page, 'Alaska at-large')
+    await expect(page).toHaveURL(/\/\?district=AK-AL$/)
+  })
+
+  test('M5 view=races on home and state', async ({ page }, info) => {
+    const rec = record(page)
+    await page.clock.setFixedTime(FINAL)
+    await page.goto('/?view=races')
+    await applyAppTheme(page, scheme(info))
+    const main = page.getByRole('main', { name: 'Races by state' })
+    await expect(main.getByRole('heading', { name: 'Races by state' })).toBeVisible()
+    await expect(current(page)).toHaveText('Races by state')
+    await expectParent(page, 'United States', /^\/$/)
+    await expect(page).toHaveTitle('Races by state · RepMap')
+    expect.soft(await smallTargets(page, '.navbar, .breadcrumb'), 'targets < 44px').toEqual([])
+    await page.waitForTimeout(800)
+    await finish(page, info, 'mf-races', rec)
+
+    await main.getByRole('button', { name: /^Nebraska/ }).click()
+    await expect(page).toHaveURL(/\/\?state=NE&view=races$/)
+    await expect(page.getByRole('main', { name: 'Nebraska' })).toBeVisible()
+    await expectParent(page, 'United States', /^\/$/)
+
+    await page.locator('#main-content').focus()
+    await page.keyboard.press('Escape')
+    await expect(page).toHaveURL(/\/$/)
+    await expect(page.getByRole('main', { name: 'United States' })).toBeVisible()
+  })
+
+  async function openMenu(page: Page, theme: 'dark' | 'light') {
+    await page.goto('/')
+    await expect(page.getByRole('main', { name: 'United States' })).toBeVisible()
+    await applyAppTheme(page, theme) // may use (and close) the menu
+    await expect(page.locator('.navbar-menu')).toBeHidden()
+    await page.locator('.navbar-menu-btn').click()
+    const menu = page.locator('.navbar-menu')
+    await expect(menu.getByRole('link', { name: 'Civic Story' })).toBeVisible()
+    return menu
+  }
+
+  test('M6 Menu "2026 elections" in the final stretch', async ({ page }, info) => {
+    const rec = record(page)
+    await page.clock.setFixedTime(FINAL)
+    const menu = await openMenu(page, scheme(info))
+    const link = menu.getByRole('link', { name: '2026 elections' })
+    await expect(link).toHaveAttribute('href', '/?view=races')
+    expect.soft(await smallTargets(page, '.navbar'), 'targets < 44px').toEqual([])
+    await finish(page, info, 'mf-menu-final', rec)
+    await link.click()
+    await expect(page).toHaveURL(/\/\?view=races$/)
+    await expect(menu).toBeHidden()
+  })
+
+  test('M7 Menu has no elections link off season', async ({ page }, info) => {
+    await page.clock.setFixedTime(OFF)
+    const menu = await openMenu(page, scheme(info))
+    await page.waitForTimeout(500) // the election index has loaded by now
+    await expect(menu.getByRole('link', { name: /elections/ })).toHaveCount(0)
   })
 })

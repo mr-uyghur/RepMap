@@ -1,20 +1,28 @@
-// The URL is the single source of truth for where the user is (REDESIGN_CONTRACT.md).
-//   /                      United States
+// The URL is the single source of truth for where the user is
+// (REDESIGN_CONTRACT.md, MEMBERS_FIRST_CONTRACT.md).
+//   /                      United States (members first)
+//   /?view=races           United States, state tiles with race counts
 //   /story                 Civic Story
-//   /?state=NE             State
-//   /?race=US-HOU-NE-02    District / race (state implied)
-//   /?zip=95112            That ZIP's House race (RaceView shows "From ZIP")
+//   /?state=NE             State (delegation first)
+//   /?state=NE&view=races  State, races section opened and in view
+//   /?district=CA-18       District: its members, then the ballot strip (also NE-2, AK-AL)
+//   /?zip=95112            The ZIP's district, with a "From ZIP" note
+//   /?race=US-HOU-NE-02    Full race page (state implied)
 //   /?rep=L000397          Member (bioguide ID; numeric IDs still accepted)
 //   &compare=a,b  &committee=  &redistrict=   unchanged extras
 // Legacy `?mode=map` / `view=ballot` links are rewritten to these with replaceState.
-import { isStateCode, parseRaceId, raceIdOf } from './searchParse'
+import { districtParam, isStateCode, parseDistrictParam, parseRaceId, raceIdOf, type MapClickTarget } from './searchParse'
 
-export type NavLevel = 'us' | 'state' | 'district' | 'member'
+export type NavLevel = 'us' | 'state' | 'district' | 'race' | 'member'
 
 export interface NavParams {
   story: boolean
   state: string | null
   race: string | null
+  /** Canonical district ("CA-18", "AK-AL"). */
+  district: string | null
+  /** A `?district=` value that names no district; kept so the page can say so. */
+  districtInvalid: string | null
   zip: string | null
   rep: string | null
   /** `level=state` marks a numeric state-legislator ID. */
@@ -22,21 +30,26 @@ export interface NavParams {
   compare: [string, string] | null
   committee: string | null
   redistrict: string | null
+  /** `view=races`: on `/` and `?state=` only. */
+  view: 'races' | null
 }
 
 export const EMPTY_NAV: NavParams = {
   story: false,
   state: null,
   race: null,
+  district: null,
+  districtInvalid: null,
   zip: null,
   rep: null,
   repLevel: null,
   compare: null,
   committee: null,
   redistrict: null,
+  view: null,
 }
 
-const OWN_PARAMS = new Set(['mode', 'view', 'state', 'race', 'zip', 'rep', 'level', 'compare', 'committee', 'redistrict'])
+const OWN_PARAMS = new Set(['mode', 'view', 'state', 'race', 'district', 'zip', 'rep', 'level', 'compare', 'committee', 'redistrict'])
 
 function stateParam(v: string | null): string | null {
   return v && /^[A-Za-z]{2}$/.test(v) && isStateCode(v) ? v.toUpperCase() : null
@@ -60,19 +73,25 @@ export function parseNav(pathname: string, search: string): NavParams {
       : null
   const committee = p.get('committee')?.trim() || null
   const redistrict = stateParam(p.get('redistrict'))
+  const districtRaw = p.get('district')?.trim().slice(0, 24) || null
+  const parsedDistrict = parseDistrictParam(districtRaw)
+  const view = p.get('view') === 'races' ? 'races' : null
 
   const nav: NavParams = { ...EMPTY_NAV, committee, redistrict }
   if (compare) return { ...nav, compare }
   if (rep) return { ...nav, rep, repLevel: p.get('level') === 'state' ? 'state' : null, zip }
   if (race) return { ...nav, race, zip }
+  if (parsedDistrict) return { ...nav, district: districtParam(parsedDistrict.state, parsedDistrict.district) }
+  if (districtRaw) return { ...nav, districtInvalid: districtRaw.replace(/[^A-Za-z0-9 -]/g, '') || '?' }
   if (zip) return { ...nav, zip }
-  return { ...nav, state: stateParam(p.get('state')) }
+  return { ...nav, state: stateParam(p.get('state')), view }
 }
 
-/** Which of the four levels a nav state shows. */
+/** Which level a nav state shows. */
 export function navLevel(nav: NavParams): NavLevel {
   if (nav.rep || nav.compare) return 'member'
-  if (nav.race || nav.zip) return 'district'
+  if (nav.race) return 'race'
+  if (nav.district || nav.districtInvalid || nav.zip) return 'district'
   if (nav.state || nav.redistrict) return 'state'
   return 'us'
 }
@@ -82,6 +101,8 @@ export function navStateCode(nav: NavParams): string | null {
   if (nav.state) return nav.state
   const race = parseRaceId(nav.race)
   if (race) return race.state
+  const district = parseDistrictParam(nav.district)
+  if (district) return district.state
   if (!nav.rep && !nav.zip && !nav.compare) return nav.redistrict
   return null
 }
@@ -99,10 +120,13 @@ export function buildNavUrl(nav: Partial<NavParams>, extra?: URLSearchParams): s
   } else if (nav.race) {
     q.set('race', nav.race)
     if (nav.zip) q.set('zip', nav.zip)
+  } else if (nav.district || nav.districtInvalid) {
+    q.set('district', (nav.district ?? nav.districtInvalid)!)
   } else if (nav.zip) {
     q.set('zip', nav.zip)
-  } else if (nav.state) {
-    q.set('state', nav.state)
+  } else {
+    if (nav.state) q.set('state', nav.state)
+    if (nav.view === 'races') q.set('view', 'races')
   }
   if (nav.committee) q.set('committee', nav.committee)
   if (nav.redistrict) q.set('redistrict', nav.redistrict)
@@ -124,4 +148,9 @@ export function canonicalNavUrl(pathname: string, search: string): string | null
   const next = buildNavUrl(nav, new URLSearchParams(search))
   const current = `${pathname}${search && search !== '?' ? search : ''}`
   return next === current ? null : next
+}
+
+/** Where a map click goes: another state, or a district's members-first page. */
+export function mapTargetNav(target: MapClickTarget): Partial<NavParams> {
+  return target.kind === 'state' ? { state: target.state } : { district: districtParam(target.state, target.district) }
 }

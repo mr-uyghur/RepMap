@@ -1,4 +1,4 @@
-import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type ComponentType } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { MapRef } from 'react-map-gl'
 import type { MapFocus } from './components/Map/RepMap'
@@ -8,15 +8,31 @@ import PartyRibbon from './components/Layout/PartyRibbon'
 import RedistrictingSlider from './components/Map/RedistrictingSlider'
 import ScrollcraftStage from './components/Story/ScrollcraftStage'
 import ExplorePanel from './components/Explore/ExplorePanel'
-import UsOverview from './components/Explore/UsOverview'
+import UsOverviewBase from './components/Explore/UsOverview'
+import StateList from './components/Explore/StateList'
 import type { Crumb } from './components/Explore/Breadcrumb'
 import { useMapStore } from './store/mapStore'
 import { useRepStore } from './store/repStore'
 import { fetchAllReps, getElectionCycle, getElectionIndex } from './api/representatives'
-import { findRaceForRep, houseRaceId, senateRaceId, stateName, upcomingCycle } from './utils/elections'
+import {
+  electionPhase,
+  findRaceForRep,
+  houseRaceId,
+  senateRaceId,
+  stateName,
+  upcomingCycle,
+  type ElectionPhase,
+} from './utils/elections'
 import { lookupZipLocation, type ZipLocation } from './utils/zipLookup'
-import { buildNavUrl, canonicalNavUrl, navLevel, navStateCode, parseNav, type NavParams } from './utils/navUrl'
-import { parseRaceId, raceShortLabel, type MapClickTarget } from './utils/searchParse'
+import { buildNavUrl, canonicalNavUrl, mapTargetNav, navLevel, navStateCode, parseNav, type NavParams } from './utils/navUrl'
+import {
+  districtParam,
+  parseDistrictParam,
+  parseRaceId,
+  raceShortLabel,
+  type DistrictRef,
+  type MapClickTarget,
+} from './utils/searchParse'
 import type { Representative } from './types'
 import './App.css'
 
@@ -31,7 +47,23 @@ const repsWarmup = fetchAllReps()
 const RepMap = lazy(() => repsWarmup.then(() => import('./components/Map/RepMap')))
 /** Mirrors RepMap's MAP_AVAILABLE without pulling the map chunk into the entry. */
 const MAP_AVAILABLE = Boolean(import.meta.env.VITE_MAPBOX_TOKEN)
-const StateOverview = lazy(() => import('./components/Explore/StateOverview'))
+// Members-first props (MEMBERS_FIRST_CONTRACT.md). They are optional on the
+// components; the types are spelled out here so this file builds on its own.
+type UsOverviewProps = ComponentProps<typeof UsOverviewBase> & { onSelectZip?: (zip: string) => void }
+const UsOverview = UsOverviewBase as ComponentType<UsOverviewProps>
+interface StateOverviewProps {
+  stateCode: string
+  onSelectRace: (raceId: string) => void
+  onSelectRep: (rep: Representative) => void
+  focusRaces?: boolean
+  onCompare?: (aId: number, bId: number) => void
+}
+const StateOverview = lazy(() =>
+  import('./components/Explore/StateOverview').then((m) => ({ default: m.default as ComponentType<StateOverviewProps> })),
+)
+type StateListProps = ComponentProps<typeof StateList> & { showRaceCounts?: boolean }
+const RaceStateList = StateList as ComponentType<StateListProps>
+const DistrictView = lazy(() => import('./components/Explore/DistrictView'))
 const RaceView = lazy(() => import('./components/Election/RaceView'))
 const ComparePanel = lazy(() => import('./components/Panel/ComparePanel'))
 const CommitteeGraphModal = lazy(() => import('./components/Committee/CommitteeGraphModal'))
@@ -74,6 +106,20 @@ function findRep(param: string, repLevel: NavParams['repLevel'], reps: Represent
   return reps.find((r) => r.bioguide_id === param) ?? reps.find((r) => r.id === numeric) ?? null
 }
 
+/** House seats per state, from the member list (1 = at-large). */
+function seatCounts(reps: Representative[]): Record<string, number> {
+  const seats: Record<string, number> = {}
+  for (const r of reps) if (r.level === 'us_house') seats[r.state] = (seats[r.state] ?? 0) + 1
+  return seats
+}
+
+/** "District 18", "At-large district", "Delegate". */
+function districtLabel(d: DistrictRef): string {
+  return raceShortLabel(parseRaceId(houseRaceId(d.state, d.district))!)
+}
+
+const sameSeat = (a: number | null | undefined, b: number | null | undefined) => (a ?? 0) === (b ?? 0)
+
 interface ZipState {
   zip: string
   loc: ZipLocation | null
@@ -104,6 +150,7 @@ export default function App() {
   })
   const [isOffline, setIsOffline] = useState(!navigator.onLine)
   const [zipState, setZipState] = useState<ZipState | null>(null)
+  const [phase, setPhase] = useState<ElectionPhase | null>(null)
 
   const allReps = useRepStore((s) => s.allReps)
   const repsLoading = useRepStore((s) => s.loading)
@@ -125,6 +172,15 @@ export default function App() {
   }, [location.pathname, location.search, navigate])
 
   const go = useCallback((href: string) => navigate(href), [navigate])
+
+  // How prominent election links are today (MEMBERS_FIRST_PROPOSAL.md). The index is tiny and memoized.
+  useEffect(() => {
+    let cancelled = false
+    getElectionIndex()
+      .then((index) => { if (!cancelled) setPhase(electionPhase(index.cycles)) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
 
   // A ZIP resolves to its House district (from the bundled ZIP table).
   useEffect(() => {
@@ -150,13 +206,34 @@ export default function App() {
   }, [nav.compare, allReps])
   const focusRep = compareReps?.[0] ?? memberRep
 
-  const raceId =
-    level === 'district'
-      ? nav.race ?? (zipInfo?.loc ? houseRaceId(zipInfo.loc.state, zipInfo.loc.district) : null)
-      : null
+  const raceId = level === 'race' ? nav.race : null
   const race = parseRaceId(raceId)
+
+  // The district in focus: from `?district=` (checked against real seat counts once
+  // members load, so "NE-9" is caught), or the ZIP's district.
+  const houseSeats = useMemo(() => seatCounts(allReps), [allReps])
+  const districtRef: DistrictRef | null = useMemo(() => {
+    if (level !== 'district') return null
+    // Wait for the member list (it holds the seat counts) unless it failed to load.
+    if (nav.district) {
+      if (allReps.length) return parseDistrictParam(nav.district, { houseSeats })
+      return repsError ? parseDistrictParam(nav.district) : null
+    }
+    if (nav.zip && zipInfo?.loc) return { state: zipInfo.loc.state, district: zipInfo.loc.district ?? 0 }
+    return null
+  }, [level, nav.district, nav.zip, zipInfo, allReps.length, repsError, houseSeats])
+  const districtInvalid =
+    level === 'district' && (!!nav.districtInvalid || (!!nav.district && (allReps.length > 0 || !!repsError) && !districtRef))
+  const invalidDistrictState = nav.district ? parseDistrictParam(nav.district)?.state ?? null : null
+
   const levelState =
-    level === 'member' ? focusRep?.state ?? null : level === 'district' ? race?.state ?? null : navStateCode(nav)
+    level === 'member'
+      ? focusRep?.state ?? null
+      : level === 'race'
+        ? race?.state ?? null
+        : level === 'district'
+          ? districtRef?.state ?? invalidDistrictState
+          : navStateCode(nav)
 
   // ── Mirror the URL into the map store (pins, district outline, redistricting overlay) ──
   useEffect(() => {
@@ -191,11 +268,33 @@ export default function App() {
     [withRedistrict],
   )
   const urlZip = useCallback((zip: string) => buildNavUrl({ zip }), [])
+  const urlDistrict = useCallback(
+    (d: DistrictRef) => buildNavUrl({ district: districtParam(d.state, d.district), redistrict: withRedistrict(d.state) }),
+    [withRedistrict],
+  )
+  const urlRaces = useCallback((code?: string) => buildNavUrl({ state: code ?? null, view: 'races' }), [])
   const urlRep = useCallback((rep: Representative, zip?: string | null) => buildNavUrl({ ...repParams(rep), zip: zip ?? null }), [])
 
   const goState = useCallback((code: string) => go(urlState(code.toUpperCase())), [go, urlState])
   const goRace = useCallback((id: string) => go(urlRace(id)), [go, urlRace])
   const goZip = useCallback((zip: string) => go(urlZip(zip)), [go, urlZip])
+  const goDistrict = useCallback(
+    (param: string) => {
+      const d = parseDistrictParam(param)
+      go(d ? urlDistrict(d) : buildNavUrl({ districtInvalid: param }))
+    },
+    [go, urlDistrict],
+  )
+  const goStateRaces = useCallback((code: string) => go(urlRaces(code.toUpperCase())), [go, urlRaces])
+
+  /** Compare two members by ID; bioguide IDs keep the URL readable. */
+  const goCompare = useCallback(
+    (aId: number, bId: number) => {
+      const idOf = (id: number) => allReps.find((r) => r.id === id)?.bioguide_id || String(id)
+      if (aId !== bId) go(buildNavUrl({ compare: [idOf(aId), idOf(bId)] }))
+    },
+    [allReps, go],
+  )
 
   const handleRepSelect = useCallback(
     (rep: Representative) => {
@@ -205,7 +304,7 @@ export default function App() {
         return
       }
       setCompareMode(false)
-      // Keep the ZIP context so "District 18" in the breadcrumb returns to the ZIP's view.
+      // Keep the ZIP context so the "ZIP 95112" crumb returns to the ZIP's members.
       const zip = zipInfo?.loc?.state === rep.state ? nav.zip : null
       go(urlRep(rep, zip))
     },
@@ -219,9 +318,10 @@ export default function App() {
     [focusRep, go],
   )
 
+  // A district click opens its members-first page (`?district=`), not the race.
   const handleMapTarget = useCallback(
-    (target: MapClickTarget) => (target.kind === 'state' ? goState(target.state) : goRace(target.raceId)),
-    [goState, goRace],
+    (target: MapClickTarget) => go(buildNavUrl({ ...mapTargetNav(target), redistrict: withRedistrict(target.state) })),
+    [go, withRedistrict],
   )
 
   /** The member's own race (follows their FEC candidacy, else their seat). */
@@ -242,34 +342,48 @@ export default function App() {
   )
 
   // ── Breadcrumb: the parents of the current level ─────────────────────────────
+  // United States › State › District 18 (or "ZIP 95112" when the user came by ZIP) › Member
   const { crumbs, current } = useMemo((): { crumbs: Crumb[]; current: string } => {
     const us: Crumb = { label: 'United States', href: urlUs() }
     const stateCrumb = (code: string): Crumb => ({ label: stateName(code), href: urlState(code) })
+    const zipCrumb = (zip: string): Crumb => ({ label: `ZIP ${zip}`, href: urlZip(zip) })
     switch (level) {
       case 'us':
-        return { crumbs: [], current: 'United States' }
+        return nav.view === 'races' ? { crumbs: [us], current: 'Races by state' } : { crumbs: [], current: 'United States' }
       case 'state':
         return levelState ? { crumbs: [us], current: stateName(levelState) } : { crumbs: [], current: 'United States' }
       case 'district':
-        if (race) return { crumbs: [us, stateCrumb(race.state)], current: raceShortLabel(race) }
-        return { crumbs: [us], current: nav.zip ? `ZIP ${nav.zip}` : 'District' }
+        if (nav.zip) return { crumbs: districtRef ? [us, stateCrumb(districtRef.state)] : [us], current: `ZIP ${nav.zip}` }
+        if (districtRef) return { crumbs: [us, stateCrumb(districtRef.state)], current: districtLabel(districtRef) }
+        return { crumbs: levelState ? [us, stateCrumb(levelState)] : [us], current: 'District' }
+      case 'race': {
+        if (!race) return { crumbs: [us], current: 'Race' }
+        const parents = [us, stateCrumb(race.state)]
+        if (nav.zip && zipInfo?.loc?.state === race.state) parents.push(zipCrumb(nav.zip))
+        else if (race.office === 'H') {
+          const d = { state: race.state, district: race.district ?? 0 }
+          parents.push({ label: districtLabel(d), href: urlDistrict(d) })
+        }
+        const label = race.office === 'H' ? 'House race' : race.special ? 'U.S. Senate special race' : 'U.S. Senate race'
+        return { crumbs: parents, current: label }
+      }
       case 'member': {
         if (!focusRep) return { crumbs: [us], current: 'Member' }
         const parents = [us, stateCrumb(focusRep.state)]
-        if (focusRep.level === 'us_house') {
-          const seat = parseRaceId(houseRaceId(focusRep.state, focusRep.district_number))
-          const viaZip = nav.zip && zipInfo?.loc?.state === focusRep.state && zipInfo.loc.district === focusRep.district_number
-          if (seat) {
-            parents.push({
-              label: raceShortLabel(seat),
-              href: viaZip && nav.zip ? urlZip(nav.zip) : urlRace(houseRaceId(focusRep.state, focusRep.district_number)),
-            })
-          }
+        const loc = zipInfo?.loc
+        const viaZip =
+          nav.zip &&
+          loc?.state === focusRep.state &&
+          (focusRep.level !== 'us_house' || sameSeat(loc.district, focusRep.district_number))
+        if (viaZip && nav.zip) parents.push(zipCrumb(nav.zip))
+        else if (focusRep.level === 'us_house') {
+          const d = { state: focusRep.state, district: focusRep.district_number ?? 0 }
+          parents.push({ label: districtLabel(d), href: urlDistrict(d) })
         }
         return { crumbs: parents, current: compareReps ? `${compareReps[0].name} and ${compareReps[1].name}` : focusRep.name }
       }
     }
-  }, [level, levelState, race, nav.zip, focusRep, compareReps, zipInfo, urlUs, urlState, urlRace, urlZip])
+  }, [level, levelState, race, nav.zip, nav.view, districtRef, focusRep, compareReps, zipInfo, urlUs, urlState, urlDistrict, urlZip])
 
   const parentHref = crumbs.length ? crumbs[crumbs.length - 1].href : null
 
@@ -302,10 +416,13 @@ export default function App() {
 
   useEffect(() => {
     if (nav.story) document.title = 'Civic Story · RepMap'
-    else if (level === 'us') document.title = 'RepMap'
-    else if (level === 'district' && race) document.title = `${stateName(race.state)} ${raceShortLabel(race)} · RepMap`
-    else document.title = `${current} · RepMap`
-  }, [nav.story, level, race, current])
+    else if (level === 'us') document.title = nav.view === 'races' ? 'Races by state · RepMap' : 'RepMap'
+    else if (level === 'race' && race) document.title = `${stateName(race.state)} ${raceShortLabel(race)} race · RepMap`
+    else if (level === 'district' && districtRef) {
+      const place = `${stateName(districtRef.state)} ${districtLabel(districtRef)}`
+      document.title = nav.zip ? `ZIP ${nav.zip} · ${place} · RepMap` : `${place} · RepMap`
+    } else document.title = `${current} · RepMap`
+  }, [nav.story, nav.view, nav.zip, level, race, districtRef, current])
 
   useEffect(() => {
     const on = () => setIsOffline(false)
@@ -349,13 +466,21 @@ export default function App() {
     if (level === 'us') return { kind: 'us' }
     if (level === 'state') return levelState ? { kind: 'state', state: levelState } : null
     if (level === 'district') {
+      if (districtRef) return { kind: 'district', state: districtRef.state, district: districtRef.district }
+      return levelState ? { kind: 'state', state: levelState } : null
+    }
+    if (level === 'race') {
       if (!race) return null
       return race.office === 'H' && race.district != null
         ? { kind: 'district', state: race.state, district: race.district }
         : { kind: 'state', state: race.state }
     }
     return focusRep ? { kind: 'rep', repId: focusRep.id } : null
-  }, [level, levelState, race, focusRep])
+  }, [level, levelState, race, districtRef, focusRep])
+
+  // Menu "2026 elections" while the election matters (season, final stretch, results).
+  const electionsLink =
+    phase && phase.phase !== 'off' && phase.cycle ? { label: `${phase.cycle.cycle} elections`, href: urlRaces() } : null
 
   if (nav.story) {
     return (
@@ -367,21 +492,65 @@ export default function App() {
 
   // ── Level content ───────────────────────────────────────────────────────────
   let content: React.ReactNode
+  const browseLink = (
+    <a href={urlUs()} onClick={(e) => { e.preventDefault(); go(urlUs()) }}>Browse by state</a>
+  )
   if (level === 'us') {
-    content = <UsOverview onSelectState={goState} onSearchFocus={() => searchRef.current?.focus()} />
+    content =
+      nav.view === 'races' ? (
+        <section className="overview" aria-labelledby="races-by-state-title">
+          <h2 id="races-by-state-title" className="overview-purpose">Races by state</h2>
+          <p className="overview-lede">
+            U.S. House and Senate races on the next federal ballot. Pick a state to see its members and its races.
+          </p>
+          <RaceStateList onSelectState={goStateRaces} showRaceCounts />
+        </section>
+      ) : (
+        <UsOverview onSelectState={goState} onSelectZip={goZip} onSearchFocus={() => searchRef.current?.focus()} />
+      )
   } else if (level === 'state' && levelState) {
-    content = <StateOverview stateCode={levelState} onSelectRace={goRace} onSelectRep={handleRepSelect} />
+    content = (
+      <StateOverview
+        stateCode={levelState}
+        focusRaces={nav.view === 'races'}
+        onSelectRace={goRace}
+        onSelectRep={handleRepSelect}
+        onCompare={goCompare}
+      />
+    )
   } else if (level === 'district') {
-    if (raceId) {
+    if (districtRef) {
       content = (
-        <RaceView
-          raceId={raceId}
+        <DistrictView
+          key={`${districtRef.state}-${districtRef.district}`}
+          state={districtRef.state}
+          district={districtRef.district || null}
           fromZip={nav.zip}
           onSelectRep={handleRepSelect}
           onSelectRace={goRace}
           onSelectState={goState}
+          onCompare={goCompare}
         />
       )
+    } else if (districtInvalid) {
+      const seats = invalidDistrictState ? houseSeats[invalidDistrictState] : undefined
+      content = (
+        <div className="explore-status explore-status--error" role="status">
+          {invalidDistrictState && seats
+            ? `There is no ${nav.district}: ${stateName(invalidDistrictState)} has ${seats === 1 ? 'one at-large House seat' : `${seats} House districts`}.`
+            : `“${nav.districtInvalid ?? nav.district}” isn’t a congressional district. Try one like CA-18, NE-2 or AK-AL.`}
+          <br />
+          {invalidDistrictState ? (
+            <a href={urlState(invalidDistrictState)} onClick={(e) => { e.preventDefault(); goState(invalidDistrictState) }}>
+              See {stateName(invalidDistrictState)}’s members
+            </a>
+          ) : (
+            browseLink
+          )}
+        </div>
+      )
+    } else if (nav.district) {
+      content = <Loading what="the district" />
     } else if (zipInfo && !zipInfo.loc) {
       content = (
         <div className="explore-status explore-status--error" role="status">
@@ -389,12 +558,16 @@ export default function App() {
             ? 'ZIP data could not be loaded. Check your connection and try again.'
             : `We couldn’t find ZIP ${zipInfo.zip}. Check the number, or browse by state.`}
           <br />
-          <a href={urlUs()} onClick={(e) => { e.preventDefault(); go(urlUs()) }}>Browse by state</a>
+          {browseLink}
         </div>
       )
     } else {
-      content = <Loading what={`the district for ZIP ${nav.zip}`} />
+      content = <Loading what={`the members for ZIP ${nav.zip}`} />
     }
+  } else if (level === 'race' && raceId) {
+    content = (
+      <RaceView raceId={raceId} fromZip={nav.zip} onSelectRep={handleRepSelect} onSelectRace={goRace} onSelectState={goState} />
+    )
   } else if (level === 'member') {
     if (focusRep) {
       content = (
@@ -417,14 +590,20 @@ export default function App() {
         <div className="explore-status explore-status--error" role="status">
           {repsError ? 'Member data could not be loaded.' : 'We couldn’t find that member of Congress.'}
           <br />
-          <a href={urlUs()} onClick={(e) => { e.preventDefault(); go(urlUs()) }}>Browse by state</a>
+          {browseLink}
         </div>
       )
     }
   }
 
   const mapHint =
-    level === 'us' ? 'Click any state to see its 2026 races' : level === 'state' ? 'Click a district to see who is running' : null
+    level === 'us'
+      ? nav.view === 'races'
+        ? 'Click a state to see its races'
+        : 'Click a state to see its members'
+      : level === 'state'
+        ? 'Click a district to see its members'
+        : null
 
   return (
     <ErrorBoundary>
@@ -441,7 +620,9 @@ export default function App() {
           onSelectZip={goZip}
           onSelectState={goState}
           onSelectRace={goRace}
+          onSelectDistrict={goDistrict}
           onSelectRep={handleRepSelect}
+          electionsLink={electionsLink}
           onCommitteesClick={() => openCommittee()}
           onRedistrictingClick={toggleRedistricting}
         />
