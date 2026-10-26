@@ -1,0 +1,151 @@
+/* ── MemberCard: card (ZIP / district page) and row (state delegation) ──────
+   Tokens only (variables.css). */
+.mc {
+  position: relative;
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: left;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.mc:hover { border-color: var(--color-border-control); background: var(--color-bg-surface); }
+
+.mc--row {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-3);
+  cursor: pointer;
+}
+.mc--row:focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 2px; }
+
+.mc--card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-3);
+}
+/* The name button is the card's one "open" control; its ::after covers the card. */
+.mc--card:has(.mc-open:focus-visible) { outline: 2px solid var(--color-accent-text); outline-offset: 2px; }
+
+.mc-head { display: flex; align-items: flex-start; gap: var(--space-3); }
+.mc-head > .mc-chevron { margin-top: 14px; }
+
+.mc-chevron { flex: none; color: var(--color-text-muted); }
+
+/* ── Avatar: initials underneath, photo on top ──────────────────────────── */
+.mc-avatar {
+  position: relative;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid var(--color-independent-text);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-surface);
+}
+.mc--card .mc-avatar { width: 56px; height: 56px; }
+.mc-avatar--democrat { border-color: var(--color-democrat-text); color: var(--color-democrat-text); }
+.mc-avatar--republican { border-color: var(--color-republican-text); color: var(--color-republican-text); }
+.mc-avatar--independent,
+.mc-avatar--other { color: var(--color-independent-text); }
+
+.mc-initials { font-size: 16px; font-weight: 700; letter-spacing: 0.02em; }
+.mc-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 20%;
+}
+
+/* ── Text ───────────────────────────────────────────────────────────────── */
+.mc-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.mc-name {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere; /* wraps, never truncates */
+}
+.mc--row .mc-name { font-size: 15px; }
+
+.mc-open {
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.mc-open::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+.mc-open:focus-visible { outline: none; }
+
+.mc-meta { font-size: 13px; line-height: 1.4; color: var(--color-text-muted); }
+
+.mc-party { font-weight: 600; }
+.mc-party--democrat { color: var(--color-democrat-text); }
+.mc-party--republican { color: var(--color-republican-text); }
+.mc-party--independent,
+.mc-party--other { color: var(--color-independent-text); }
+.mc-party-badge {
+  display: none;
+  margin-right: 6px;
+  padding: 0 4px;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  line-height: 16px;
+  vertical-align: 1px;
+}
+.mc--card .mc-party-badge { display: inline-block; }
+
+.mc-status { font-size: 12px; font-weight: 600; line-height: 1.4; color: var(--color-text-muted); }
+.mc-status--up { color: var(--color-accent-text); }
+
+/* ── Actions sit above the stretched open button ────────────────────────── */
+.mc-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.mc-action {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.mc-action:hover { background: var(--color-bg-elevated); }
+.mc-action:focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 2px; }
+.mc-action--call {
+  flex: 1 1 auto;
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+.mc-action--call:hover { background: var(--color-accent); filter: brightness(1.12); }
+
