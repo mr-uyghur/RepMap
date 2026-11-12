@@ -172,6 +172,5 @@ animation: repmap-shimmer 1.6s ease-in-out infinite;
 | `frontend/src/styles/components.css` | Card, searchbar, tab utilities |
 | `frontend/src/components/Panel/RepresentativePanel.css` | Glass panel, shimmer, cinematic tabs |
 | `frontend/src/components/Layout/NavBar.css` | Glass navbar |
-| `frontend/src/components/Search/ZipcodeSearch.tsx` | ZIP overlay (CSS var inline styles) |
 | `frontend/src/components/Map/RepresentativePin.tsx` | Pin label glassmorphism |
 | `frontend/src/components/Map/RepMap.tsx` | Tooltip + overlay glass styles |

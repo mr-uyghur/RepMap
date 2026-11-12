@@ -18,6 +18,7 @@ service-account*.json
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+*.stackdump
 
 # ----- Editor -----------------------------------------------
 .vscode/
@@ -160,3 +161,7 @@ frontend/playwright-report/
 # ----- frontend generated data --------------------------------
 # ZIP shards split from public/data/zips.json by scripts/split-zips.mjs (pre-dev/pre-build)
 frontend/public/data/zips/
+
+# ----- Scrollcraft (local build & visual regression artefacts) -
+scrollcraft/builds/*/node_modules/
+scrollcraft/builds/*/lab/

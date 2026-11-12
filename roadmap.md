@@ -2,6 +2,8 @@
 
 > Based on: personal civic-utility project, long-term virality goal, OAuth auth planned, voting record API ready to wire, expanding to state/local reps.
 
+> **Architecture note (2026-08):** RepMap was converted to a frontend-only application deployed on Vercel — see [Phase 5](#phase-5--frontend-only-migration-completed-2026-08) at the bottom of the Completed Work log, and `README.md` for the current architecture. As part of that migration, **Phase 3's OAuth, watchlists, and notifications were removed** from the frontend (they were already non-functional in production — 0 users, sign-in button commented out), and **Phase 4's Celery/Redis background task infrastructure is now unused** (it never actually ran in production — no worker/beat process was ever deployed). The backend code for these features still exists in `backend/representatives/` but is never invoked, since Django is no longer deployed as a live server. Everything else described below (districts, ZIP search, committee graph, redistricting, PWA) is live and working, just served from static files instead of a live API.
+
 ---
 
 ## Phase 1 — "Ship What's Already Built" (1–2 weeks)
@@ -387,3 +389,19 @@ Two PWA icons (192×192 and 512×512) were generated programmatically in a brand
 Build output: `dist/sw.js`, `dist/workbox-*.js`, `dist/manifest.json`, `dist/icons/icon-{192,512}.png`. `npx tsc --noEmit` and `npm run build` both clean (expected Mapbox bundle-size warning only).
 
 Phase 4 feature work complete.
+
+---
+
+## Phase 5 — Frontend-Only Migration (Completed 2026-08)
+
+The Render free-tier backend was causing a 1–2 minute cold-start wait for every visitor after 15 minutes of inactivity, and the frontend hard-blocked its first render on a round-trip to that backend just to fetch the Mapbox token. Investigation showed the app was already ~90% static: district geometry, ZIP lookup, and election dates had zero request-time external dependencies, and the only genuinely server-dependent features (votes, legislation, computed report cards) needed nothing from Django beyond a network proxy.
+
+**Removed:** Google OAuth, watchlists, and in-app notifications — all already non-functional in production (sign-in button commented out, 0 registered users, the Celery notification task never scheduled). The frontend code was deleted; the backend code was left in place as inert reference material since the backend is no longer deployed.
+
+**Converted to static:** representative list + detail, committee assignments (split into a separate lazily-merged file to keep the initial payload small), ZIP lookup table (33,620 ZIPs, resolved fully client-side), election dates, and per-state congressional/historical district GeoJSON. A new `export_static_data` management command generates all of it with deterministic output and hard-fail validation — including automatic resolution of a real data anomaly it caught on first use (a stale outgoing senator's row lingering alongside their mid-term successor in the upstream `congress-legislators` source).
+
+**Converted to Vercel serverless functions:** votes (GovTrack), legislation (Congress.gov, needs `CONGRESS_API_KEY`), and report-card (both, computed). Two bugs were only caught by testing an actual Vercel preview deployment rather than local builds: a CommonJS/ESM module-format mismatch that crashed every function on cold start, and a CSP `worker-src` directive that blocked the PWA service worker from registering (the old Django-served CSP had never actually applied to the Vercel-hosted frontend, so this was invisible until `vercel.json` started applying a CSP to the app shell itself).
+
+**Automated freshness:** `.github/workflows/update-data.yml` runs the export pipeline weekly against a fresh SQLite database and commits the result only if it changed, so Vercel doesn't redeploy for no-op runs. The `*/14min` Render keep-alive cron was deleted.
+
+**Result:** instant load on Vercel's CDN, zero cold starts, no live backend to operate. Full architecture in `README.md`.
