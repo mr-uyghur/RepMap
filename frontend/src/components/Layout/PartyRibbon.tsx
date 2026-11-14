@@ -17,6 +17,8 @@ function countByParty(reps: Representative[], chamber: Level): ChamberCounts {
   let independents = 0
   for (const rep of reps) {
     if (rep.level !== chamber) continue
+    // Exclude non-voting delegates (D.C.) from voting House chamber balance.
+    if (chamber === 'us_house' && rep.state === 'DC') continue
     if (rep.party === 'democrat') democrats += 1
     else if (rep.party === 'republican') republicans += 1
     else independents += 1

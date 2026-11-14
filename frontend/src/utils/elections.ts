@@ -216,3 +216,9 @@ export function electionPhase(cycles: ElectionCycleSummary[]): ElectionPhase {
   const phase: ElectionPhaseName = days <= 14 ? 'final' : days <= ELECTION_SEASON_DAYS ? 'season' : 'off'
   return { phase, cycle: next, days }
 }
+
+/** Cycle currently in focus for race pages, state race lists, and provenance:
+ *  retains the just-held cycle through Jan 3 (`post` phase), then advances to the next cycle. */
+export function activeCycle(cycles: ElectionCycleSummary[]): ElectionCycleSummary | null {
+  return electionPhase(cycles).cycle ?? upcomingCycle(cycles)
+}

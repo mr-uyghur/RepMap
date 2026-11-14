@@ -5,8 +5,8 @@ import {
   ballotpediaStateUrl, electionPhase, formatDate, stateName, upcomingCycle,
 } from '../../utils/elections'
 import {
-  countReporting, hasPreElectionReports, houseSeatLabel, isKnownState, partyAbbr,
-  racesForState, seatHolder, seatStatus, stateMembers, type StateRace,
+  countReporting, hasPreElectionReports, HOUSE_APPORTIONMENT, houseSeatLabel, isKnownState, partyAbbr,
+  racesForState, seatHolder, seatStatus, stateMembers, vacantDistrictsForState, type StateRace,
 } from '../../utils/stateRaces'
 import { STATE_VOTING_RESOURCES } from '../Panel/HowToVoteTab'
 import MemberCard from './MemberCard'
@@ -65,10 +65,19 @@ function CompareIcon() {
 }
 
 /** "2 senators · 3 House districts" (DC: a non-voting delegate, no senators). */
-function headline(code: string, senators: number, house: Representative[]): string {
+function headline(code: string, senators: number, house: Representative[], allReps: Representative[]): string {
   if (code === 'DC') return '1 non-voting House delegate · no U.S. senators'
-  const atLarge = house.length === 1 && !house[0].district_number
-  const houseText = atLarge ? '1 at-large House seat' : plural(house.length, 'House district')
+  const apportioned = HOUSE_APPORTIONMENT[code] ?? house.length
+  const vacant = vacantDistrictsForState(allReps, code)
+  let houseText: string
+  if (apportioned === 1) {
+    houseText = vacant.length > 0 ? '1 at-large House seat (vacant)' : '1 at-large House seat'
+  } else if (vacant.length > 0) {
+    const vLabel = vacant.length === 1 ? `District ${vacant[0]} vacant` : `${vacant.length} seats vacant`
+    houseText = `${plural(apportioned, 'House district')} (${vLabel})`
+  } else {
+    houseText = plural(house.length, 'House district')
+  }
   return `${plural(senators, 'senator')} · ${houseText}`
 }
 
@@ -218,7 +227,7 @@ export default function StateOverview({ stateCode, onSelectRace, onSelectRep, fo
   const board = STATE_VOTING_RESOURCES[code]?.boardUrl
   const senateRaces = races.filter((r) => r.race.office === 'S')
   const houseRaces = races.filter((r) => r.race.office === 'H')
-  const raceCycle = load.status === 'ready' ? load.data.cycle : next?.cycle ?? null
+  const raceCycle = load.status === 'ready' ? load.data.cycle : phase?.cycle?.cycle ?? next?.cycle ?? null
   const showChips = phase?.phase === 'season' || phase?.phase === 'final'
   const atBottom = !phase || phase.phase === 'off' || phase.phase === 'post'
   const showHouseFilter = house.length >= 6
@@ -323,6 +332,7 @@ export default function StateOverview({ stateCode, onSelectRace, onSelectRep, fo
     </section>
   )
 
+  const bpYear = phase?.cycle?.cycle ?? next?.cycle ?? new Date().getFullYear()
   const voteSection = (
     <section ref={voteRef} className="overview-section" aria-labelledby={voteId}>
       <div className="overview-section-head">
@@ -345,13 +355,13 @@ export default function StateOverview({ stateCode, onSelectRace, onSelectRep, fo
         <li>
           <a
             className="state-ov-link"
-            href={ballotpediaStateUrl(code, next?.cycle ?? new Date().getFullYear())}
+            href={ballotpediaStateUrl(code, bpYear)}
             target="_blank"
             rel="noopener noreferrer"
           >
             <span className="state-ov-link-text">
               <span className="state-ov-link-title">State and local races, ballot measures</span>
-              <span className="state-ov-link-sub">{name} {next?.cycle ?? ''} elections on Ballotpedia</span>
+              <span className="state-ov-link-sub">{name} {bpYear} elections on Ballotpedia</span>
             </span>
             <span className="sr-only"> (opens in a new tab)</span>
           </a>
@@ -371,7 +381,7 @@ export default function StateOverview({ stateCode, onSelectRace, onSelectRep, fo
           <span className="overview-kicker">Congressional Delegation</span>
         </div>
         <h2 id={titleId} className="overview-title" tabIndex={-1}>{name}</h2>
-        {membersReady && <p className="overview-subtitle">{headline(code, senators.length, house)}</p>}
+        {membersReady && <p className="overview-subtitle">{headline(code, senators.length, house, allReps)}</p>}
 
         {partySplit.total > 0 && (
           <div className="state-ov-summary" aria-label={`${name} delegation party breakdown`}>
@@ -558,6 +568,19 @@ export default function StateOverview({ stateCode, onSelectRace, onSelectRep, fo
                 {filteredHouse.map((rep) => (
                   <li key={rep.id}>
                     <MemberCard rep={rep} variant="row" status={memberStatus(rep)} onSelect={onSelectRep} />
+                  </li>
+                ))}
+                {houseParty === 'all' && !houseQuery.trim() && vacantDistrictsForState(allReps, code).map((d) => (
+                  <li key={`vacant-${d}`} className="state-ov-race state-ov-race--empty">
+                    <span className="state-ov-race-badge" aria-hidden="true">
+                      {HOUSE_APPORTIONMENT[code] === 1 ? 'AL' : `CD-${String(d).padStart(2, '0')}`}
+                    </span>
+                    <span className="state-ov-race-text">
+                      <span className="state-ov-race-title">
+                        {HOUSE_APPORTIONMENT[code] === 1 ? 'At-large District' : `District ${d}`}
+                      </span>
+                      <span className="state-ov-race-line">Seat currently vacant in the 119th Congress</span>
+                    </span>
                   </li>
                 ))}
               </ul>

@@ -3,15 +3,17 @@ import { getElectionCycle, getElectionIndex } from '../../api/representatives'
 import { useRepStore } from '../../store/repStore'
 import type { ElectionCycleData, ElectionCycleSummary, ElectionRace, FecCandidate, Representative } from '../../types'
 import {
+  activeCycle,
   ballotpediaRaceUrl,
   daysUntil,
+  electionPhase,
   formatDate,
   formatMoney,
   formatShortDate,
   raceTitle,
   senateRaceId,
   stateName,
-  upcomingCycle,
+  type ElectionPhase,
 } from '../../utils/elections'
 import {
   groupCandidates,
@@ -21,7 +23,7 @@ import {
   seatHolder,
   stateRule,
 } from '../../utils/raceGroups'
-import { HowToVote, stateElectionsOffice } from '../Panel/HowToVoteTab'
+import { HowToVote, STATE_VOTING_RESOURCES, stateElectionsOffice } from '../Panel/HowToVoteTab'
 import CandidateFunding, { FundingLegend } from './CandidateFunding'
 import './RaceView.css'
 
@@ -37,7 +39,7 @@ type Load =
   | { status: 'loading' }
   | { status: 'error' }
   | { status: 'none' } // no upcoming cycle published
-  | { status: 'ready'; summary: ElectionCycleSummary; data: ElectionCycleData }
+  | { status: 'ready'; summary: ElectionCycleSummary; data: ElectionCycleData; phase: ElectionPhase }
 
 const PARTY_NAMES: Record<string, string> = {
   democrat: 'Democrat',
@@ -115,10 +117,11 @@ export default function RaceView({ raceId, fromZip, onSelectRep, onSelectRace, o
     setLoad({ status: 'loading' })
     getElectionIndex()
       .then(async (index) => {
-        const summary = upcomingCycle(index.cycles)
+        const phase = electionPhase(index.cycles)
+        const summary = activeCycle(index.cycles)
         if (!summary) return { status: 'none' } as const
         const data = await getElectionCycle(summary.path)
-        return { status: 'ready', summary, data } as const
+        return { status: 'ready', summary, data, phase } as const
       })
       .then((next) => { if (!cancelled) setLoad(next) })
       .catch(() => { if (!cancelled) setLoad({ status: 'error' }) })
@@ -236,7 +239,9 @@ export default function RaceView({ raceId, fromZip, onSelectRep, onSelectRace, o
     )
   }
 
-  const { summary, data } = ready
+  const { summary, data, phase } = ready
+  const isPost = phase.phase === 'post' && phase.cycle?.cycle === summary.cycle
+  const boardUrl = STATE_VOTING_RESOURCES[race.state]?.boardUrl
   const rule = stateRule(race.state)
   const holderFec = new Set(holder?.external_ids?.fec_ids ?? [])
   const incumbentRunning = groups.reporting.some((c) => holderFec.has(c.fec_id) || c.incumbent)
@@ -287,6 +292,26 @@ export default function RaceView({ raceId, fromZip, onSelectRep, onSelectRace, o
           {countdown && <strong className="race-countdown">{countdown}</strong>}
         </div>
       </header>
+
+      {isPost && (
+        <div className="race-post-callout" role="note">
+          <p className="race-post-text">
+            <strong>{dayShort} general election results.</strong> RepMap does not report vote counts. The 120th Congress convenes Jan 3, {summary.cycle + 1} (special-election winners are seated once state results are certified).
+          </p>
+          {boardUrl && (
+            <a
+              href={boardUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="race-pill-link"
+            >
+              Official {stateName(race.state)} election results
+              <span className="sr-only"> (opens in a new tab)</span>
+              <span aria-hidden="true"> ↗</span>
+            </a>
+          )}
+        </div>
+      )}
 
       {financeStats && (
         <div className="race-finance" aria-label="Campaign finance summary">
@@ -364,9 +389,18 @@ export default function RaceView({ raceId, fromZip, onSelectRep, onSelectRace, o
                 </h3>
               </div>
               <p className="race-explain">
-                These candidates reported to the FEC for the general election
-                {latestReporting && <> (through {formatShortDate(latestReporting).replace(/^\w+, /, '')})</>}.
-                They are the most likely to be on the {dayShort} ballot. Check with your state to be sure.
+                {isPost ? (
+                  <>
+                    These candidates reported to the FEC for the {dayShort} general election
+                    {latestReporting && <> (through {formatShortDate(latestReporting).replace(/^\w+, /, '')})</>}.
+                  </>
+                ) : (
+                  <>
+                    These candidates reported to the FEC for the general election
+                    {latestReporting && <> (through {formatShortDate(latestReporting).replace(/^\w+, /, '')})</>}.
+                    They are the most likely to be on the {dayShort} ballot. Check with your state to be sure.
+                  </>
+                )}
               </p>
             </>
           ) : (
@@ -377,8 +411,9 @@ export default function RaceView({ raceId, fromZip, onSelectRep, onSelectRace, o
                 </h3>
               </div>
               <p className="race-explain">
-                No one in this race has filed a pre-election report yet, so everyone who filed with the FEC is
-                listed. Some may not be on the ballot.
+                {isPost
+                  ? `No candidate in this race filed a pre-election report; everyone who filed with the FEC for ${summary.cycle} is listed.`
+                  : 'No one in this race has filed a pre-election report yet, so everyone who filed with the FEC is listed. Some may not be on the ballot.'}
               </p>
             </>
           )}
@@ -479,7 +514,7 @@ export default function RaceView({ raceId, fromZip, onSelectRep, onSelectRace, o
         </button>
       </nav>
 
-      <HowToVote state={race.state} />
+      {!isPost && <HowToVote state={race.state} />}
       <p className="race-more">
         <a href={ballotpediaRaceUrl(race, summary.cycle)} target="_blank" rel="noopener noreferrer" className="race-pill-link">
           This race on Ballotpedia

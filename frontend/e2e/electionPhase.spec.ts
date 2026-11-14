@@ -1,7 +1,7 @@
 // Unit tests for electionPhase() (MEMBERS_FIRST_PROPOSAL.md). Pure: no browser page
 // is opened. "Today" is pinned by swapping in a fake Date for each check.
 import { test, expect } from '@playwright/test'
-import { electionPhase, type ElectionPhaseName } from '../src/utils/elections'
+import { activeCycle, electionPhase, type ElectionPhaseName } from '../src/utils/elections'
 import type { ElectionCycleSummary } from '../src/types'
 
 const cycle = (year: number, general: string): ElectionCycleSummary => ({
@@ -101,5 +101,14 @@ test.describe('electionPhase', () => {
   test('cycle order in the index does not matter', () => {
     const reversed = [...CYCLES].reverse()
     expect(on('2026-11-10', () => electionPhase(reversed)).cycle?.cycle).toBe(2026)
+  })
+
+  test('activeCycle retains the held cycle through Jan 3, then advances to the next cycle', () => {
+    for (const iso of ['2026-10-26', '2026-11-03', '2026-11-04', '2026-11-13', '2027-01-03']) {
+      expect(on(iso, () => activeCycle(CYCLES))?.cycle, iso).toBe(2026)
+    }
+    for (const iso of ['2027-01-04', '2027-03-01']) {
+      expect(on(iso, () => activeCycle(CYCLES))?.cycle, iso).toBe(2028)
+    }
   })
 })

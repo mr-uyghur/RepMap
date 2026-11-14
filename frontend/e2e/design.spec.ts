@@ -452,17 +452,26 @@ test.describe('RepMap level content', () => {
     await expect(race.getByRole('heading', { level: 2 })).toHaveText('Nebraska U.S. Senate')
   })
 
-  test('L5 after the election the race level shows the next cycle', async ({ page }, info) => {
+  test('L5 after the election retains the held cycle until Jan 3, then advances to the next cycle', async ({ page }, info) => {
     const rec = record(page)
     await page.clock.setFixedTime(DAY_AFTER)
     await page.goto('/?race=US-HOU-CA-18')
     await applyAppTheme(page, scheme(info))
     const race = page.locator('.race')
     await expect(race.getByRole('heading', { level: 2 })).toHaveText('California 18th District', { timeout: 20_000 })
+    await expect(race).toContainText('Zoe Lofgren')
+    await expect(race).toContainText('Official California election results')
+    await expect(race).toContainText('120th Congress convenes Jan 3, 2027')
+    await expect(race).not.toContainText(/open seat|has passed/i)
+    await finish(page, info, 'race-after', rec)
+
+    // Once the new Congress is sworn in (off-season), race pages roll forward to 2028.
+    await page.clock.setFixedTime(new Date('2027-03-01T12:00:00'))
+    await page.goto('/?race=US-HOU-CA-18')
+    await expect(race.getByRole('heading', { level: 2 })).toHaveText('California 18th District', { timeout: 20_000 })
     await expect(race).toContainText('2028')
     await expect(race).toContainText('No candidates have filed with the FEC for this race yet.')
     await expect(race).not.toContainText(/open seat|has passed/i)
-    await finish(page, info, 'race-after', rec)
   })
 })
 
@@ -918,5 +927,83 @@ test.describe('Dossier modals & Embed surfaces', () => {
     expect.soft(await smallTargets(page, '.embed-panel, .embed-watermark'), 'targets < 44px').toEqual([])
     await page.waitForTimeout(600)
     await finish(page, info, 'embed-card', rec)
+  })
+})
+
+test.describe('Post-midterm civic accuracy', () => {
+  const POST = new Date('2026-11-13T12:00:00')
+
+  test('P1 Voting House & Congress balance (/) and active FEC provenance', async ({ page }, info) => {
+    const rec = record(page)
+    await page.clock.setFixedTime(POST)
+    await page.goto('/')
+    await applyAppTheme(page, scheme(info))
+
+    const strip = page.locator('.congress-strip')
+    await expect(strip).toContainText('533 / 535 voting seats', { timeout: 20_000 })
+    await expect(strip).toContainText('D 214')
+    await expect(strip).toContainText('I 1')
+    await expect(strip).toContainText('R 218')
+    await expect(strip).toContainText('FL-20, TX-23')
+    await expect(strip).toContainText('+1 non-voting D.C. delegate')
+
+    if (!isPhone(page)) {
+      const ribbon = page.locator('.party-ribbon')
+      await expect(ribbon).toContainText('214 D')
+      await expect(ribbon).toContainText('218 R')
+    }
+
+    await finish(page, info, 'post-midterm-us', rec)
+
+    if (isPhone(page)) {
+      await page.locator('.navbar-menu-btn').click()
+      await page.locator('.navbar-menu').getByRole('button', { name: 'About the data' }).click()
+    } else {
+      await page.locator('.navbar-about-btn').click()
+    }
+    const about = page.getByRole('dialog', { name: 'About the data' })
+    await expect(about).toBeVisible()
+    await expect(about).toContainText('Nov 9, 2026')
+    await page.keyboard.press('Escape')
+  })
+
+  test('P2 Post-election special Senate race & appointed senator status', async ({ page }, info) => {
+    const rec = record(page)
+    await page.clock.setFixedTime(POST)
+    await page.goto('/?race=US-SEN-OH-S')
+    await applyAppTheme(page, scheme(info))
+
+    const race = page.locator('.race')
+    await expect(race.getByRole('heading', { level: 2 })).toHaveText('Ohio U.S. Senate (special)', { timeout: 20_000 })
+    await expect(race).toContainText('Official Ohio election results')
+    await expect(race.getByRole('heading', { name: /How to vote/i })).toHaveCount(0)
+
+    await page.goto('/?state=OH')
+    const ohio = page.getByRole('main', { name: 'Ohio' })
+    const hustedRow = ohio.getByRole('button', { name: /Jon Husted/ })
+    await expect(hustedRow).toContainText('Special election Nov 3 · awaiting certification', { timeout: 20_000 })
+    await hustedRow.click()
+
+    const panel = page.getByRole('region', { name: 'Representative details' })
+    await expect(panel.getByRole('heading', { level: 2, name: 'Jon Husted' })).toBeVisible({ timeout: 20_000 })
+    await expect(panel.getByRole('tabpanel', { name: 'Overview' })).toContainText(
+      'Appointed term through Election Day · awaiting state certification',
+    )
+    await finish(page, info, 'post-midterm-oh', rec)
+  })
+
+  test('P3 Vacant House seat context (?district=FL-20)', async ({ page }, info) => {
+    const rec = record(page)
+    await page.clock.setFixedTime(POST)
+    await page.goto('/?district=FL-20')
+    await applyAppTheme(page, scheme(info))
+
+    const main = page.getByRole('main', { name: 'District 20' })
+    await expect(main).toContainText('U.S. Representative: Seat vacant', { timeout: 20_000 })
+    await expect(main).toContainText('currently vacant in the 119th Congress')
+    await expect(main.getByRole('button', { name: /Ashley Moody/ })).toContainText(
+      'Special election Nov 3 · awaiting certification',
+    )
+    await finish(page, info, 'post-midterm-vacant', rec)
   })
 })

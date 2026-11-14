@@ -218,6 +218,31 @@
   font-weight: 700;
 }
 
+.race-post-callout {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 11px 13px;
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent-text);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+}
+
+.race-post-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.48;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.race-post-text strong {
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
 /* Tactile >= 44x44px external link pill (guarantees smallTargets check passes) */
 .race-pill-link {
   display: inline-flex;

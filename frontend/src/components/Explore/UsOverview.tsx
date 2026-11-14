@@ -2,7 +2,7 @@ import { useId, useMemo, useState } from 'react'
 import { useRepStore } from '../../store/repStore'
 import type { Representative } from '../../types'
 import { electionPhase } from '../../utils/elections'
-import { STATE_CODES, stateSummary } from '../../utils/stateRaces'
+import { HOUSE_APPORTIONMENT, STATE_CODES, stateSummary, vacantDistrictsForState } from '../../utils/stateRaces'
 import SeasonCard from './SeasonCard'
 import StateList from './StateList'
 import { useElectionIndex } from './useElection'
@@ -116,6 +116,8 @@ function summarizeChamber(reps: Representative[], level: 'us_senate' | 'us_house
   let ind = 0
   for (const r of reps) {
     if (r.level !== level) continue
+    // Exclude non-voting delegates (D.C.) from voting House chamber counts.
+    if (level === 'us_house' && r.state === 'DC') continue
     if (r.party === 'democrat') dem++
     else if (r.party === 'republican') rep++
     else ind++
@@ -179,9 +181,25 @@ export default function UsOverview({ onSelectState, onSearchFocus, onSelectZip, 
 
   const chambers = useMemo(() => {
     if (!allReps.length) return null
+    const senate = summarizeChamber(allReps, 'us_senate')
+    const house = summarizeChamber(allReps, 'us_house')
+    const delegates = allReps.filter((r) => r.level === 'us_house' && r.state === 'DC').length
+    const vacantCodes = Object.keys(HOUSE_APPORTIONMENT)
+      .sort()
+      .flatMap((code) =>
+        vacantDistrictsForState(allReps, code).map((d) =>
+          HOUSE_APPORTIONMENT[code] === 1 ? `${code}-AL` : `${code}-${String(d).padStart(2, '0')}`,
+        ),
+      )
+    const votingTotal = senate.total + house.total
+    const vacantTotal = Math.max(0, 535 - votingTotal)
     return {
-      senate: summarizeChamber(allReps, 'us_senate'),
-      house: summarizeChamber(allReps, 'us_house'),
+      senate,
+      house,
+      delegates,
+      vacantCodes,
+      votingTotal,
+      vacantTotal,
     }
   }, [allReps])
 
@@ -212,12 +230,26 @@ export default function UsOverview({ onSelectState, onSearchFocus, onSelectZip, 
         <section className="congress-strip" aria-label="Current Congress party balance">
           <div className="congress-strip-head">
             <span className="congress-strip-label">Current Congress Balance</span>
-            <span className="congress-strip-sub">{chambers.senate.total + chambers.house.total} federal seats</span>
+            <span className="congress-strip-sub">
+              {chambers.votingTotal < 535 ? `${chambers.votingTotal} / 535 voting seats` : '535 voting seats'}
+            </span>
           </div>
           <div className="congress-grid">
             <ChamberCard label="U.S. Senate" stats={chambers.senate} />
             <ChamberCard label="U.S. House" stats={chambers.house} />
           </div>
+          {(chambers.vacantTotal > 0 || chambers.delegates > 0) && (
+            <p className="congress-strip-note">
+              {chambers.vacantTotal > 0 && (
+                <>
+                  {chambers.vacantTotal} House {chambers.vacantTotal === 1 ? 'seat' : 'seats'} vacant
+                  {chambers.vacantCodes.length > 0 ? ` (${chambers.vacantCodes.join(', ')})` : ''}
+                </>
+              )}
+              {chambers.vacantTotal > 0 && chambers.delegates > 0 && ' · '}
+              {chambers.delegates > 0 && `+${chambers.delegates} non-voting D.C. delegate`}
+            </p>
+          )}
         </section>
       )}
 

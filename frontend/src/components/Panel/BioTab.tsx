@@ -83,6 +83,13 @@ function computeTermProgress(startIso?: string | null, endIso?: string | null): 
   return Math.max(0, Math.min(100, pct))
 }
 
+function isTermPast(endIso?: string | null): boolean {
+  if (!endIso) return false
+  const now = new Date()
+  const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  return endIso.slice(0, 10) < todayIso
+}
+
 /** "1401 Longworth House Office Building Washington DC 20515-0518" -> building line only. */
 function officeLine(rep: Representative) {
   const raw = rep.office_room || rep.office_address
@@ -428,7 +435,11 @@ export default function BioTab({ rep, onCommitteeClick, seatUpYear = null }: Pro
                     </span>
                   )}
                   {termPct !== null && (
-                    <span className="ov-term-caption">{termPct}% of current term elapsed</span>
+                    <span className="ov-term-caption">
+                      {isTermPast(rep.term_end)
+                        ? 'Appointed term through Election Day · awaiting state certification'
+                        : `${termPct}% of current term elapsed`}
+                    </span>
                   )}
                 </dd>
               </div>

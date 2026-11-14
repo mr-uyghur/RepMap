@@ -2,7 +2,7 @@ import { useId, useMemo } from 'react'
 import { useRepStore } from '../../store/repStore'
 import type { Representative } from '../../types'
 import { electionPhase, stateName, upcomingCycle } from '../../utils/elections'
-import { isKnownState, seatStatus, stateMembers } from '../../utils/stateRaces'
+import { HOUSE_APPORTIONMENT, isKnownState, seatStatus, stateMembers } from '../../utils/stateRaces'
 import BallotStrip from '../Election/BallotStrip'
 import { STATE_VOTING_RESOURCES } from '../Panel/HowToVoteTab'
 import MemberCard from './MemberCard'
@@ -80,6 +80,12 @@ export default function DistrictView({
   const board = STATE_VOTING_RESOURCES[code]?.boardUrl
   const title = fromZip ? `Your members for ZIP ${fromZip}` : districtTitle(code, district)
   const badgeCode = districtCodeBadge(code, district)
+  const apportioned = code === 'DC' ? 1 : (HOUSE_APPORTIONMENT[code] ?? 0)
+  const isApportionedDistrict = code === 'DC'
+    ? !district
+    : apportioned === 1
+      ? !district || district === 1
+      : !!district && district >= 1 && district <= apportioned
 
   const header = (
     <header className="overview-hero">
@@ -162,10 +168,14 @@ export default function DistrictView({
             ) : (
               <div className="district-view-vacant">
                 <p className="district-view-vacant-title">
-                  {code === 'DC' ? 'Delegate' : 'U.S. Representative'}: no member in our data
+                  {isApportionedDistrict
+                    ? `${code === 'DC' ? 'Delegate' : 'U.S. Representative'}: Seat vacant`
+                    : `${code === 'DC' ? 'Delegate' : 'U.S. Representative'}: no member in our data`}
                 </p>
                 <p className="overview-note">
-                  The seat may be vacant, or the district may have changed after redistricting.
+                  {isApportionedDistrict
+                    ? 'This House seat is currently vacant in the 119th Congress until a new representative is sworn in. Constituent casework is handled by the Office of the Clerk at (202) 225-7000.'
+                    : 'The seat may be vacant, or the district number may not exist in the current map.'}
                 </p>
               </div>
             )}

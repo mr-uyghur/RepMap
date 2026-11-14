@@ -1,7 +1,7 @@
 import { useId, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useRepStore } from '../../store/repStore'
-import { stateName, upcomingCycle } from '../../utils/elections'
+import { activeCycle, stateName } from '../../utils/elections'
 import { STATE_CODES, memberCountText, stateMembers, stateSummary, type StateSummary } from '../../utils/stateRaces'
 import { useElectionIndex } from './useElection'
 import './StateList.css'
@@ -64,7 +64,7 @@ export default function StateList({ onSelectState, currentState, showRaceCounts 
   const [query, setQuery] = useState('')
   const [region, setRegion] = useState<RegionId>('all')
 
-  const cycle = showRaceCounts && index.status === 'ready' ? upcomingCycle(index.value.cycles)?.cycle ?? null : null
+  const cycle = showRaceCounts && index.status === 'ready' ? activeCycle(index.value.cycles)?.cycle ?? null : null
 
   const items = useMemo(
     () =>

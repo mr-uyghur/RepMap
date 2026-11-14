@@ -11,6 +11,15 @@ export const STATE_CODES: readonly string[] = [
   'WV', 'WI', 'WY',
 ].sort((a, b) => stateName(a).localeCompare(stateName(b)))
 
+/** 2020-Census U.S. House apportionment across the 50 states (435 voting seats). D.C. is excluded (1 non-voting delegate). */
+export const HOUSE_APPORTIONMENT: Record<string, number> = {
+  AK: 1, AL: 7, AR: 4, AZ: 9, CA: 52, CO: 8, CT: 5, DE: 1, FL: 28, GA: 14,
+  HI: 2, IA: 4, ID: 2, IL: 17, IN: 9, KS: 4, KY: 6, LA: 6, MA: 9, MD: 8,
+  ME: 2, MI: 13, MN: 8, MO: 8, MS: 4, MT: 2, NC: 14, ND: 1, NE: 3, NH: 2,
+  NJ: 12, NM: 3, NV: 4, NY: 26, OH: 15, OK: 5, OR: 6, PA: 17, RI: 2, SC: 7,
+  SD: 1, TN: 9, TX: 38, UT: 4, VA: 11, VT: 1, WA: 10, WI: 8, WV: 2, WY: 1,
+}
+
 export function isKnownState(code: string): boolean {
   return STATE_CODES.includes(code)
 }
@@ -82,9 +91,24 @@ export function seatHolder(race: ElectionRace, cycle: number, reps: Representati
   return senators.find((r) => r.external_ids?.fec_ids?.some((id) => incumbentIds.has(id))) ?? null
 }
 
+export function vacantDistrictsForState(reps: Representative[], code: string): number[] {
+  if (code === 'DC') return []
+  const apportioned = HOUSE_APPORTIONMENT[code]
+  if (!apportioned) return []
+  const { house } = stateMembers(reps, code)
+  const seated = new Set(house.map((r) => (r.district_number && r.district_number > 0 ? r.district_number : 1)))
+  const vacant: number[] = []
+  for (let d = 1; d <= apportioned; d += 1) {
+    if (!seated.has(d)) vacant.push(d)
+  }
+  return vacant
+}
+
 export interface StateSummary {
   senators: number
   houseSeats: number
+  apportionedHouse: number
+  vacantHouse: number
   /** One House member elected statewide (AK, DE, ND, SD, VT, WY) or DC's delegate. */
   atLarge: boolean
   /** Senate seats up in `cycle` (0 when `cycle` is null/unknown). */
@@ -94,9 +118,13 @@ export interface StateSummary {
 /** Counts from the member list only, so the home screen never needs the cycle JSON. */
 export function stateSummary(reps: Representative[], state: string, cycle: number | null): StateSummary {
   const { senators, house } = stateMembers(reps, state)
+  const apportionedHouse = state === 'DC' ? 0 : (HOUSE_APPORTIONMENT[state] ?? house.length)
+  const vacantHouse = state === 'DC' ? 0 : Math.max(0, apportionedHouse - house.length)
   return {
     senators: senators.length,
     houseSeats: house.length,
+    apportionedHouse,
+    vacantHouse,
     atLarge: house.length === 1 && !house[0].district_number,
     senateUp: cycle == null ? 0 : senators.filter((r) => seatUpInCycle(r.term_end, cycle)).length,
   }
@@ -146,6 +174,14 @@ function shortMonthDay(iso: string): string {
   return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+function localTodayIso(): string {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 /** A member's one-line status, phase-aware (`electionPhase()` from utils/elections):
  *  "Seat up Nov 3" in season/final, "Seat up in 2028" off-season, "Seat was up Nov 3"
  *  after the election, otherwise "Term ends 2031". */
@@ -155,11 +191,19 @@ export function seatStatus(
   next: ElectionCycleSummary | null,
 ): string | null {
   const held = phase?.phase === 'post' ? phase.cycle : null
-  if (held && seatUpInCycle(rep.term_end, held.cycle)) return `Seat was up ${shortMonthDay(held.general_date)}`
+  if (held && seatUpInCycle(rep.term_end, held.cycle)) {
+    if (isSpecialSeat(rep.term_end, held.cycle)) {
+      return `Special election ${shortMonthDay(held.general_date)} · awaiting certification`
+    }
+    return `Seat was up ${shortMonthDay(held.general_date)}`
+  }
   if (next && seatUpInCycle(rep.term_end, next.cycle)) {
     return phase && (phase.phase === 'season' || phase.phase === 'final')
       ? `Seat up ${shortMonthDay(next.general_date)}`
       : `Seat up in ${next.cycle}`
+  }
+  if (rep.term_end && rep.term_end.slice(0, 10) < localTodayIso()) {
+    return 'Special election · awaiting certification'
   }
   const ends = termEndYear(rep.term_end)
   return ends ? `Term ends ${ends}` : null
@@ -167,7 +211,8 @@ export function seatStatus(
 
 /** Tile text from member counts: "2 senators · 3 House"; DC has one non-voting delegate. */
 export function memberCountText(code: string, s: StateSummary): string {
-  if (!s.houseSeats && !s.senators) return ''
+  if (!s.houseSeats && !s.senators && !s.vacantHouse) return ''
   if (code === 'DC') return '1 non-voting delegate'
-  return `${s.senators} ${s.senators === 1 ? 'senator' : 'senators'} · ${s.houseSeats} House`
+  const base = `${s.senators} ${s.senators === 1 ? 'senator' : 'senators'} · ${s.houseSeats} House`
+  return s.vacantHouse > 0 ? `${base} · ${s.vacantHouse} vacant` : base
 }

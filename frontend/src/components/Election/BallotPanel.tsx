@@ -3,6 +3,7 @@ import { getElectionCycle, getElectionIndex } from '../../api/representatives'
 import type { ElectionCycleData, ElectionCycleSummary, ElectionRace, Representative } from '../../types'
 import { lookupZipLocation, type ZipLocation } from '../../utils/zipLookup'
 import {
+  activeCycle,
   ballotpediaRaceUrl,
   ballotpediaStateUrl,
   countdownText,
@@ -10,7 +11,6 @@ import {
   racesForLocation,
   raceTitle,
   stateName,
-  upcomingCycle,
 } from '../../utils/elections'
 import { STATE_VOTING_RESOURCES } from '../Panel/HowToVoteTab'
 import RaceView from './RaceView'
@@ -104,7 +104,7 @@ export default function BallotPanel({
     // Cycle JSON (~0.5 MB) is fetched only here, on demand, via the memoized helpers.
     Promise.all([getElectionIndex(), lookupZipLocation(zip)])
       .then(async ([index, loc]) => {
-        const summary = upcomingCycle(index.cycles)
+        const summary = activeCycle(index.cycles)
         if (!summary) return { status: 'none' } as const
         if (!loc) return { status: 'unknown-zip' } as const
         const data = await getElectionCycle(summary.path)

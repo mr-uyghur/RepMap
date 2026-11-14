@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { getElectionCycle, getElectionIndex } from '../../api/representatives'
 import type { ElectionCycleData, ElectionIndex } from '../../types'
-import { upcomingCycle } from '../../utils/elections'
+import { activeCycle } from '../../utils/elections'
 
 // Thin React wrappers over the memoized loaders in api/representatives.ts.
 // Never fetch directly: those helpers cache per session and evict failures.
@@ -42,7 +42,7 @@ export function useUpcomingCycle(): { state: UpcomingCycle; retry: () => void } 
     setState({ status: 'loading' })
     getElectionIndex()
       .then(async (index): Promise<UpcomingCycle> => {
-        const summary = upcomingCycle(index.cycles)
+        const summary = activeCycle(index.cycles)
         if (!summary) return { status: 'none' }
         return { status: 'ready', index, data: await getElectionCycle(summary.path) }
       })

@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { getElectionIndex } from '../../api/representatives'
-import { formatDate, upcomingCycle } from '../../utils/elections'
+import { activeCycle, formatDate } from '../../utils/elections'
 import type { ElectionCycleSummary } from '../../types'
 
 interface Props {
@@ -28,7 +28,7 @@ export default function AboutDataDialog({ open, onClose }: Props) {
     if (!open || cycle) return
     let cancelled = false
     getElectionIndex()
-      .then((index) => { if (!cancelled) setCycle(upcomingCycle(index.cycles)) })
+      .then((index) => { if (!cancelled) setCycle(activeCycle(index.cycles)) })
       .catch(() => { if (!cancelled) setIndexFailed(true) })
     return () => { cancelled = true }
   }, [open, cycle])

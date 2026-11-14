@@ -15,12 +15,12 @@ import { useMapStore } from './store/mapStore'
 import { useRepStore } from './store/repStore'
 import { fetchAllReps, getElectionCycle, getElectionIndex } from './api/representatives'
 import {
+  activeCycle,
   electionPhase,
   findRaceForRep,
   houseRaceId,
   senateRaceId,
   stateName,
-  upcomingCycle,
   type ElectionPhase,
 } from './utils/elections'
 import { lookupZipLocation, type ZipLocation } from './utils/zipLookup'
@@ -359,7 +359,7 @@ export default function App() {
         rep.level === 'us_house' ? houseRaceId(rep.state, rep.district_number) : senateRaceId(rep.state, false)
       try {
         const index = await getElectionIndex()
-        const cycle = upcomingCycle(index.cycles)
+        const cycle = activeCycle(index.cycles)
         const data = cycle ? await getElectionCycle(cycle.path) : null
         goRace((data && findRaceForRep(rep, data)?.id) ?? fallback)
       } catch {
@@ -529,7 +529,9 @@ export default function App() {
         <section className="overview" aria-labelledby="races-by-state-title">
           <h2 id="races-by-state-title" className="overview-purpose">Races by state</h2>
           <p className="overview-lede">
-            U.S. House and Senate races on the next federal ballot. Pick a state to see its members and its races.
+            {phase?.phase === 'post' && phase.cycle
+              ? `U.S. House and Senate races from the ${phase.cycle.cycle} general election. Pick a state to see its sitting members, FEC filings and official results.`
+              : 'U.S. House and Senate races on the next federal ballot. Pick a state to see its members and its races.'}
           </p>
           <RaceStateList onSelectState={goStateRaces} showRaceCounts />
         </section>
