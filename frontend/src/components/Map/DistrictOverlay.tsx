@@ -138,7 +138,7 @@ export default function DistrictOverlay({ onLoaded, dimmed = false, opacityScale
 
   if (!annotated) return null
 
-  const baseFillOpacity = darkMode ? 0.18 : 0.15
+  const baseFillOpacity = darkMode ? 0.2 : 0.14
 
   return (
     <Source id="national-districts" type="geojson" data={annotated}>
@@ -163,8 +163,8 @@ export default function DistrictOverlay({ onLoaded, dimmed = false, opacityScale
             'republican', darkMode ? '#f87171' : '#b91c1c',
             /* other */   darkMode ? '#94a3b8' : '#6b7280',
           ],
-          'line-width': ['interpolate', ['linear'], ['zoom'], 3, 1.2, 8, 2.5],
-          'line-opacity': dimmed ? 0 : opacityScale,
+          'line-width': ['interpolate', ['linear'], ['zoom'], 3, 0.85, 5.5, 1.4, 8.5, 2.3],
+          'line-opacity': dimmed ? 0 : opacityScale * (darkMode ? 0.82 : 0.78),
         }}
       />
     </Source>

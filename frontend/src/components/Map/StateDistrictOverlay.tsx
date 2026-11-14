@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Layer, Source } from 'react-map-gl'
+import { useMapStore } from '../../store/mapStore'
 import { useRepStore } from '../../store/repStore'
 
 interface FeatureCollection {
@@ -44,6 +45,7 @@ let upperRaw: FeatureCollection['features'] | null = null
 
 export default function StateDistrictOverlay({ active, onLayersReady, dimmed = false }: Props) {
   const allReps = useRepStore((s) => s.allReps)
+  const darkMode = useMapStore((s) => s.darkMode)
   const [lowerLoaded, setLowerLoaded] = useState(lowerRaw !== null)
   const [upperLoaded, setUpperLoaded] = useState(upperRaw !== null)
   const [annotatedLower, setAnnotatedLower] = useState<FeatureCollection | null>(null)
@@ -156,11 +158,11 @@ export default function StateDistrictOverlay({ active, onLayersReady, dimmed = f
           type="fill"
           paint={{
             'fill-color': ['match', ['get', 'party'],
-              'democrat',   '#2563eb',
-              'republican', '#dc2626',
-              '#9ca3af',
+              'democrat',   darkMode ? '#3b82f6' : '#2563eb',
+              'republican', darkMode ? '#ef4444' : '#dc2626',
+              darkMode ? '#64748b' : '#9ca3af',
             ],
-            'fill-opacity': visible && annotatedLower ? 0.15 : 0,
+            'fill-opacity': visible && annotatedLower ? (darkMode ? 0.18 : 0.14) : 0,
           }}
         />
         <Layer
@@ -168,12 +170,12 @@ export default function StateDistrictOverlay({ active, onLayersReady, dimmed = f
           type="line"
           paint={{
             'line-color': ['match', ['get', 'party'],
-              'democrat',   '#1d4ed8',
-              'republican', '#b91c1c',
-              '#6b7280',
+              'democrat',   darkMode ? '#60a5fa' : '#1d4ed8',
+              'republican', darkMode ? '#f87171' : '#b91c1c',
+              darkMode ? '#94a3b8' : '#6b7280',
             ],
-            'line-width': 1.5,
-            'line-opacity': visible && annotatedLower ? 1 : 0,
+            'line-width': 1.4,
+            'line-opacity': visible && annotatedLower ? 0.85 : 0,
           }}
         />
       </Source>
@@ -183,11 +185,11 @@ export default function StateDistrictOverlay({ active, onLayersReady, dimmed = f
           type="fill"
           paint={{
             'fill-color': ['match', ['get', 'party'],
-              'democrat',   '#2563eb',
-              'republican', '#dc2626',
-              '#9ca3af',
+              'democrat',   darkMode ? '#3b82f6' : '#2563eb',
+              'republican', darkMode ? '#ef4444' : '#dc2626',
+              darkMode ? '#64748b' : '#9ca3af',
             ],
-            'fill-opacity': visible && annotatedUpper ? 0.15 : 0,
+            'fill-opacity': visible && annotatedUpper ? (darkMode ? 0.18 : 0.14) : 0,
           }}
         />
         <Layer
@@ -195,12 +197,12 @@ export default function StateDistrictOverlay({ active, onLayersReady, dimmed = f
           type="line"
           paint={{
             'line-color': ['match', ['get', 'party'],
-              'democrat',   '#1d4ed8',
-              'republican', '#b91c1c',
-              '#6b7280',
+              'democrat',   darkMode ? '#60a5fa' : '#1d4ed8',
+              'republican', darkMode ? '#f87171' : '#b91c1c',
+              darkMode ? '#94a3b8' : '#6b7280',
             ],
             'line-width': 2,
-            'line-opacity': visible && annotatedUpper ? 1 : 0,
+            'line-opacity': visible && annotatedUpper ? 0.9 : 0,
           }}
         />
       </Source>

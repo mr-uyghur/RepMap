@@ -7,9 +7,15 @@
   padding: 4px 8px 4px 16px;
   background: var(--color-bg-surface);
   border-bottom: 1px solid var(--color-border);
-  border-left: 4px solid var(--color-accent);
+  border-left: 4px solid var(--color-accent-text);
   position: relative;
   z-index: 25;
+  font-family: var(--font-body);
+}
+
+.election-strip :is(button, a):focus-visible {
+  outline: 2px solid var(--color-accent-text);
+  outline-offset: 2px;
 }
 
 .election-strip-text {
@@ -23,26 +29,42 @@
   font-size: 14px;
   line-height: 1.3;
   color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
 }
-.election-strip-text strong { font-weight: 700; }
-.election-strip-sep { color: var(--color-text-muted); }
-.election-strip-count { color: var(--color-accent-text); font-weight: 700; }
+
+.election-strip-text strong {
+  font-weight: 750;
+}
+
+.election-strip-sep {
+  color: var(--color-text-muted);
+}
+
+.election-strip-count {
+  color: var(--color-accent-text);
+  font-weight: 750;
+}
 
 .election-strip-cta {
   flex: none;
   min-height: 44px;
+  min-width: 44px;
   padding: 0 16px;
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   background: var(--color-accent);
   color: var(--color-on-accent);
   font: inherit;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 750;
   cursor: pointer;
   white-space: nowrap;
+  transition: filter var(--transition-fast);
 }
-.election-strip-cta:hover { filter: brightness(1.06); }
+
+.election-strip-cta:hover {
+  filter: brightness(1.08);
+}
 
 .election-strip-close {
   flex: none;
@@ -51,18 +73,42 @@
   display: grid;
   place-items: center;
   border: 0;
-  border-radius: 50%;
-  background: none;
+  border-radius: var(--radius-full);
+  background: transparent;
   color: var(--color-text-secondary);
   cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
-.election-strip-close:hover { background: var(--color-bg-elevated); color: var(--color-text-primary); }
+
+.election-strip-close:hover {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
 
 @media (max-width: 480px) {
-  .election-strip { padding-left: 12px; gap: 6px; }
-  .election-strip-text { font-size: 13px; }
-  .election-strip-sep { display: none; }
-  .election-strip-text strong { flex-basis: 100%; }
-  .election-strip-cta { padding: 0 12px; font-size: 13px; }
-  .election-strip-cta-more { display: none; }
+  .election-strip {
+    padding-left: 12px;
+    gap: 6px;
+  }
+
+  .election-strip-text {
+    font-size: 13px;
+  }
+
+  .election-strip-sep {
+    display: none;
+  }
+
+  .election-strip-text strong {
+    flex-basis: 100%;
+  }
+
+  .election-strip-cta {
+    padding: 0 12px;
+    font-size: 13px;
+  }
+
+  .election-strip-cta-more {
+    display: none;
+  }
 }

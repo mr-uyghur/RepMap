@@ -1,0 +1,14 @@
+.story-stage {
+  width: 100vw;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+  background: var(--color-bg-primary);
+}
+
+.story-stage__frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}

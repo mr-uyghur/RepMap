@@ -1,5 +1,5 @@
-/* ── Shared styles for the United States and State levels (UsOverview, StateOverview).
-   Tokens only (variables.css); Phase 2 restyles by swapping tokens. ──────────── */
+/* ── Shared Editorial Civic Atlas styles for US, State, and District views ────
+   Uses CSS tokens from variables.css exclusively (WCAG 2.2 AA in light & dark). */
 .overview {
   display: flex;
   flex-direction: column;
@@ -13,12 +13,30 @@
   outline-offset: 2px;
 }
 
+/* ── Editorial Masthead & Section Headers ─────────────────────────────────── */
+.overview-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.overview-kicker {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent-text);
+  font-variant-numeric: tabular-nums;
+}
+
 .overview-purpose {
   margin: 0;
-  font-family: var(--font-body);
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1.35;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 750;
+  line-height: 1.18;
+  letter-spacing: -0.02em;
   overflow-wrap: anywhere;
 }
 
@@ -26,37 +44,42 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: 26px;
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.015em;
+  font-weight: 750;
+  line-height: 1.14;
+  letter-spacing: -0.022em;
   overflow-wrap: anywhere;
 }
+
 /* Focus can be moved here programmatically (tabIndex -1); it isn't a control. */
-.overview-title:focus { outline: none; }
+.overview-title:focus {
+  outline: none;
+}
+
+.overview-title--home {
+  font-size: 24px;
+}
 
 .overview-subtitle {
-  margin: var(--space-1) 0 0;
+  margin: 2px 0 0;
   font-size: 14px;
+  font-weight: 500;
   color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .overview-lede,
 .overview-hint {
-  margin: 0;
+  margin: 2px 0 0;
   font-size: 14px;
   line-height: 1.5;
   color: var(--color-text-secondary);
 }
 
-.overview-hint-group { display: flex; flex-direction: column; align-items: flex-start; }
-
-.overview-subhead {
-  margin: var(--space-2) 0 calc(-1 * var(--space-2));
-  font-family: var(--font-body);
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.3;
-  color: var(--color-text-primary);
+.overview-hint-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
 }
 
 .overview-section {
@@ -64,199 +87,723 @@
   flex-direction: column;
   gap: var(--space-2);
 }
-.overview-section > .overview-subhead { margin: var(--space-2) 0 0; }
+
+.overview-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-top: var(--space-1);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.overview-subhead {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+}
+
+.overview-section > .overview-subhead {
+  margin: var(--space-1) 0 0;
+}
+
+.overview-count-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
 
 .overview-note {
   margin: 0;
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 1.48;
   color: var(--color-text-muted);
 }
 
-/* ── Buttons and links ───────────────────────────────────────────────────── */
+/* ── Shared Tactile Buttons & Links ───────────────────────────────────────── */
 .overview-button {
   align-self: flex-start;
   min-height: 44px;
-  padding: 0 var(--space-4);
-  border: 0;
-  border-radius: var(--radius-md);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  font: inherit;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.overview-button:hover { filter: brightness(1.12); }
-
-.overview-text-button {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--color-link);
-  font: inherit;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-
-/* ── Home: ZIP form ─────────────────────────────────────────────────────── */
-.overview-title--home { font-size: 24px; }
-.overview-title--home + .overview-lede { margin-top: var(--space-1); }
-
-.zip-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-4);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-surface);
-}
-.zip-form-label { font-size: 14px; font-weight: 700; }
-.zip-form-row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.zip-form-input {
-  flex: 1 1 120px;
-  min-width: 0;
-  min-height: 44px;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-primary);
-  color: var(--color-text-primary);
-  font: inherit;
-  font-size: 17px;
-  letter-spacing: 0.04em;
-}
-.zip-form-input:focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 1px; }
-.zip-form-input[aria-invalid='true'] { border-color: var(--color-error-text); }
-.zip-form-submit {
-  flex: 0 0 auto;
-  min-height: 44px;
+  min-width: 44px;
   padding: 0 var(--space-4);
   border: 0;
   border-radius: var(--radius-full);
   background: var(--color-accent);
   color: var(--color-on-accent);
   font: inherit;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
+  transition: filter var(--transition-fast);
 }
-.zip-form-submit:hover { filter: brightness(1.12); }
-.zip-form-submit:focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 2px; }
-.zip-form-error { margin: 0; font-size: 14px; font-weight: 600; color: var(--color-error-text); }
-.zip-form-hint { margin: 0; font-size: 13px; line-height: 1.45; color: var(--color-text-muted); }
-.zip-form-search { align-self: flex-start; margin-top: calc(-1 * var(--space-2)); font-size: 14px; }
 
-/* ── Home: phase-aware election card (SeasonCard) ───────────────────────── */
+.overview-button:hover {
+  filter: brightness(1.1);
+}
+
+.overview-text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-surface);
+  color: var(--color-accent-text);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.overview-text-button:hover {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-border-control);
+}
+
+/* ── Home: Tactile ZIP Lookup Card & Quick-Try Pills ──────────────────────── */
+.zip-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 14px var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.zip-form-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.zip-form-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.zip-form-kicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.zip-form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.zip-form-input {
+  flex: 1 1 124px;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 var(--space-3);
+  border: 1.5px solid var(--color-border-control);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  transition: border-color var(--transition-fast);
+}
+
+.zip-form-input::placeholder {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--color-text-muted);
+}
+
+.zip-form-input:focus-visible {
+  outline: 2px solid var(--color-accent-text);
+  outline-offset: 1px;
+  border-color: var(--color-accent-text);
+}
+
+.zip-form-input[aria-invalid='true'] {
+  border-color: var(--color-error-text);
+}
+
+.zip-form-submit {
+  flex: 0 0 auto;
+  min-height: 46px;
+  min-width: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter var(--transition-fast);
+}
+
+.zip-form-submit:hover {
+  filter: brightness(1.1);
+}
+
+.zip-form-submit:focus-visible {
+  outline: 2px solid var(--color-accent-text);
+  outline-offset: 2px;
+}
+
+.zip-form-error {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-error-bg);
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--color-error-text);
+}
+
+.zip-form-hint {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.zip-form-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.zip-quick-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 11px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.zip-quick-pill:hover {
+  border-color: var(--color-accent-text);
+  background: var(--color-accent-soft);
+}
+
+.zip-quick-code {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.zip-quick-state {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.zip-quick-pill--search {
+  color: var(--color-accent-text);
+  border-color: var(--color-border-control);
+}
+
+/* ── Live Current Congress Chamber Balance Strip ──────────────────────────── */
+.congress-strip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 12px var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-primary);
+}
+
+.congress-strip-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.congress-strip-label {
+  font-size: 11.5px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.congress-strip-sub {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.congress-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.congress-chamber {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+}
+
+.congress-chamber-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.congress-chamber-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.congress-chamber-total {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 750;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.congress-bar {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 7px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-elevated);
+  gap: 1.5px;
+}
+
+/* Midpoint majority marker */
+.congress-bar::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  left: 50%;
+  width: 1.5px;
+  background: var(--color-bg-surface);
+}
+
+.congress-bar-seg {
+  height: 100%;
+}
+
+.congress-bar-seg--dem {
+  background: var(--color-democrat);
+}
+
+.congress-bar-seg--ind {
+  background: var(--color-independent);
+}
+
+.congress-bar-seg--rep {
+  background: var(--color-republican);
+}
+
+.congress-counts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.congress-party {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.congress-party--dem {
+  color: var(--color-democrat-text);
+}
+
+.congress-party--ind {
+  color: var(--color-independent-text);
+}
+
+.congress-party--rep {
+  color: var(--color-republican-text);
+}
+
+.congress-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+}
+
+.congress-dot--dem {
+  background: var(--color-democrat);
+}
+
+.congress-dot--ind {
+  background: var(--color-independent);
+}
+
+.congress-dot--rep {
+  background: var(--color-republican);
+}
+
+/* ── Home: Elevated Phase-Aware SeasonCard ────────────────────────────────── */
 .season-card {
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-2) var(--space-3) var(--space-4);
+  padding: 12px 10px 12px 14px;
   border: 1px solid var(--color-border);
   border-left: 4px solid var(--color-accent-text);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   background: var(--color-bg-primary);
+  box-shadow: var(--shadow-sm);
 }
-.season-card-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1); }
-.season-card-kicker {
+
+.season-card--final {
+  background: var(--color-accent-soft);
+  border-color: var(--color-border);
+  border-left-color: var(--color-accent-text);
+}
+
+.season-card-text {
+  flex: 1;
+  min-width: 0;
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.4;
-  color: var(--color-text-primary);
+  flex-direction: column;
+  gap: 5px;
 }
-.season-card-kicker > svg { flex: none; margin-top: 2px; color: var(--color-text-muted); }
-.season-card-count { font-weight: 700; color: var(--color-accent-text); }
-.season-card--final .season-card-kicker,
-.season-card--post .season-card-kicker { font-weight: 600; }
-.season-card-body { margin: 0; font-size: 13px; line-height: 1.45; color: var(--color-text-muted); }
+
+.season-card-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.season-card-phase {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-accent-text);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.season-card--final .season-card-phase {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.season-card-kicker {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.season-card-count {
+  font-weight: 800;
+  color: var(--color-accent-text);
+}
+
+.season-card-days {
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.season-card-body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.48;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.season-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.season-card-mode-active {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .season-card-link {
   align-self: flex-start;
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   min-height: 44px;
+  min-width: 44px;
   color: var(--color-link);
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+.season-card-link--pill {
+  padding: 0 14px;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  color: var(--color-accent-text);
+  text-decoration: none;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.season-card-link--pill:hover {
+  background: var(--color-bg-surface);
+  border-color: var(--color-accent-text);
+}
+
 .season-card-close {
   flex: none;
   width: 44px;
   height: 44px;
   display: grid;
   place-items: center;
-  margin-top: calc(-1 * var(--space-2));
+  margin-top: -4px;
+  margin-right: -4px;
   border: 0;
   border-radius: var(--radius-full);
-  background: none;
+  background: transparent;
   color: var(--color-text-muted);
   cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
-.season-card-close:hover { background: var(--color-bg-surface); color: var(--color-text-primary); }
 
-/* ── ZIP / district page ─────────────────────────────────────────────────── */
-.district-view-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
-.district-view-zip-note { margin-top: calc(-1 * var(--space-2)); }
-.district-view-zip-note { display: flex; flex-direction: column; align-items: flex-start; }
+.season-card-close:hover {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+/* ── ZIP / District View Local Representation Layout ──────────────────────── */
+.district-view-header-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.district-view-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  color: var(--color-accent-text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.district-view-zip-callout {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-border-control);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+}
+
+.district-view-zip-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.48;
+  color: var(--color-text-secondary);
+}
+
+.district-view-zip-text strong {
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
 .district-view-link {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   min-height: 44px;
-  color: var(--color-link);
-  font-size: 14px;
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.district-view-vacant {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-3) var(--space-4);
-  border: 1px dashed var(--color-border-control);
-  border-radius: var(--radius-md);
-}
-.district-view-vacant p { margin: 0; }
-.district-view-vacant-title { font-size: 15px; font-weight: 700; }
-.district-view-compare {
-  width: 100%;
-  min-height: 44px;
-  padding: 0 var(--space-4);
+  min-width: 44px;
+  padding: 0 12px;
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-full);
   background: var(--color-bg-primary);
-  color: var(--color-text-primary);
-  font: inherit;
+  color: var(--color-link);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.district-view-link:hover {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-accent-text);
+}
+
+.district-view-chamber-label {
+  margin: var(--space-1) 0 0;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.district-view-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.district-view-vacant {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px dashed var(--color-border-control);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+}
+
+.district-view-vacant p {
+  margin: 0;
+}
+
+.district-view-vacant-title {
   font-size: 15px;
   font-weight: 700;
-  cursor: pointer;
+  color: var(--color-text-primary);
 }
-.district-view-compare:hover { background: var(--color-bg-surface); }
-.district-view-state { align-self: flex-start; }
 
-/* ── Status: loading, errors ─────────────────────────────────────────────── */
+.district-view-compare {
+  width: 100%;
+  min-height: 46px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.district-view-compare:hover {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-accent-text);
+}
+
+.district-view-state {
+  align-self: flex-start;
+}
+
+/* ── Status: loading skeletons & errors ───────────────────────────────────── */
 .overview-message {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: var(--space-2);
   margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
   font-size: 14px;
   line-height: 1.5;
   color: var(--color-text-secondary);
 }
-.overview-message p { margin: 0; }
 
-.overview-status { display: flex; flex-direction: column; gap: var(--space-2); }
+.overview-message p {
+  margin: 0;
+}
+
+.overview-status {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
 
 .overview-skeleton {
   display: block;
@@ -264,13 +811,36 @@
   border-radius: var(--radius-md);
   background: var(--color-bg-elevated);
 }
-.overview-skeleton--line { height: 12px; width: 40%; }
-.overview-skeleton--card { height: 132px; }
-.overview-skeleton--title { height: 22px; width: 65%; margin-top: var(--space-2); }
+
+.overview-skeleton--line {
+  height: 14px;
+  width: 42%;
+}
+
+.overview-skeleton--card {
+  height: 136px;
+}
+
+.overview-skeleton--title {
+  height: 24px;
+  width: 65%;
+  margin-top: var(--space-2);
+}
+
+@media (max-width: 380px) {
+  .congress-grid {
+    grid-template-columns: 1fr;
+  }
+}
 
 @media (prefers-reduced-motion: no-preference) {
   .overview-skeleton {
-    background: linear-gradient(90deg, var(--color-bg-surface) 25%, var(--color-bg-elevated) 50%, var(--color-bg-surface) 75%);
+    background: linear-gradient(
+      90deg,
+      var(--color-bg-surface) 25%,
+      var(--color-bg-elevated) 50%,
+      var(--color-bg-surface) 75%
+    );
     background-size: 200% 100%;
     animation: repmap-shimmer 1.6s ease-in-out infinite;
   }

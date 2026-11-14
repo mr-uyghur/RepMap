@@ -1,0 +1,246 @@
+@keyframes rm-pin-pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.92);
+    opacity: 0.78;
+  }
+  70% {
+    transform: translate(-50%, -50%) scale(1.48);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.52);
+    opacity: 0;
+  }
+}
+
+.rm-pin {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 45px;
+  min-height: 45px;
+  padding: 6px;
+  margin: -6px;
+  cursor: pointer;
+  pointer-events: auto;
+  user-select: none;
+  outline: none;
+}
+
+.rm-pin:focus-visible {
+  outline: 2.5px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+
+/* ── Tier 1 Dot Marker ───────────────────────────────────────────────────── */
+.rm-pin-dot-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rm-pin-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--pin-color, #6b7280);
+  border: 2px solid var(--color-bg-primary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  transition: transform var(--transition-spring), box-shadow var(--transition-fast);
+}
+
+.rm-pin-dot--senator {
+  box-shadow: 0 0 0 2px #db2777, 0 2px 6px rgba(0, 0, 0, 0.38);
+}
+
+.rm-pin:hover .rm-pin-dot,
+.rm-pin:focus-visible .rm-pin-dot {
+  transform: scale(1.38);
+  box-shadow: 0 0 0 3px var(--color-accent-glow), 0 4px 12px rgba(0, 0, 0, 0.42);
+}
+
+.rm-pin--selected .rm-pin-dot {
+  width: 18px;
+  height: 18px;
+  box-shadow: 0 0 0 3px var(--color-accent), 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
+/* ── Tiers 2–4 Avatar Marker ─────────────────────────────────────────────── */
+.rm-pin-avatar-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rm-pin-halo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--pin-size, 40px) + 12px);
+  height: calc(var(--pin-size, 40px) + 12px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2.5px solid var(--color-accent);
+  background: var(--color-accent-glow);
+  pointer-events: none;
+}
+
+.rm-pin-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--pin-size, 40px) + 12px);
+  height: calc(var(--pin-size, 40px) + 12px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid var(--color-accent);
+  pointer-events: none;
+  animation: rm-pin-pulse 2.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.rm-pin-avatar {
+  position: relative;
+  width: var(--pin-size, 40px);
+  height: var(--pin-size, 40px);
+  border-radius: 50%;
+  border: var(--pin-border, 2.5px) solid var(--pin-color, #6b7280);
+  overflow: hidden;
+  background: var(--color-bg-surface);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.34);
+  transition: transform var(--transition-spring), box-shadow var(--transition-fast);
+  will-change: transform;
+}
+
+.rm-pin-avatar--senator {
+  box-shadow: 0 0 0 2px var(--color-bg-primary), 0 0 0 4px #db2777, 0 3px 10px rgba(15, 23, 42, 0.4);
+}
+
+.rm-pin:hover .rm-pin-avatar,
+.rm-pin:focus-visible .rm-pin-avatar {
+  transform: scale(1.14);
+  box-shadow: 0 0 0 3px var(--color-bg-primary), 0 8px 20px rgba(15, 23, 42, 0.45);
+}
+
+.rm-pin--selected .rm-pin-avatar {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 2.5px var(--color-bg-primary), 0 0 0 5px var(--color-accent), 0 8px 22px rgba(15, 23, 42, 0.48);
+}
+
+.rm-pin-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.rm-pin-initials {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: var(--pin-initials-size, 14px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-on-party);
+  background: var(--pin-color, #6b7280);
+}
+
+/* ── Persistent Name Pill ────────────────────────────────────────────────── */
+.rm-pin-label {
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-body);
+  font-size: var(--pin-label-size, 11px);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.25;
+  max-width: 112px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: transform var(--transition-spring), border-color var(--transition-fast);
+}
+
+.rm-pin--selected .rm-pin-label {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.rm-pin-label-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pin-color, #6b7280);
+  flex: none;
+}
+
+/* ── Pin Hover Tooltip ───────────────────────────────────────────────────── */
+.rm-pin-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 40;
+  text-align: left;
+}
+
+.rm-pin-tooltip-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.25;
+}
+
+.rm-pin-tooltip-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+
+.rm-pin-tooltip-swatch {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pin-color, #6b7280);
+  flex: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rm-pin-pulse {
+    animation: none;
+    display: none;
+  }
+
+  .rm-pin-dot,
+  .rm-pin-avatar,
+  .rm-pin-label {
+    transition: none;
+  }
+}

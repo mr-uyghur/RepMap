@@ -11,16 +11,17 @@ import DistrictBoundary from './DistrictBoundary'
 import DistrictOverlay, { getCachedDistrictGeoJSON, subscribeToDistrictGeoJSON } from './DistrictOverlay'
 import StateDistrictOverlay from './StateDistrictOverlay'
 import RedistrictingOverlay from './RedistrictingOverlay'
-import type { Representative, FeatureGeometry, Ring, Polygon } from '../../types'
+import MapAtlasFallback from './MapAtlasFallback'
+import type { Representative, FeatureGeometry, Ring, Polygon, Party } from '../../types'
+import { stateName } from '../../utils/elections'
 import { mapClickTarget, type MapClickTarget } from '../../utils/searchParse'
+import './RepMap.css'
 
 // Mapbox public token baked in at build time; must be URL-restricted at mapbox.com.
-const MAPBOX_TOKEN: string = import.meta.env.VITE_MAPBOX_TOKEN ?? ''
-/** False in builds without a token: the map shows a notice and map-only hints are hidden. */
+const MAPBOX_TOKEN: string = (import.meta.env.VITE_MAPBOX_TOKEN ?? '').trim()
+/** False in builds without a token: the map shows an editorial atlas backdrop and map-only hints are hidden. */
 export const MAP_AVAILABLE = MAPBOX_TOKEN.length > 0
 
-// Fog/atmosphere settings for dark and light themes — defined at module level
-// so the object references are stable and never cause spurious effect re-runs.
 // Stable reference — avoids react-map-gl calling setProjection on every render.
 const GLOBE_PROJECTION = { name: 'globe' } as const
 
@@ -49,7 +50,34 @@ const GROUP_OFFSETS: Record<number, [number, number][]> = {
   4: [[-60, 0], [-20, 0], [20, 0], [60, 0]],
 }
 
+const US_VIEW = { center: [-98.5795, 39.8283] as [number, number], zoom: 3.4 }
+
+const INSET_VIEWS = {
+  AK: { center: [-152.4, 64.2] as [number, number], zoom: 3.8, label: 'AK', aria: 'Jump to Alaska' },
+  HI: { center: [-157.5, 20.6] as [number, number], zoom: 6.2, label: 'HI', aria: 'Jump to Hawaii' },
+  DC: { center: [-77.0369, 38.9072] as [number, number], zoom: 10.6, label: 'DC', aria: 'Jump to District of Columbia' },
+  PR: { center: [-66.15, 18.22] as [number, number], zoom: 7.4, label: 'PR & Terr.', aria: 'Jump to Puerto Rico and U.S. Territories' },
+} as const
+
+type InsetCode = keyof typeof INSET_VIEWS
 type Position = { latitude: number; longitude: number }
+type Bounds = [[number, number], [number, number]]
+
+interface HoverData {
+  key: string
+  title: string
+  code: string
+  repName: string | null
+  party: Party | null
+  cue: string
+}
+
+function partyWord(party: Party): string {
+  if (party === 'democrat') return 'Democrat'
+  if (party === 'republican') return 'Republican'
+  if (party === 'independent') return 'Independent'
+  return 'Other'
+}
 
 function polygonArea(ring: Ring) {
   let area = 0
@@ -75,7 +103,6 @@ function pointOnSurface(ring: Ring): Position {
   let bestLat = (south + north) / 2
   let bestSpan = -1
 
-  // Probe 5 scanlines; whichever yields the widest interior segment wins.
   for (let t = 0.2; t <= 0.81; t += 0.15) {
     const scanLat = south + t * (north - south)
     const xs: number[] = []
@@ -83,7 +110,6 @@ function pointOnSurface(ring: Ring): Position {
     for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
       const [x1, y1] = ring[i]
       const [x2, y2] = ring[j]
-      // Strict inequality on one side avoids double-counting shared vertices.
       if ((y1 <= scanLat && y2 > scanLat) || (y2 <= scanLat && y1 > scanLat)) {
         xs.push(x1 + (scanLat - y1) * (x2 - x1) / (y2 - y1))
       }
@@ -91,7 +117,6 @@ function pointOnSurface(ring: Ring): Position {
 
     xs.sort((a, b) => a - b)
 
-    // Pairs of intersections define inside spans (even-odd fill rule).
     for (let i = 0; i + 1 < xs.length; i += 2) {
       const span = xs[i + 1] - xs[i]
       if (span > bestSpan) {
@@ -136,10 +161,6 @@ export type MapFocus =
   | { kind: 'state'; state: string }
   | { kind: 'district'; state: string; district: number }
   | { kind: 'rep'; repId: number }
-
-const US_VIEW = { center: [-98.5795, 39.8283] as [number, number], zoom: 3.4 }
-
-type Bounds = [[number, number], [number, number]]
 
 /** Bounding box of a set of (Multi)Polygon features. Alaska's Aleutians cross the
  *  antimeridian, so when the box would span >180° the eastern-hemisphere points are dropped. */
@@ -188,21 +209,29 @@ export default function RepMap({ mapRef, onRepSelect, onRepCompare, onMapTarget,
     setCenter,
   } = useMapStore()
   const { reps, allReps, loading: repsLoading, setReps, setLoading, mergeCommittees } = useRepStore()
+
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [webglError, setWebglError] = useState(false)
   const [districtGeoVersion, setDistrictGeoVersion] = useState(0)
   const [fillLayerIds, setFillLayerIds] = useState<string[]>([])
   const [stateDistrictFillIds, setStateDistrictFillIds] = useState<string[]>([])
-  const [hoverInfo, setHoverInfo] = useState<{ x: number; y: number; label: string } | null>(null)
+  const [hoverData, setHoverData] = useState<HoverData | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [zoomHintDismissed, setZoomHintDismissed] = useState(false)
   const [isFlying, setIsFlying] = useState(false)
   const [districtsLoaded, setDistrictsLoaded] = useState(false)
-  const [loadingPhase, setLoadingPhase] = useState<'loading' | 'fading' | 'done'>('loading')
   const [mapLoaded, setMapLoaded] = useState(false)
+  const [legendOpen, setLegendOpen] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 1180 : false,
+  )
+  const [activeInset, setActiveInset] = useState<InsetCode | null>(null)
+
   const appliedFocusRef = useRef<string | null>(null)
-  const lastHoverUpdateRef = useRef(0)
-  const loadStartRef = useRef(Date.now())
   const containerRef = useRef<HTMLDivElement>(null)
+  const hoverCardRef = useRef<HTMLDivElement>(null)
+  const hoverKeyRef = useRef<string | null>(null)
+  const hoverRafRef = useRef<number | null>(null)
+  const pendingPointRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
   // Tracks last known pitch/bearing so they can be restored after a style reload.
   const cameraSaveRef = useRef<{ pitch: number; bearing: number }>({ pitch: 0, bearing: 0 })
 
@@ -214,25 +243,32 @@ export default function RepMap({ mapRef, onRepSelect, onRepCompare, onMapTarget,
       .catch(() => setLoadError('Could not load representative data.'))
       .finally(() => setLoading(false))
 
-    // Committee assignments load separately and merge in once ready — kept
-    // off the initial payload since they're only needed once a panel or the
-    // committee graph is opened, not for the map's first paint.
+    // Committee assignments load separately and merge in once ready.
     fetchCommittees()
       .then(mergeCommittees)
       .catch(() => { /* non-critical: committee lists simply stay empty */ })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => subscribeToDistrictGeoJSON(() => {
-    // When national district geometry arrives, enable the single fill layer
-    // for hover/click interactions and trigger a pin position recalculation.
     setDistrictGeoVersion((version) => version + 1)
     setFillLayerIds(['national-districts-fill'])
   }), [])
 
-  // Reset state district layer IDs whenever the focused state changes.
   useEffect(() => {
     setStateDistrictFillIds([])
   }, [selectedStateCode, viewLevel])
+
+  useEffect(() => {
+    if (selectedStateCode && activeInset === 'PR') {
+      setActiveInset(null)
+    }
+  }, [selectedStateCode, activeInset])
+
+  useEffect(() => {
+    return () => {
+      if (hoverRafRef.current != null) cancelAnimationFrame(hoverRafRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     function handleArrowNavigation(event: KeyboardEvent) {
@@ -244,7 +280,7 @@ export default function RepMap({ mapRef, onRepSelect, onRepCompare, onMapTarget,
       if (!active.matches('.mapboxgl-marker [role="button"]')) return
 
       const pins = Array.from(
-        container.querySelectorAll<HTMLElement>('.mapboxgl-marker [role="button"]')
+        container.querySelectorAll<HTMLElement>('.mapboxgl-marker [role="button"]'),
       )
       const currentIndex = pins.indexOf(active)
       if (currentIndex === -1 || pins.length === 0) return
@@ -263,39 +299,20 @@ export default function RepMap({ mapRef, onRepSelect, onRepCompare, onMapTarget,
     setDistrictsLoaded(true)
   }, [])
 
-  // Fade out the loading screen once both datasets are ready, with a minimum
-  // display time so the animation has time to render on fast connections.
-  useEffect(() => {
-    if (!districtsLoaded || repsLoading) return
-    const elapsed = Date.now() - loadStartRef.current
-    const delay = Math.max(0, 150 - elapsed)
-    const t = setTimeout(() => {
-      setLoadingPhase('fading')
-      setTimeout(() => setLoadingPhase('done'), 250)
-    }, delay)
-    return () => clearTimeout(t)
-  }, [districtsLoaded, repsLoading])
-
-  // Reset to flat 2D camera when the panel is closed (selectedRepId → null).
-  // Guarded by current pitch/bearing so we don't fire an unnecessary flyTo
-  // if the camera is already level (e.g. on initial load or manual pan-back).
   useEffect(() => {
     if (selectedRepId !== null) return
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const map = (mapRef as React.RefObject<any>).current?.getMap?.()
     if (!map) return
     if (map.getPitch() === 0 && Math.abs(map.getBearing()) < 0.5) return
-    map.flyTo({ pitch: 0, bearing: 0, duration: 1200, essential: true })
+    map.flyTo({ pitch: 0, bearing: 0, duration: prefersReducedMotion() ? 0 : 1200, essential: true })
   }, [selectedRepId, mapRef])
 
-  // Idempotent: re-applies fog and camera angle. Called on initial load and on
-  // every style.load event so theme switches restore all atmospheric polish.
   const restorePolish = useCallback(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const map = (mapRef as React.RefObject<any>).current?.getMap?.()
     if (!map) return
     map.setFog(darkMode ? fogSettings.dark : fogSettings.light)
-    // Restore 3D perspective if the user had it active before the style switch.
     const { pitch, bearing } = cameraSaveRef.current
     if (pitch > 0.5 || Math.abs(bearing) > 0.5) {
       map.easeTo({ pitch, bearing, duration: 0 })
@@ -307,9 +324,61 @@ export default function RepMap({ mapRef, onRepSelect, onRepCompare, onMapTarget,
     setMapLoaded(true)
   }, [restorePolish])
 
-  // Frame the current level: the US, a state, a district or a member. State and
-  // district bounds come from the national district GeoJSON, so this retries once
-  // that has loaded. Reduced motion jumps instead of flying (R-24).
+  const handleMapError = useCallback((evt: { error?: { message?: string } }) => {
+    const msg = String(evt?.error?.message ?? '')
+    if (/webgl|not supported|context/i.test(msg)) {
+      setWebglError(true)
+    }
+  }, [])
+
+  const houseRepBySeat = useMemo(() => {
+    const map: Record<string, Representative> = {}
+    for (const rep of allReps) {
+      if (rep.level === 'us_house') {
+        map[`${rep.state}-${rep.district_number ?? 0}`] = rep
+      }
+    }
+    return map
+  }, [allReps])
+
+  const pinPositions = useMemo(() => {
+    const positions: Record<number, Position> = {}
+
+    for (const rep of reps) {
+      if (rep.level !== 'us_house' || rep.district_number == null) continue
+
+      const featureCollection = getCachedDistrictGeoJSON(rep.state) as {
+        features?: Array<{ properties?: Record<string, string | number | null>; geometry?: FeatureGeometry }>
+      } | undefined
+
+      const feature = featureCollection?.features?.find(
+        (candidate) => parseInt(String(candidate.properties?.CD119 ?? ''), 10) === rep.district_number,
+      )
+
+      const anchor = getDistrictAnchor(feature?.geometry)
+      if (anchor) positions[rep.id] = anchor
+    }
+
+    return positions
+  }, [districtGeoVersion, reps])
+
+  const pinOffsets = useMemo(() => {
+    const groups: Record<string, number[]> = {}
+    for (const rep of reps) {
+      const position = pinPositions[rep.id] ?? rep
+      const key = `${position.latitude.toFixed(3)},${position.longitude.toFixed(3)}`
+      if (!groups[key]) groups[key] = []
+      groups[key].push(rep.id)
+    }
+    const offsets: Record<number, [number, number]> = {}
+    for (const ids of Object.values(groups)) {
+      if (ids.length < 2) continue
+      const slots = GROUP_OFFSETS[ids.length] ?? GROUP_OFFSETS[4]
+      ids.forEach((id, i) => { offsets[id] = slots[i] })
+    }
+    return offsets
+  }, [pinPositions, reps])
+
   const focusKey = focus ? JSON.stringify(focus) : null
   useEffect(() => {
     if (!focus || !focusKey || appliedFocusRef.current === focusKey) return
@@ -327,7 +396,6 @@ export default function RepMap({ mapRef, onRepSelect, onRepCompare, onMapTarget,
       const rep = allReps.find((r) => r.id === focus.repId)
       if (!rep) return
       const pos = pinPositions[rep.id] ?? rep
-      // 2.5D camera drop onto the member's district.
       map.flyTo({
         center: [pos.longitude, pos.latitude],
         zoom: rep.level === 'us_senate' ? 6 : 9,
@@ -349,14 +417,11 @@ export default function RepMap({ mapRef, onRepSelect, onRepCompare, onMapTarget,
       : fc.features
     const bounds = featuresBounds(features)
     if (!bounds) return
-    map.fitBounds(bounds, { padding: 32, maxZoom: 11, pitch: 0, bearing: 0, duration: reduce ? 0 : 1400, essential: false })
+    map.fitBounds(bounds, { padding: 36, maxZoom: 11, pitch: 0, bearing: 0, duration: reduce ? 0 : 1400, essential: false })
     appliedFocusRef.current = focusKey
-  // pinPositions is read for the member case only; re-running on its change is harmless (key guard).
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusKey, mapLoaded, districtGeoVersion, allReps, mapRef])
 
-  // Re-attach the style.load listener whenever darkMode changes so the new
-  // restorePolish closure (with the correct fog theme) is registered.
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const map = (mapRef as React.RefObject<any>).current?.getMap?.()
@@ -367,71 +432,132 @@ export default function RepMap({ mapRef, onRepSelect, onRepCompare, onMapTarget,
 
   const handleMoveEnd = useCallback(
     (e: ViewStateChangeEvent) => {
-      // Persist the latest camera state so other UI can react to it.
       const { longitude, latitude, zoom: newZoom } = e.viewState
       setCenter([longitude, latitude])
       setZoom(newZoom)
-      // Keep cameraSaveRef current so restorePolish can recover pitch/bearing after a style switch.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const map = (mapRef as React.RefObject<any>).current?.getMap?.()
       if (map) {
         cameraSaveRef.current = { pitch: map.getPitch(), bearing: map.getBearing() }
       }
     },
-    [setCenter, setZoom, mapRef]
+    [setCenter, setZoom, mapRef],
   )
+
+  const clearHover = useCallback(() => {
+    hoverKeyRef.current = null
+    setHoverData(null)
+  }, [])
 
   const handleDragStart = useCallback(() => {
     setIsDragging(true)
-    setHoverInfo(null)
-  }, [])
+    clearHover()
+  }, [clearHover])
 
   const handleDragEnd = useCallback(() => setIsDragging(false), [])
 
-  const handleMouseMove = useCallback((e: Parameters<NonNullable<React.ComponentProps<typeof Map>['onMouseMove']>>[0]) => {
-    const now = Date.now()
-    if (now - lastHoverUpdateRef.current < 100) return
-    lastHoverUpdateRef.current = now
+  const applyHoverPosition = useCallback(() => {
+    hoverRafRef.current = null
+    const card = hoverCardRef.current
+    const container = containerRef.current
+    if (!card || !container) return
 
-    const feature = e.features?.[0]
-    if (!feature?.properties) { setHoverInfo(null); return }
+    const cw = container.clientWidth
+    const ch = container.clientHeight
+    const cardW = card.offsetWidth || 220
+    const cardH = card.offsetHeight || 76
+    const { x, y } = pendingPointRef.current
 
-    const layerId = String((feature as { layer?: { id?: string } }).layer?.id ?? '')
-    const stateAbbr = feature.properties.state_abbr as string
+    const nx = x + 16 + cardW > cw - 12 ? Math.max(12, x - cardW - 14) : Math.max(12, x + 16)
+    const ny = Math.max(12, Math.min(y - 18, ch - cardH - 12))
 
-    if (viewLevel === 'state') {
-      if (layerId === 'national-districts-fill') {
-        // National layer in state view \u2014 show just the state name so the user knows
-        // which state they're hovering over and can click to select it.
-        setHoverInfo({ x: e.point.x, y: e.point.y, label: stateAbbr ?? '' })
+    card.style.setProperty('--hx', `${Math.round(nx)}px`)
+    card.style.setProperty('--hy', `${Math.round(ny)}px`)
+  }, [])
+
+  const handleMouseMove = useCallback(
+    (e: Parameters<NonNullable<React.ComponentProps<typeof Map>['onMouseMove']>>[0]) => {
+      const feature = e.features?.[0]
+      if (!feature?.properties) {
+        if (hoverKeyRef.current !== null) clearHover()
         return
       }
-      // State legislative district layer \u2014 show chamber + district name.
-      const name = String(feature.properties.NAME ?? '')
-      const chamber = layerId.includes('-lower-') ? 'Lower' : layerId.includes('-upper-') ? 'Upper' : ''
-      const label = name
-        ? `${stateAbbr} ${chamber} \u2013 ${name}`
-        : stateAbbr ?? ''
-      setHoverInfo({ x: e.point.x, y: e.point.y, label })
-      return
-    }
 
-    // Federal view: use CD119 for district number.
-    const cd = parseInt(String(feature.properties.CD119 ?? ''), 10)
-    const label = cd === 0 ? `${stateAbbr} \u2013 At-Large` : `${stateAbbr} \u2013 District ${cd}`
-    setHoverInfo({ x: e.point.x, y: e.point.y, label })
-  }, [viewLevel])
+      pendingPointRef.current = { x: e.point.x, y: e.point.y }
+      if (hoverRafRef.current == null) {
+        hoverRafRef.current = requestAnimationFrame(applyHoverPosition)
+      }
 
-  const handleMouseLeave = useCallback(() => setHoverInfo(null), [])
+      const layerId = String((feature as { layer?: { id?: string } }).layer?.id ?? '')
+      const stateAbbr = String(feature.properties.state_abbr ?? '').toUpperCase()
+      if (!stateAbbr) {
+        if (hoverKeyRef.current !== null) clearHover()
+        return
+      }
+      const fullState = stateName(stateAbbr)
 
-  // Clicking the map always goes one level deeper: another state opens that
-  // state; a district inside the state in focus opens its members-first
-  // district page (`?district=`, via App's onMapTarget). Empty water
-  // does nothing (it used to close the panel, which lost the user's place).
+      if (viewLevel === 'state') {
+        const name = String(feature.properties.NAME ?? '')
+        const chamber = layerId.includes('-lower-') ? 'State House' : layerId.includes('-upper-') ? 'State Senate' : 'State'
+        const key = `st-${layerId}-${stateAbbr}-${name}`
+        if (hoverKeyRef.current !== key) {
+          hoverKeyRef.current = key
+          setHoverData({
+            key,
+            title: name ? `${fullState} · ${chamber}` : fullState,
+            code: name ? `#${name}` : stateAbbr,
+            repName: null,
+            party: null,
+            cue: `Click to inspect ${fullState} →`,
+          })
+        }
+        return
+      }
+
+      const rawCd = parseInt(String(feature.properties.CD119 ?? ''), 10)
+      const cd = Number.isInteger(rawCd) && rawCd >= 0 && rawCd <= 60 ? rawCd : 0
+      const key = `fed-${stateAbbr}-${cd}-${selectedStateCode ?? 'US'}`
+
+      if (hoverKeyRef.current !== key) {
+        hoverKeyRef.current = key
+        const seatTitle =
+          stateAbbr === 'DC'
+            ? `${fullState} · Delegate`
+            : cd === 0
+              ? `${fullState} · At-Large`
+              : `${fullState} · District ${cd}`
+        const code = `${stateAbbr}-${cd === 0 ? 'AL' : cd}`
+        const holder = houseRepBySeat[`${stateAbbr}-${cd}`]
+        const cue =
+          selectedStateCode === stateAbbr
+            ? 'Click to open district & members →'
+            : `Click to explore ${fullState} →`
+
+        setHoverData({
+          key,
+          title: seatTitle,
+          code,
+          repName: holder ? `Rep. ${holder.name}` : null,
+          party: holder ? holder.party : null,
+          cue,
+        })
+      }
+    },
+    [viewLevel, selectedStateCode, houseRepBySeat, clearHover, applyHoverPosition],
+  )
+
+  // Position newly-mounted hover card immediately on key changes as well.
+  useEffect(() => {
+    if (hoverData) applyHoverPosition()
+  }, [hoverData, applyHoverPosition])
+
+  const handleMouseLeave = useCallback(() => clearHover(), [clearHover])
+
   const handleMapClick = useCallback(
     (e: Parameters<NonNullable<React.ComponentProps<typeof Map>['onClick']>>[0]) => {
       const target = mapClickTarget(e.features?.[0]?.properties, selectedStateCode)
       if (!target) return
+      setActiveInset(null)
       onMapTarget?.(target)
 
       if (redistrictingMode && zoom < 5.5) {
@@ -441,84 +567,96 @@ export default function RepMap({ mapRef, onRepSelect, onRepCompare, onMapTarget,
           map.flyTo({
             center: [e.lngLat.lng, e.lngLat.lat],
             zoom: Math.max(zoom, 6),
-            duration: 900,
+            duration: prefersReducedMotion() ? 0 : 900,
             essential: true,
           })
         }
       }
     },
-    [onMapTarget, selectedStateCode, redistrictingMode, zoom, mapRef]
+    [onMapTarget, selectedStateCode, redistrictingMode, zoom, mapRef],
   )
 
-  // Dims district layers during flyTo for a smoother 3D camera animation.
-  const handleRepClick = useCallback((rep: Representative, event: { shiftKey: boolean }) => {
-    if (event.shiftKey && onRepCompare && selectedRepId !== null && selectedRepId !== rep.id) {
-      onRepCompare(rep)
-      return
-    }
+  const handleRepClick = useCallback(
+    (rep: Representative, event: { shiftKey: boolean }) => {
+      if (event.shiftKey && onRepCompare && selectedRepId !== null && selectedRepId !== rep.id) {
+        onRepCompare(rep)
+        return
+      }
 
-    setIsFlying(true)
-    onRepSelect(rep)
+      setIsFlying(true)
+      onRepSelect(rep)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const map = (mapRef as React.RefObject<any>).current?.getMap?.()
+      if (map) map.once('moveend', () => setIsFlying(false))
+    },
+    [onRepSelect, onRepCompare, selectedRepId, mapRef],
+  )
+
+  const handleResetUsView = useCallback(() => {
+    setActiveInset(null)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const map = (mapRef as React.RefObject<any>).current?.getMap?.()
-    if (map) map.once('moveend', () => setIsFlying(false))
-  }, [onRepSelect, onRepCompare, selectedRepId, mapRef])
-
-  const pinPositions = useMemo(() => {
-    const positions: Record<number, Position> = {}
-
-    for (const rep of reps) {
-      if (rep.level !== 'us_house' || rep.district_number == null) continue
-
-      // House pins prefer an interior point from the district polygon over a coarse centroid.
-      const featureCollection = getCachedDistrictGeoJSON(rep.state) as {
-        features?: Array<{ properties?: Record<string, string | number | null>; geometry?: FeatureGeometry }>
-      } | undefined
-
-      const feature = featureCollection?.features?.find(
-        (candidate) => parseInt(String(candidate.properties?.CD119 ?? ''), 10) === rep.district_number
-      )
-
-      const anchor = getDistrictAnchor(feature?.geometry)
-      if (anchor) positions[rep.id] = anchor
+    if (map) {
+      map.flyTo({
+        ...US_VIEW,
+        pitch: 0,
+        bearing: 0,
+        duration: prefersReducedMotion() ? 0 : 1200,
+        essential: true,
+      })
     }
+    setCenter(US_VIEW.center)
+    setZoom(US_VIEW.zoom)
+  }, [mapRef, setCenter, setZoom])
 
-    return positions
-  }, [districtGeoVersion, reps])
+  const handleInsetJump = useCallback(
+    (code: InsetCode) => {
+      const preset = INSET_VIEWS[code]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const map = (mapRef as React.RefObject<any>).current?.getMap?.()
+      const reduce = prefersReducedMotion()
 
-  // Group co-located pins by their coordinates and assign spread offsets.
-  // This handles senators (same state centroid) and at-large states where
-  // the single House rep also shares the centroid with both senators.
-  const pinOffsets = useMemo(() => {
-    const groups: Record<string, number[]> = {}
-    for (const rep of reps) {
-      const position = pinPositions[rep.id] ?? rep
-      const key = `${position.latitude.toFixed(3)},${position.longitude.toFixed(3)}`
-      if (!groups[key]) groups[key] = []
-      groups[key].push(rep.id)
-    }
-    const offsets: Record<number, [number, number]> = {}
-    for (const ids of Object.values(groups)) {
-      if (ids.length < 2) continue
-      const slots = GROUP_OFFSETS[ids.length] ?? GROUP_OFFSETS[4]
-      ids.forEach((id, i) => { offsets[id] = slots[i] })
-    }
-    return offsets
-  }, [pinPositions, reps])
+      if (code === 'PR') {
+        setActiveInset('PR')
+        if (map) {
+          map.flyTo({
+            center: preset.center,
+            zoom: preset.zoom,
+            pitch: 0,
+            bearing: 0,
+            duration: reduce ? 0 : 1300,
+            essential: true,
+          })
+        }
+        setCenter(preset.center)
+        setZoom(preset.zoom)
+        return
+      }
 
-  // Find the selected rep to determine which district boundary to highlight.
-  // Search allReps so the boundary works even when a ZIP filter is active.
+      setActiveInset(null)
+      onMapTarget?.({ kind: 'state', state: code })
+      if (map) {
+        map.flyTo({
+          center: preset.center,
+          zoom: preset.zoom,
+          pitch: 0,
+          bearing: 0,
+          duration: reduce ? 0 : 1300,
+          essential: true,
+        })
+      }
+    },
+    [mapRef, onMapTarget, setCenter, setZoom],
+  )
+
   const selectedRep = selectedRepId != null
     ? (allReps.find((r) => r.id === selectedRepId) ?? reps.find((r) => r.id === selectedRepId) ?? null)
     : null
 
-  // At the race level, outline that district (tinted by the party holding it now).
   const focusDistrictHolder = focus?.kind === 'district'
     ? allReps.find((r) => r.level === 'us_house' && r.state === focus.state && (r.district_number ?? 0) === focus.district)
     : undefined
 
-  // Zoom tier determines pin visual density: 0=hidden, 1=dots, 2=small avatars,
-  // 3=medium+labels, 4=full detail. Progressive disclosure keeps the map clean.
   const zoomTier = useMemo((): 0 | 1 | 2 | 3 | 4 => {
     if (zoom < 4) return 0
     if (zoom < 5.5) return 1
@@ -527,37 +665,24 @@ export default function RepMap({ mapRef, onRepSelect, onRepCompare, onMapTarget,
     return 4
   }, [zoom])
 
-  // Zoom-level pin filtering by view level.
-  // Federal: zoom < 4 = none, 4–7 = senators only, ≥7 = all federal reps.
-  // State:   zoom < 7 = none, 7–9 = state senators only, ≥9 = all state reps.
   const pinsToShow = useMemo(() => {
     if (viewLevel === 'federal') {
       if (zoomTier === 0) return []
       if (zoomTier <= 2) return reps.filter((rep) => rep.level === 'us_senate')
       return reps.filter((rep) => rep.level === 'us_house' || rep.level === 'us_senate')
     }
-    // State view — pins are intentionally NOT mirrored to federal's always-on behavior.
-    // Federal renders ~535 DOM Marker nodes; state has 7,306. Borders are cheap GPU
-    // vector polygons; pins are expensive DOM nodes that each call map.project() in
-    // labelVisibility. Only show pins for the selected state (50–250 markers) to avoid
-    // the lag that triggered the pin-gate design.
     if (!selectedStateCode || zoom < 7) return []
     if (zoom < 9) return reps.filter((rep) => rep.level === 'state_senate' && rep.state === selectedStateCode)
     return reps.filter((rep) => (rep.level === 'state_house' || rep.level === 'state_senate') && rep.state === selectedStateCode)
   }, [zoomTier, zoom, reps, viewLevel, selectedStateCode])
 
-  // Label decluttering: project pin positions to screen pixels and hide labels
-  // whose bounding boxes overlap a higher-priority pin's label.
-  // Priority: selected > senator > house. Runs on every viewport change.
   const labelVisibility = useMemo(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const map = (mapRef as React.RefObject<any>).current?.getMap?.()
     if (!map || zoomTier < 3) return {} as Record<number, boolean>
 
     const visibility: Record<number, boolean> = {}
-
     const seniorLevels = new Set(['us_senate', 'state_senate'])
-    // Sort by priority so important labels claim screen space first.
     const sorted = [...pinsToShow].sort((a, b) => {
       if (a.id === selectedRepId) return -1
       if (b.id === selectedRepId) return 1
@@ -567,9 +692,9 @@ export default function RepMap({ mapRef, onRepSelect, onRepCompare, onMapTarget,
     })
 
     const occupied: { l: number; t: number; r: number; b: number }[] = []
-    const LABEL_HALF_W = 40
-    const LABEL_H = 20
-    const PIN_GAP = zoomTier === 3 ? 22 : 26 // gap between pin bottom and label top
+    const LABEL_HALF_W = 44
+    const LABEL_H = 22
+    const PIN_GAP = zoomTier === 3 ? 22 : 26
 
     for (const rep of sorted) {
       const pos = pinPositions[rep.id] ?? rep
@@ -583,7 +708,7 @@ export default function RepMap({ mapRef, onRepSelect, onRepCompare, onMapTarget,
         }
 
         const overlaps = occupied.some(
-          (o) => rect.l < o.r && rect.r > o.l && rect.t < o.b && rect.b > o.t
+          (o) => rect.l < o.r && rect.r > o.l && rect.t < o.b && rect.b > o.t,
         )
 
         visibility[rep.id] = !overlaps
@@ -597,26 +722,39 @@ export default function RepMap({ mapRef, onRepSelect, onRepCompare, onMapTarget,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zoom, center, pinsToShow, pinPositions, selectedRepId, zoomTier, mapRef])
 
-  // An empty token causes Mapbox GL to throw an authentication error in the
-  // console — only happens when VITE_MAPBOX_TOKEN is missing from the build env.
-  if (!MAPBOX_TOKEN) {
+  // High-craft Cartographic Atlas Backdrop when VITE_MAPBOX_TOKEN is absent or WebGL fails.
+  if (!MAPBOX_TOKEN || webglError) {
     return (
-      <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
-        <div style={{
-          position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
-          background: 'var(--color-error-bg)', color: 'var(--color-error-text)',
-          padding: '10px 16px', border: '1px solid var(--color-error)',
-          borderRadius: 'var(--radius-md)', zIndex: 20, fontSize: 13, maxWidth: 420,
-          textAlign: 'center', pointerEvents: 'none',
-        }}>
-          Map configuration is missing (VITE_MAPBOX_TOKEN not set at build time).
-        </div>
+      <div ref={containerRef} className="rm-stage">
+        <MapAtlasFallback
+          focus={focus}
+          selectedStateCode={selectedStateCode}
+          selectedRep={selectedRep}
+          redistrictingMode={redistrictingMode}
+          reason={webglError ? 'webgl-error' : 'no-token'}
+          onMapTarget={onMapTarget}
+        />
       </div>
     )
   }
 
+  const isZoomedOrPanned =
+    zoom > 3.85 ||
+    selectedStateCode !== null ||
+    selectedRepId !== null ||
+    activeInset !== null ||
+    Math.abs(center[0] - US_VIEW.center[0]) > 5 ||
+    Math.abs(center[1] - US_VIEW.center[1]) > 4
+
+  const activeLayerLabel =
+    redistrictingMode && viewLevel === 'federal'
+      ? 'CD116 ↔ CD119'
+      : viewLevel === 'state'
+        ? 'State Chambers'
+        : '119th Congress'
+
   return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div ref={containerRef} className="rm-stage">
       <Map
         ref={mapRef}
         mapboxAccessToken={MAPBOX_TOKEN}
@@ -629,25 +767,23 @@ export default function RepMap({ mapRef, onRepSelect, onRepCompare, onMapTarget,
         projection={GLOBE_PROJECTION}
         mapStyle={darkMode ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11'}
         onLoad={handleMapLoad}
+        onError={handleMapError}
         onMoveEnd={handleMoveEnd}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
-        interactiveLayerIds={isDragging ? [] : (
-          // Each view uses its own visible fill layers as the click/hover target.
-          // Federal: national CD fill (national-districts-fill).
-          // State: state legislative district fills (lower + upper).
-          // Mixing both would let State-view clicks fire on the invisible federal layer.
-          viewLevel === 'state' ? stateDistrictFillIds : fillLayerIds
-        )}
+        interactiveLayerIds={
+          isDragging
+            ? []
+            : viewLevel === 'state'
+              ? stateDistrictFillIds
+              : fillLayerIds
+        }
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onClick={handleMapClick}
       >
         <NavigationControl position="bottom-left" />
-        {/* National congressional district overlay — always rendered for click events.
-            In state view it stays faintly visible as the clickable base layer (reduced
-            opacity so it doesn't compete with state legislative overlays). Only hidden
-            during flyTo animations. In redistricting mode its opacity scales with the slider. */}
+
         <DistrictOverlay
           onLoaded={handleDistrictsLoaded}
           dimmed={isFlying}
@@ -660,23 +796,16 @@ export default function RepMap({ mapRef, onRepSelect, onRepCompare, onMapTarget,
           }
         />
 
-        {/* Historical (CD116) district overlay — visible in redistricting mode when zoomed to state level. */}
-        {redistrictingMode && viewLevel === 'federal' && zoom >= 5 && selectedStateCode && (
+        {redistrictingMode && viewLevel === 'federal' && selectedStateCode && (
           <RedistrictingOverlay stateCode={selectedStateCode} />
         )}
 
-        {/* State legislative district overlay — mirrors federal DistrictOverlay: all borders
-            drawn immediately when State view is active, color-coded by party nationwide.
-            Lazy-loads combined national files on first State-view entry so federal-only users
-            never pay the ~4 MB cost. Sources use stable IDs + in-place setData to avoid the
-            mapbox-gl v3 / globe removeSource crash ([[project-mapbox-strictmode-bug]]). */}
         <StateDistrictOverlay
           active={viewLevel === 'state'}
           onLayersReady={setStateDistrictFillIds}
           dimmed={isFlying || viewLevel !== 'state'}
         />
 
-        {/* Highlight the selected rep's district boundary, or the race's district. */}
         {(selectedRep?.level === 'us_house' ||
           selectedRep?.level === 'state_house' ||
           selectedRep?.level === 'state_senate') ? (
@@ -711,180 +840,178 @@ export default function RepMap({ mapRef, onRepSelect, onRepCompare, onMapTarget,
           />
         ))}
       </Map>
-      {loadError && (
-        <div style={{
-          position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
-          background: 'var(--color-error-bg)', color: 'var(--color-error-text)',
-          padding: '10px 16px',
-          border: '1px solid var(--color-error)',
-          borderRadius: 'var(--radius-md)', zIndex: 20, fontSize: 13, maxWidth: 420, textAlign: 'center',
-          pointerEvents: 'none',
-          backdropFilter: 'blur(8px)',
-        }}>
-          {loadError}
-        </div>
-      )}
-      {/* No "click a state" prompt needed — state legislative borders are now visible
-          immediately on toggle (matching federal behavior), so the map is self-evident. */}
-      {zoom < 4 && !zoomHintDismissed && (
-        <div style={{
-          position: 'absolute',
-          bottom: '40px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'var(--color-bg-glass)',
-          backdropFilter: 'blur(12px) saturate(1.4)',
-          WebkitBackdropFilter: 'blur(12px) saturate(1.4)',
-          border: '1px solid var(--color-bg-glass-border)',
-          color: 'var(--color-text-secondary)',
-          padding: '6px 14px',
-          borderRadius: 'var(--radius-md)',
-          fontSize: '12px',
-          pointerEvents: 'auto',
-          whiteSpace: 'nowrap',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          zIndex: 10,
-          boxShadow: 'var(--shadow-md)',
-        }}>
-          Zoom in to see your representatives
+
+      {/* Floating Cartographic HUD: Reset U.S. View, Inset Jumps & Collapsible Map Legend */}
+      <div className="rm-hud">
+        <div className="rm-hud-bar">
+          {isZoomedOrPanned && (
+            <button
+              type="button"
+              className="rm-hud-btn rm-hud-btn--reset"
+              onClick={handleResetUsView}
+              aria-label="Reset U.S. View"
+            >
+              <svg className="rm-hud-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                <circle cx="8" cy="8" r="6" />
+                <path d="M2 8h12M8 2a10 10 0 0 1 0 12M8 2a10 10 0 0 0 0 12" />
+              </svg>
+              <span>Reset<span className="rm-hud-reset-extra"> U.S. View</span></span>
+            </button>
+          )}
+
+          <div className="rm-inset-group" role="group" aria-label="Non-contiguous U.S. states and territories">
+            {(Object.keys(INSET_VIEWS) as InsetCode[]).map((code) => {
+              const item = INSET_VIEWS[code]
+              const isActive = code === 'PR' ? activeInset === 'PR' : selectedStateCode === code
+              return (
+                <button
+                  key={code}
+                  type="button"
+                  className={`rm-inset-btn${isActive ? ' rm-inset-btn--active' : ''}`}
+                  aria-label={item.aria}
+                  aria-pressed={isActive}
+                  onClick={() => handleInsetJump(code)}
+                >
+                  {item.label}
+                </button>
+              )
+            })}
+          </div>
+
           <button
+            type="button"
+            className={`rm-hud-btn${legendOpen ? ' rm-hud-btn--active' : ''}`}
+            aria-expanded={legendOpen}
+            aria-controls="rm-map-legend"
+            onClick={() => setLegendOpen((v) => !v)}
+          >
+            <svg className="rm-hud-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+              <path d="M8 2L14 5.5L8 9L2 5.5L8 2Z" />
+              <path d="M2 9.5L8 13L14 9.5" />
+            </svg>
+            <span>Legend</span>
+          </button>
+        </div>
+
+        {activeInset === 'PR' && (
+          <div className="rm-territory-card">
+            <div className="rm-territory-copy">
+              <p className="rm-territory-title">Puerto Rico &amp; U.S. Territories</p>
+              <p className="rm-territory-desc">
+                Puerto Rico elects a Resident Commissioner (4-year term) and Guam, U.S. Virgin Islands, American Samoa, and CNMI elect House Delegates. RepMap’s boundary dataset currently indexes the 50 states and D.C.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="rm-icon-close-btn"
+              aria-label="Dismiss territory notice"
+              onClick={() => setActiveInset(null)}
+            >
+              {'\u00d7'}
+            </button>
+          </div>
+        )}
+
+        {legendOpen && (
+          <div id="rm-map-legend" className="rm-legend-card" role="group" aria-label="Map legend">
+            <div className="rm-legend-top">
+              <span className="rm-legend-eyebrow">Atlas Key</span>
+              <span className="rm-legend-layer-pill">{activeLayerLabel}</span>
+            </div>
+            <ul className="rm-legend-list">
+              <li className="rm-legend-item">
+                <span className="rm-legend-key">
+                  <span className="rm-legend-swatch rm-legend-swatch--dem" aria-hidden="true" />
+                  <span>Democrat</span>
+                </span>
+                <span className="rm-legend-sub">Seat fill</span>
+              </li>
+              <li className="rm-legend-item">
+                <span className="rm-legend-key">
+                  <span className="rm-legend-swatch rm-legend-swatch--rep" aria-hidden="true" />
+                  <span>Republican</span>
+                </span>
+                <span className="rm-legend-sub">Seat fill</span>
+              </li>
+              <li className="rm-legend-item">
+                <span className="rm-legend-key">
+                  <span className="rm-legend-swatch rm-legend-swatch--ind" aria-hidden="true" />
+                  <span>Independent</span>
+                </span>
+                <span className="rm-legend-sub">Seat fill</span>
+              </li>
+              <li className="rm-legend-item">
+                <span className="rm-legend-key">
+                  <span className="rm-legend-line rm-legend-line--current" aria-hidden="true" />
+                  <span>District line</span>
+                </span>
+                <span className="rm-legend-sub">Census</span>
+              </li>
+              {redistrictingMode && (
+                <li className="rm-legend-item">
+                  <span className="rm-legend-key">
+                    <span className="rm-legend-line rm-legend-line--historical" aria-hidden="true" />
+                    <span>2013–2023 line</span>
+                  </span>
+                  <span className="rm-legend-sub">CD116</span>
+                </li>
+              )}
+              <li className="rm-legend-item">
+                <span className="rm-legend-key">
+                  <span className="rm-legend-ring" aria-hidden="true" />
+                  <span>U.S. Senator</span>
+                </span>
+                <span className="rm-legend-sub">Zoom ≥ 4</span>
+              </li>
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {loadError && <div className="rm-error-banner">{loadError}</div>}
+
+      {zoom < 4 && !zoomHintDismissed && !redistrictingMode && (
+        <div className="rm-zoom-pill">
+          <span>Zoom in to reveal member pins</span>
+          <button
+            type="button"
+            className="rm-zoom-pill-close"
             onClick={() => setZoomHintDismissed(true)}
             aria-label="Dismiss zoom hint"
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--color-text-muted)',
-              cursor: 'pointer',
-              fontSize: '16px',
-              lineHeight: 1,
-              padding: 0,
-            }}
           >
             {'\u00d7'}
           </button>
         </div>
       )}
-      {hoverInfo && (
-        <div style={{
-          position: 'absolute',
-          left: hoverInfo.x + 14 + 180 > (containerRef.current?.clientWidth ?? 9999)
-            ? hoverInfo.x - 184
-            : hoverInfo.x + 14,
-          top: Math.max(4, Math.min(hoverInfo.y - 14, (containerRef.current?.clientHeight ?? 9999) - 36)),
-          background: 'var(--color-bg-glass)',
-          backdropFilter: 'blur(16px) saturate(1.8)',
-          WebkitBackdropFilter: 'blur(16px) saturate(1.8)',
-          border: '1px solid var(--color-border-subtle)',
-          color: 'var(--color-text-primary)',
-          padding: '6px 12px',
-          borderRadius: 'var(--radius-md)',
-          fontSize: 12,
-          fontWeight: '500',
-          letterSpacing: '0.01em',
-          pointerEvents: 'none',
-          whiteSpace: 'nowrap',
-          boxShadow: 'var(--shadow-premium)',
-        }}>
-          {hoverInfo.label}
+
+      {hoverData && (
+        <div ref={hoverCardRef} className="rm-hover-card" aria-hidden="true">
+          <div className="rm-hover-header">
+            <span className="rm-hover-title">{hoverData.title}</span>
+            <span className="rm-hover-code">{hoverData.code}</span>
+          </div>
+          {hoverData.repName && hoverData.party && (
+            <div className="rm-hover-rep">
+              <span className="rm-hover-rep-name">{hoverData.repName}</span>
+              <span className={`rm-hover-party rm-hover-party--${hoverData.party}`}>
+                {partyWord(hoverData.party)}
+              </span>
+            </div>
+          )}
+          <div className="rm-hover-cue">{hoverData.cue}</div>
         </div>
       )}
-      {loadingPhase !== 'done' && (
-        <>
-          <style>{`
-            @keyframes rm-logo-breathe {
-              0%, 100% { opacity: 1;   filter: brightness(1); }
-              50%       { opacity: 0.7; filter: brightness(1.35); }
-            }
-            @keyframes rm-bar-fill {
-              0%   { width: 0%;   opacity: 1; }
-              80%  { width: 88%;  opacity: 1; }
-              100% { width: 88%;  opacity: 0.4; }
-            }
-            @keyframes rm-dot {
-              0%, 80%, 100% { transform: scale(0.55); opacity: 0.3; }
-              40%            { transform: scale(1);    opacity: 1; }
-            }
-          `}</style>
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'linear-gradient(150deg, #080d18 0%, #0f172a 55%, #111827 100%)',
-            zIndex: 50,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 0,
-            opacity: loadingPhase === 'fading' ? 0 : 1,
-            transition: 'opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-            pointerEvents: loadingPhase === 'fading' ? 'none' : 'auto',
-          }}>
-            {/* Logo */}
-            <div style={{
-              fontSize: 38,
-              fontWeight: 800,
-              letterSpacing: '-1.5px',
-              fontFamily: 'var(--font-display)',
-              background: 'linear-gradient(92deg, #3b82f6 0%, #7c3aed 45%, #ef4444 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              animation: 'rm-logo-breathe 2.2s ease-in-out infinite',
-              marginBottom: '10px',
-            }}>
-              RepMap
-            </div>
 
-            {/* Subtitle */}
-            <div style={{
-              fontSize: 10,
-              color: '#334155',
-              letterSpacing: '0.28em',
-              textTransform: 'uppercase',
-              fontFamily: 'var(--font-body)',
-              fontWeight: 600,
-              marginBottom: '32px',
-            }}>
-              Congressional Districts
+      {(!districtsLoaded || repsLoading) && (
+        <div className="rm-loading-veil">
+          <div className="rm-loading-card">
+            <div className="rm-loading-title">RepMap Cartographic Atlas</div>
+            <div className="rm-loading-bar" aria-hidden="true">
+              <div className="rm-loading-bar-fill" />
             </div>
-
-            {/* Animated loading bar */}
-            <div style={{
-              width: 180,
-              height: 2,
-              background: 'rgba(255,255,255,0.04)',
-              borderRadius: '1px',
-              overflow: 'hidden',
-              marginBottom: '20px',
-            }}>
-              <div style={{
-                height: '100%',
-                background: 'linear-gradient(90deg, #3b82f6, #7c3aed, #ef4444)',
-                borderRadius: '1px',
-                animation: 'rm-bar-fill 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite',
-              }} />
-            </div>
-
-            {/* Three-dot indicator */}
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '10px' }}>
-              {[0, 1, 2].map((i) => (
-                <div key={i} style={{
-                  width: 5,
-                  height: 5,
-                  borderRadius: '50%',
-                  background: '#475569',
-                  animation: `rm-dot 1.2s ease-in-out ${i * 0.2}s infinite`,
-                }} />
-              ))}
-            </div>
-
-            <div style={{ color: '#475569', fontSize: 12, letterSpacing: '0.04em', fontFamily: 'var(--font-body)' }}>
-              Assembling Congressional Districts
-            </div>
+            <div className="rm-loading-sub">Assembling Congressional Districts</div>
           </div>
-        </>
+        </div>
       )}
     </div>
   )

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getElectionDates } from '../../api/representatives'
 import type { ElectionDates, ElectionDateInfo } from '../../types'
+import { formatDate } from '../../utils/elections'
 import './ElectionCountdown.css'
 
 interface Props {
@@ -90,8 +91,6 @@ export default function ElectionCountdown({ state }: Props) {
 
   if (!nextElection || !countdown) return null
 
-  // Curated deadlines are ISO dates; hide ones already past (they would be misleading
-  // after the deadline) and any free-text placeholder.
   const rawDeadline = electionData?.registration_deadline
   const deadline = /^\d{4}-\d{2}-\d{2}$/.test(rawDeadline ?? '')
     && new Date(rawDeadline + 'T23:59:59').getTime() > Date.now()
@@ -100,32 +99,44 @@ export default function ElectionCountdown({ state }: Props) {
 
   return (
     <div className="election-countdown">
-      <p className="election-countdown-label">{nextElection.label}</p>
-      <div className="election-countdown-timer">
+      <div className="election-countdown-head">
+        <p className="election-countdown-label">{nextElection.label}</p>
+        <p className="election-countdown-date">{formatDate(nextElection.date)}</p>
+      </div>
+      <div className="election-countdown-timer" role="timer" aria-label={`Countdown to ${nextElection.label}`}>
         <div className="election-countdown-unit">
           <span className="election-countdown-digit">{countdown.days}</span>
-          <span className="election-countdown-unit-label">days</span>
+          <span className="election-countdown-unit-label">Days</span>
         </div>
-        <span className="election-countdown-sep">:</span>
+        <span className="election-countdown-sep" aria-hidden="true">:</span>
         <div className="election-countdown-unit">
           <span className="election-countdown-digit">{String(countdown.hours).padStart(2, '0')}</span>
-          <span className="election-countdown-unit-label">hrs</span>
+          <span className="election-countdown-unit-label">Hours</span>
         </div>
-        <span className="election-countdown-sep">:</span>
+        <span className="election-countdown-sep" aria-hidden="true">:</span>
         <div className="election-countdown-unit">
           <span className="election-countdown-digit">{String(countdown.minutes).padStart(2, '0')}</span>
-          <span className="election-countdown-unit-label">min</span>
+          <span className="election-countdown-unit-label">Min</span>
         </div>
       </div>
       {deadline && (
-        <p className="election-countdown-deadline">Registration deadline: {deadline}</p>
+        <p className="election-countdown-deadline">
+          Voter registration deadline: <strong>{formatDate(deadline)}</strong>
+        </p>
       )}
       <button
+        type="button"
         className="election-countdown-ics"
         onClick={() => downloadICS(nextElection.label, nextElection.date)}
         aria-label={`Add ${nextElection.label} to calendar`}
       >
-        Add to Calendar
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+        <span>Add to Calendar (.ics)</span>
       </button>
     </div>
   )

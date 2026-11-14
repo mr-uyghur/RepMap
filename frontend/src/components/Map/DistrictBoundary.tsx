@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Layer, Source } from 'react-map-gl'
 import { fetchCongressionalDistricts, fetchStateLegislativeDistricts } from '../../api/representatives'
+import { useMapStore } from '../../store/mapStore'
 import { getCachedDistrictGeoJSON } from './DistrictOverlay'
 import type { FeatureCollection } from './DistrictOverlay'
 import type { Level } from '../../types'
@@ -14,6 +15,7 @@ interface Props {
 
 export default function DistrictBoundary({ state, districtNumber, party, level }: Props) {
   const [geojson, setGeojson] = useState<FeatureCollection | null>(null)
+  const darkMode = useMapStore((s) => s.darkMode)
 
   const isStateLower = level === 'state_house'
   const isStateUpper = level === 'state_senate'
@@ -63,8 +65,19 @@ export default function DistrictBoundary({ state, districtNumber, party, level }
   // Nothing to render if the district wasn't found in the Census data
   if (filtered.features.length === 0) return null
 
-  const fillColor = party === 'republican' ? '#dc2626' : party === 'democrat' ? '#2563eb' : '#6b7280'
-  const lineColor = party === 'republican' ? '#b91c1c' : party === 'democrat' ? '#1d4ed8' : '#4b5563'
+  const fillColor =
+    party === 'republican'
+      ? (darkMode ? '#ef4444' : '#dc2626')
+      : party === 'democrat'
+        ? (darkMode ? '#3b82f6' : '#2563eb')
+        : (darkMode ? '#94a3b8' : '#6b7280')
+  const lineColor =
+    party === 'republican'
+      ? (darkMode ? '#fca5a5' : '#b91c1c')
+      : party === 'democrat'
+        ? (darkMode ? '#93c5fd' : '#1d4ed8')
+        : (darkMode ? '#cbd5e1' : '#4b5563')
+  const casingColor = darkMode ? '#0b0f17' : '#ffffff'
 
   return (
     <Source id="district-source" type="geojson" data={filtered as FeatureCollection}>
@@ -72,25 +85,32 @@ export default function DistrictBoundary({ state, districtNumber, party, level }
         id="district-fill"
         source="district-source"
         type="fill"
-        paint={{ 'fill-color': fillColor, 'fill-opacity': 0.18 }}
+        paint={{ 'fill-color': fillColor, 'fill-opacity': darkMode ? 0.24 : 0.18 }}
       />
-      {/* Wide blurred layer creates a soft glow effect behind the crisp border */}
+      {/* Wide blurred layer creates a soft cartographic halo behind the crisp border */}
       <Layer
         id="district-glow"
         source="district-source"
         type="line"
         paint={{
           'line-color': lineColor,
-          'line-width': 10,
-          'line-opacity': 0.22,
+          'line-width': 12,
+          'line-opacity': darkMode ? 0.32 : 0.22,
           'line-blur': 8,
         }}
+      />
+      {/* High-contrast casing ensures focal district pops over adjacent districts */}
+      <Layer
+        id="district-casing"
+        source="district-source"
+        type="line"
+        paint={{ 'line-color': casingColor, 'line-width': 4.5, 'line-opacity': 0.85 }}
       />
       <Layer
         id="district-line"
         source="district-source"
         type="line"
-        paint={{ 'line-color': lineColor, 'line-width': 2.5, 'line-opacity': 0.9 }}
+        paint={{ 'line-color': lineColor, 'line-width': 2.6, 'line-opacity': 1 }}
       />
     </Source>
   )

@@ -3,47 +3,59 @@ import { useRepresentative } from '../../hooks/useRepresentative'
 import { getElectionIndex } from '../../api/representatives'
 import type { Representative } from '../../types'
 import { electionPhase, isFederalSeat, stateName, type ElectionPhase } from '../../utils/elections'
+import { safeExternalHref } from '../../utils/urlSafety'
 import LegislationTab from './LegislationTab'
 import BioTab from './BioTab'
 import BallotCard, { nextContestYear } from './BallotCard'
 import VotesSection from './VotesSection'
 import ReportCard from './ReportCard'
 import EmbedSnippet from './EmbedSnippet'
+import { ensureCommitteesLoaded } from './ensureCommittees'
 import { copyToClipboard } from '../../utils/clipboard'
 import './RepresentativePanel.css'
 
 function CloseIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
-      <line x1="18" y1="6" x2="6" y2="18"/>
-      <line x1="6" y1="6" x2="18" y2="18"/>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
   )
 }
 
 function ShareIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-      <polyline points="16 6 12 2 8 6"/>
-      <line x1="12" y1="2" x2="12" y2="15"/>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+      <polyline points="16 6 12 2 8 6" />
+      <line x1="12" y1="2" x2="12" y2="15" />
     </svg>
   )
 }
 
 function CompareIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="3" y="4" width="7" height="16" rx="1.5" />
       <rect x="14" y="4" width="7" height="16" rx="1.5" />
     </svg>
   )
 }
 
+function GlobeIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="2" y1="12" x2="22" y2="12" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  )
+}
+
 function PhoneIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" />
     </svg>
   )
 }
@@ -62,7 +74,7 @@ function useElectionPhase(): ElectionPhase | null {
     let cancelled = false
     getElectionIndex()
       .then((index) => { if (!cancelled) setPhase(electionPhase(index.cycles)) })
-      .catch(() => undefined) // the ballot line shows its own error and retry
+      .catch(() => undefined)
     return () => { cancelled = true }
   }, [])
   return phase
@@ -83,7 +95,6 @@ const FEDERAL_TABS: { key: TabKey; label: string }[] = [
   { key: 'bills',    label: 'Bills'    },
 ]
 
-// State legislators have no congressional votes or bills in our data.
 const STATE_TABS: { key: TabKey; label: string }[] = [
   { key: 'overview', label: 'Overview' },
 ]
@@ -128,6 +139,13 @@ function initials(name: string) {
   return (first + last).toUpperCase()
 }
 
+function termSpanLabel(rep: Representative): string | null {
+  const startYear = rep.term_start ? rep.term_start.slice(0, 4) : null
+  const endYear = rep.term_end ? rep.term_end.slice(0, 4) : null
+  if (!startYear && !endYear) return null
+  return `${startYear ?? '…'}–${endYear ?? '…'}`
+}
+
 interface Props {
   repId: number
   onClose: () => void
@@ -154,7 +172,7 @@ export default function RepresentativePanel({
   const { rep, loading } = useRepresentative(repId)
   const phase = useElectionPhase()
   const [activeTab, setActiveTab] = useState<TabKey>('overview')
-  const [copied, setCopied] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
   const [shareOpen, setShareOpen] = useState(false)
   const [showEmbed, setShowEmbed] = useState(false)
   const [photoFailed, setPhotoFailed] = useState(false)
@@ -163,6 +181,7 @@ export default function RepresentativePanel({
   const shareButtonRef = useRef<HTMLButtonElement>(null)
   const shareMenuRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
+  const toastTimerRef = useRef<number | null>(null)
   const tabRefs = useRef<Partial<Record<TabKey, HTMLButtonElement | null>>>({})
   const uid = useId()
   const tabId = (key: TabKey) => `${uid}-tab-${key}`
@@ -172,20 +191,43 @@ export default function RepresentativePanel({
 
   const openRace = onOpenRace ?? (() => onOpenBallot?.())
 
-  // Reset per member.
+  // Reset per member and make sure committees are hydrated.
   useEffect(() => {
+    ensureCommitteesLoaded()
     setActiveTab('overview')
     setPhotoFailed(false)
     setShareOpen(false)
+    setToast(null)
   }, [repId])
+
+  useEffect(() => () => {
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current)
+  }, [])
+
+  const showToast = (msg: string) => {
+    setToast(msg)
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current)
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 2400)
+  }
 
   const tabs = rep && isStateLevel(rep) ? STATE_TABS : FEDERAL_TABS
 
-  const handleCopy = async () => {
+  const handleCopyLink = async () => {
     const ok = await copyToClipboard(window.location.href)
     if (ok) {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      showToast('Link copied.')
+      setShareOpen(false)
+      shareButtonRef.current?.focus()
+    }
+  }
+
+  const handleCopyPhone = async () => {
+    if (!rep?.phone) return
+    const ok = await copyToClipboard(rep.phone)
+    if (ok) {
+      showToast(`Copied ${rep.phone}`)
+      setShareOpen(false)
+      shareButtonRef.current?.focus()
     }
   }
 
@@ -239,8 +281,8 @@ export default function RepresentativePanel({
     const getFocusableElements = () => {
       const elements = Array.from(
         panelRef.current?.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        ) ?? []
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
       )
       const closeButton = closeButtonRef.current
       if (!closeButton) return elements
@@ -278,13 +320,15 @@ export default function RepresentativePanel({
 
   const party = rep ? partyKey(rep.party) : 'other'
   const tel = rep?.phone ? telHref(rep.phone) : null
+  const websiteHref = rep ? safeExternalHref(rep.website) : null
   const federal = !!rep && isFederalSeat(rep)
+  const termSpan = rep ? termSpanLabel(rep) : null
   // Off season the ballot line goes away; "Seat up in <year>" becomes an Overview fact.
   const seatUpYear = rep && federal && phase?.phase === 'off' ? nextContestYear(rep, phase.cycle) : null
 
   return (
     <div
-      className={`panel${embedded ? ' panel--embedded' : ''}`}
+      className={`panel panel--party-${party}${embedded ? ' panel--embedded' : ''}`}
       ref={panelRef}
       role={embedded ? 'region' : 'dialog'}
       aria-modal={embedded ? undefined : !compareMode}
@@ -293,7 +337,7 @@ export default function RepresentativePanel({
       <div className="panel-drag-handle" aria-hidden="true" />
       {compareMode && (
         <div className="panel-compare-banner" role="status">
-          <strong>Compare:</strong> pick a second member from the map or the search box.
+          <strong>Compare mode:</strong> select a second member on the map or via the search bar.
         </div>
       )}
 
@@ -311,15 +355,22 @@ export default function RepresentativePanel({
         )}
 
         <div className="panel-who">
-          <div className={`panel-avatar panel-avatar--${party}`} aria-hidden="true">
-            {loading && !rep ? null : <span className="panel-avatar-initials">{rep ? initials(rep.name) : ''}</span>}
-            {rep?.photo_url && !photoFailed && (
-              <img
-                src={rep.photo_url}
-                alt=""
-                className="panel-avatar-photo"
-                onError={() => setPhotoFailed(true)}
-              />
+          <div className={`panel-avatar-wrap panel-avatar-wrap--${party}`} aria-hidden="true">
+            <div className={`panel-avatar panel-avatar--${party}`}>
+              {loading && !rep ? null : <span className="panel-avatar-initials">{rep ? initials(rep.name) : ''}</span>}
+              {rep?.photo_url && !photoFailed && (
+                <img
+                  src={rep.photo_url}
+                  alt=""
+                  className="panel-avatar-photo"
+                  onError={() => setPhotoFailed(true)}
+                />
+              )}
+            </div>
+            {rep && (
+              <span className={`panel-avatar-badge panel-avatar-badge--${party}`}>
+                {(PARTY_LABELS[party] ?? 'O')[0]}
+              </span>
             )}
           </div>
 
@@ -332,16 +383,24 @@ export default function RepresentativePanel({
               </div>
             ) : rep ? (
               <>
+                <p className="panel-dossier-kicker">
+                  {federal ? 'Congressional Dossier' : 'Legislative Dossier'}
+                </p>
                 <h2 className="panel-name" id={headingId}>{rep.name}</h2>
                 <p className="panel-seat">
                   {getChamberLabel(rep)} · {getSeatLabel(rep)}
                 </p>
-                <p className="panel-party">
-                  <span className={`panel-party-letter panel-party-letter--${party}`} aria-hidden="true">
-                    {(PARTY_LABELS[party] ?? 'O')[0]}
+                <div className="panel-meta-pills">
+                  <span className={`panel-party panel-party--${party}`}>
+                    <span className={`panel-party-dot panel-party-dot--${party}`} aria-hidden="true" />
+                    {PARTY_LABELS[party] ?? rep.party}
                   </span>
-                  {PARTY_LABELS[party] ?? rep.party}
-                </p>
+                  {termSpan && (
+                    <span className="panel-tenure-pill">
+                      Term {termSpan}
+                    </span>
+                  )}
+                </div>
               </>
             ) : (
               <p className="panel-error" role="status">Representative not found.</p>
@@ -350,7 +409,9 @@ export default function RepresentativePanel({
         </div>
 
         {rep && (
-          <div className={`panel-actions${tel ? ' panel-actions--call' : ''}`}>
+          <div
+            className={`panel-actions${tel ? ' panel-actions--call' : ''}${websiteHref ? ' panel-actions--with-web' : ''}`}
+          >
             {tel && (
               <a href={tel} className="panel-call">
                 <PhoneIcon />
@@ -360,6 +421,18 @@ export default function RepresentativePanel({
                 </span>
               </a>
             )}
+            {websiteHref && (
+              <a
+                href={websiteHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="panel-action-btn panel-website-btn"
+              >
+                <GlobeIcon />
+                <span>Website</span>
+                <span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            )}
             <button
               type="button"
               onClick={() => onCompareModeChange(!compareMode)}
@@ -367,7 +440,7 @@ export default function RepresentativePanel({
               className={`panel-action-btn${compareMode ? ' panel-action-btn--active' : ''}`}
             >
               <CompareIcon />
-              <span>{compareMode ? 'Cancel compare' : 'Compare'}</span>
+              <span>{compareMode ? 'Cancel' : 'Compare'}</span>
             </button>
             <div className="panel-share" onKeyDown={onShareKeyDown}>
               <button
@@ -387,23 +460,36 @@ export default function RepresentativePanel({
                 className="panel-share-menu"
                 hidden={!shareOpen}
               >
-                <button type="button" className="panel-share-item" onClick={handleCopy}>
-                  Copy link
-                  <span className="panel-share-item-sub">A link straight to this page</span>
+                <button type="button" className="panel-share-item" onClick={handleCopyLink}>
+                  <span>Copy link</span>
+                  <span className="panel-share-item-sub">Direct URL to this dossier</span>
                 </button>
+                {rep.phone && (
+                  <button type="button" className="panel-share-item" onClick={handleCopyPhone}>
+                    <span>Copy office phone</span>
+                    <span className="panel-share-item-sub ov-mono">{rep.phone}</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   className="panel-share-item"
                   onClick={() => { setShareOpen(false); setShowEmbed(true) }}
                 >
-                  Embed on a website
-                  <span className="panel-share-item-sub">Copy an iframe snippet</span>
+                  <span>Embed on a website</span>
+                  <span className="panel-share-item-sub">Copy responsive iframe card</span>
                 </button>
-                <p className="panel-share-status" role="status">{copied ? 'Link copied.' : ''}</p>
               </div>
             </div>
           </div>
         )}
+
+        {toast && (
+          <p className="panel-toast-pill" role="status" aria-live="polite">
+            <span className="panel-toast-check" aria-hidden="true">✓</span>
+            {toast}
+          </p>
+        )}
+
         {showEmbed && rep && (
           <EmbedSnippet rep={rep} onClose={() => { setShowEmbed(false); shareButtonRef.current?.focus() }} />
         )}
@@ -464,14 +550,14 @@ export default function RepresentativePanel({
                 )}
                 {selected && key === 'votes' && (
                   <>
+                    {rep.bioguide_id && (
+                      <ReportCard bioguideId={rep.bioguide_id} govtrackId={rep.external_ids?.govtrack_id} />
+                    )}
                     <VotesSection
                       bioguide_id={rep.bioguide_id ?? ''}
                       govtrack_id={rep.external_ids?.govtrack_id}
                       congressUrl={rep.congress_gov_url}
                     />
-                    {rep.bioguide_id && (
-                      <ReportCard bioguideId={rep.bioguide_id} govtrackId={rep.external_ids?.govtrack_id} />
-                    )}
                   </>
                 )}
                 {selected && key === 'bills' && (

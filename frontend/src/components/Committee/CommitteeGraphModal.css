@@ -1,11 +1,14 @@
+/* Committee Network Modal shell & control toolbar.
+   Editorial Civic Atlas tokens only (variables.css). */
+
 .committee-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
+  z-index: 200;
   display: flex;
   align-items: stretch;
-  z-index: 200;
+  padding: var(--space-4);
+  background: var(--color-scrim);
 }
 
 .committee-modal {
@@ -13,125 +16,232 @@
   flex-direction: column;
   width: 100%;
   height: 100%;
-  background: var(--glass-bg-strong, rgba(255, 255, 255, 0.97));
-  animation: committee-modal-enter 0.2s ease-out;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-primary);
+  box-shadow: var(--shadow-xl);
+  color: var(--color-text-primary);
 }
 
-.dark .committee-modal {
-  background: rgba(15, 20, 30, 0.98);
-}
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes committee-modal-enter {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
 
-@keyframes committee-modal-enter {
-  from { opacity: 0; transform: scale(0.98); }
-  to   { opacity: 1; transform: scale(1); }
+  .committee-modal {
+    animation: committee-modal-enter 0.18s ease-out both;
+  }
 }
 
 .committee-modal-header {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--color-border, #e5e7eb);
-  flex-shrink: 0;
-  background: var(--glass-bg, rgba(255, 255, 255, 0.9));
-  backdrop-filter: blur(8px);
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  flex-shrink: 0;
 }
 
-.dark .committee-modal-header {
-  background: rgba(20, 25, 38, 0.95);
-  border-bottom-color: rgba(255, 255, 255, 0.08);
+.committee-modal-brand {
+  min-width: 0;
+}
+
+.committee-modal-kicker {
+  margin: 0 0 2px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent-text);
 }
 
 .committee-modal-title {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text-primary, #111827);
   margin: 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text-primary);
   white-space: nowrap;
 }
 
-.dark .committee-modal-title {
-  color: #f3f4f6;
-}
-
-.committee-modal-filter-wrap {
+.committee-modal-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-width: 220px;
+  gap: 10px;
+  flex: 1 1 420px;
 }
 
-.committee-modal-filter-label {
-  font-size: 13px;
-  color: var(--color-text-secondary, #6b7280);
-  white-space: nowrap;
-}
-
-.dark .committee-modal-filter-label {
-  color: #9ca3af;
+.committee-modal-field {
+  flex: 1 1 210px;
+  max-width: 300px;
 }
 
 .committee-modal-select {
-  flex: 1;
-  padding: 6px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--color-border, #d1d5db);
-  background: var(--color-surface, #fff);
-  color: var(--color-text-primary, #111827);
-  font-size: 13px;
-  outline: none;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-control);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  max-width: 320px;
 }
 
-.committee-modal-select:focus {
-  border-color: var(--color-accent, #3b82f6);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+.committee-modal-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 190px;
+  max-width: 260px;
 }
 
-.dark .committee-modal-select {
-  background: rgba(30, 35, 48, 0.9);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: #f3f4f6;
+.committee-modal-search-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.committee-modal-search {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px 0 34px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-control);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 16px; /* prevent iOS zoom */
+}
+
+.committee-modal-search::placeholder {
+  color: var(--color-text-muted);
+  font-size: 13.5px;
+}
+
+.committee-modal-chambers {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+}
+
+.committee-chamber-btn {
+  min-height: 44px;
+  min-width: 52px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.committee-chamber-btn:hover {
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+.committee-chamber-btn--active {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent-border);
+  color: var(--color-accent-text);
+  font-weight: 700;
+}
+
+.committee-modal-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.committee-modal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+
+.committee-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.committee-legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: var(--radius-full);
+}
+
+.committee-legend-dot--democrat {
+  background: var(--color-democrat);
+}
+
+.committee-legend-dot--republican {
+  background: var(--color-republican);
+}
+
+.committee-legend-dot--independent {
+  background: var(--color-independent);
 }
 
 .committee-modal-stats {
-  font-size: 12px;
-  color: var(--color-text-secondary, #9ca3af);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--color-text-muted);
   white-space: nowrap;
 }
 
 .committee-modal-close {
-  margin-left: auto;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--color-text-secondary, #6b7280);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
-  transition: background 0.15s, color 0.15s;
+  padding: 0;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
 }
 
 .committee-modal-close:hover {
-  background: var(--color-hover, #f3f4f6);
-  color: var(--color-text-primary, #111827);
-}
-
-.dark .committee-modal-close:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #f3f4f6;
+  background: var(--color-bg-elevated);
+  border-color: var(--color-accent);
+  color: var(--color-text-primary);
 }
 
 .committee-modal-body {
   flex: 1;
+  min-height: 0;
   overflow: hidden;
   position: relative;
 }
@@ -141,21 +251,28 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--color-text-secondary, #9ca3af);
-  font-size: 14px;
+  padding: var(--space-6);
+  color: var(--color-text-muted);
+  font-size: 15px;
+  text-align: center;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  .committee-modal-backdrop {
+    padding: 0;
+  }
+
+  .committee-modal {
+    border-radius: 0;
+    border: none;
+  }
+
   .committee-modal-header {
-    gap: 8px;
     padding: 10px 14px;
+    gap: 10px;
   }
 
-  .committee-modal-title {
-    font-size: 14px;
-  }
-
-  .committee-modal-filter-wrap {
-    min-width: 160px;
+  .committee-modal-legend {
+    display: none;
   }
 }

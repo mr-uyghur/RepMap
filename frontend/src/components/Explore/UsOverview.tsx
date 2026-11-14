@@ -1,5 +1,6 @@
 import { useId, useMemo, useState } from 'react'
 import { useRepStore } from '../../store/repStore'
+import type { Representative } from '../../types'
 import { electionPhase } from '../../utils/elections'
 import { STATE_CODES, stateSummary } from '../../utils/stateRaces'
 import SeasonCard from './SeasonCard'
@@ -14,6 +15,21 @@ interface Props {
   onSelectZip?: (zip: string) => void
   /** Show each state's race counts on the tiles (`/?view=races`). */
   showRaceCounts?: boolean
+}
+
+const SAMPLE_ZIPS: readonly { zip: string; place: string }[] = [
+  { zip: '95112', place: 'CA' },
+  { zip: '68102', place: 'NE' },
+  { zip: '10001', place: 'NY' },
+]
+
+function SearchIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      <circle cx="11" cy="11" r="7" />
+      <line x1="20" y1="20" x2="16.2" y2="16.2" />
+    </svg>
+  )
 }
 
 function ZipForm({ onSelectZip, onSearchFocus }: { onSelectZip: (zip: string) => void; onSearchFocus?: () => void }) {
@@ -36,7 +52,10 @@ function ZipForm({ onSelectZip, onSearchFocus }: { onSelectZip: (zip: string) =>
 
   return (
     <form className="zip-form" onSubmit={submit} noValidate>
-      <label htmlFor={inputId} className="zip-form-label">Your ZIP code</label>
+      <div className="zip-form-head">
+        <label htmlFor={inputId} className="zip-form-label">Your ZIP code</label>
+        <span className="zip-form-kicker">5-digit lookup</span>
+      </div>
       <div className="zip-form-row">
         <input
           id={inputId}
@@ -44,10 +63,14 @@ function ZipForm({ onSelectZip, onSearchFocus }: { onSelectZip: (zip: string) =>
           type="text"
           inputMode="numeric"
           autoComplete="postal-code"
+          placeholder="e.g. 95112"
           maxLength={5}
           pattern="[0-9]{5}"
           value={value}
-          onChange={(e) => { setValue(e.target.value.replace(/\D/g, '').slice(0, 5)); setError(null) }}
+          onChange={(e) => {
+            setValue(e.target.value.replace(/\D/g, '').slice(0, 5))
+            setError(null)
+          }}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `${errorId} ${hintId}` : hintId}
         />
@@ -55,18 +78,90 @@ function ZipForm({ onSelectZip, onSearchFocus }: { onSelectZip: (zip: string) =>
       </div>
       {error && <p id={errorId} className="zip-form-error" role="alert">{error}</p>}
       <p id={hintId} className="zip-form-hint">
-        Or search a name in the top bar, or pick a state below.
+        Try an example ZIP, search a member above, or pick a state below.
       </p>
-      {onSearchFocus && (
-        <button type="button" className="overview-text-button zip-form-search" onClick={onSearchFocus}>Search by name</button>
-      )}
+      <div className="zip-form-quick">
+        {SAMPLE_ZIPS.map((sample) => (
+          <button
+            key={sample.zip}
+            type="button"
+            className="zip-quick-pill"
+            onClick={() => onSelectZip(sample.zip)}
+          >
+            <span className="zip-quick-code">ZIP {sample.zip}</span>
+            <span className="zip-quick-state" aria-hidden="true">{sample.place}</span>
+          </button>
+        ))}
+        {onSearchFocus && (
+          <button type="button" className="zip-quick-pill zip-quick-pill--search" onClick={onSearchFocus}>
+            <SearchIcon />
+            <span>Search by name</span>
+          </button>
+        )}
+      </div>
     </form>
   )
 }
 
-/** Home level (United States): who represents you first; election info is a small card
- *  whose prominence follows `electionPhase()`. Needs only the member list and the small
- *  election index, so the map's first paint stays light. */
+interface ChamberBreakdown {
+  total: number
+  dem: number
+  rep: number
+  ind: number
+}
+
+function summarizeChamber(reps: Representative[], level: 'us_senate' | 'us_house'): ChamberBreakdown {
+  let dem = 0
+  let rep = 0
+  let ind = 0
+  for (const r of reps) {
+    if (r.level !== level) continue
+    if (r.party === 'democrat') dem++
+    else if (r.party === 'republican') rep++
+    else ind++
+  }
+  return { total: dem + rep + ind, dem, rep, ind }
+}
+
+function ChamberCard({ label, stats }: { label: string; stats: ChamberBreakdown }) {
+  const { total, dem, rep, ind } = stats
+  const pct = (n: number) => (total > 0 ? `${(n / total) * 100}%` : '0%')
+  return (
+    <div className="congress-chamber">
+      <div className="congress-chamber-head">
+        <span className="congress-chamber-title">{label}</span>
+        <span className="congress-chamber-total">{total}</span>
+      </div>
+      <div className="congress-bar" aria-hidden="true">
+        {dem > 0 && <span className="congress-bar-seg congress-bar-seg--dem" style={{ width: pct(dem) }} />}
+        {ind > 0 && <span className="congress-bar-seg congress-bar-seg--ind" style={{ width: pct(ind) }} />}
+        {rep > 0 && <span className="congress-bar-seg congress-bar-seg--rep" style={{ width: pct(rep) }} />}
+      </div>
+      <div className="congress-counts">
+        <span className="congress-party congress-party--dem">
+          <span className="congress-dot congress-dot--dem" aria-hidden="true" />
+          D {dem}
+        </span>
+        {ind > 0 && (
+          <span className="congress-party congress-party--ind">
+            <span className="congress-dot congress-dot--ind" aria-hidden="true" />
+            I {ind}
+          </span>
+        )}
+        <span className="congress-party congress-party--rep">
+          <span className="congress-dot congress-dot--rep" aria-hidden="true" />
+          R {rep}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Home level (United States): National Civic Front Page.
+ * Leads with the tactile ZIP lookup and live 119th Congress chamber split;
+ * election prominence follows `electionPhase()` via `SeasonCard`.
+ */
 export default function UsOverview({ onSelectState, onSearchFocus, onSelectZip, showRaceCounts }: Props) {
   const allReps = useRepStore((s) => s.allReps)
   const { state: index, retry } = useElectionIndex()
@@ -82,12 +177,21 @@ export default function UsOverview({ onSelectState, onSearchFocus, onSelectZip, 
     [allReps, phaseCycle],
   )
 
+  const chambers = useMemo(() => {
+    if (!allReps.length) return null
+    return {
+      senate: summarizeChamber(allReps, 'us_senate'),
+      house: summarizeChamber(allReps, 'us_house'),
+    }
+  }, [allReps])
+
   return (
     <section className="overview" aria-labelledby={titleId}>
-      <header>
+      <header className="overview-hero">
+        <p className="overview-kicker">119th U.S. Congress · Civic Directory</p>
         <h2 id={titleId} className="overview-title overview-title--home">Who represents you in Congress</h2>
         <p className="overview-lede">
-          Your U.S. Representative and two senators: contact, committees, votes and bills.
+          Your U.S. Representative and two senators: direct D.C. phone lines, committees, votes and sponsored bills.
         </p>
       </header>
 
@@ -104,6 +208,19 @@ export default function UsOverview({ onSelectState, onSearchFocus, onSelectZip, 
         </div>
       )}
 
+      {chambers && (
+        <section className="congress-strip" aria-label="Current Congress party balance">
+          <div className="congress-strip-head">
+            <span className="congress-strip-label">Current Congress Balance</span>
+            <span className="congress-strip-sub">{chambers.senate.total + chambers.house.total} federal seats</span>
+          </div>
+          <div className="congress-grid">
+            <ChamberCard label="U.S. Senate" stats={chambers.senate} />
+            <ChamberCard label="U.S. House" stats={chambers.house} />
+          </div>
+        </section>
+      )}
+
       <SeasonCard phase={phase} senateUp={senateUp} />
 
       {index.status === 'error' && showRaceCounts && (
@@ -114,9 +231,12 @@ export default function UsOverview({ onSelectState, onSearchFocus, onSelectZip, 
       )}
 
       <section className="overview-section" aria-labelledby={listHeadingId}>
-        <h3 id={listHeadingId} className="overview-subhead">
-          {showRaceCounts ? 'Races and members by state' : 'Browse members by state'}
-        </h3>
+        <div className="overview-section-head">
+          <h3 id={listHeadingId} className="overview-subhead">
+            {showRaceCounts ? 'Races and members by state' : 'Browse members by state'}
+          </h3>
+          <span className="overview-count-badge">50 + D.C.</span>
+        </div>
         <StateList onSelectState={onSelectState} showRaceCounts={showRaceCounts} />
       </section>
     </section>

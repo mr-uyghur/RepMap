@@ -1,0 +1,886 @@
+/* ── RepMap Cartographic Stage ("Editorial Civic Atlas") ────────────────── */
+@keyframes rm-veil-bar {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(220%); }
+}
+
+.rm-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-map-bg);
+}
+
+/* ── Mapbox Built-in Controls & WCAG 2.2 Target-Size Polish ─────────────── */
+.rm-stage .mapboxgl-ctrl-group {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.rm-stage .mapboxgl-ctrl-group > button {
+  width: 45px;
+  height: 45px;
+  background-color: var(--color-bg-primary);
+  border-color: var(--color-border-subtle);
+  transition: background-color var(--transition-fast);
+}
+
+.rm-stage a.mapboxgl-ctrl-logo {
+  min-width: 88px;
+  min-height: 25px;
+  height: 25px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.rm-stage .mapboxgl-ctrl-attrib.mapboxgl-compact {
+  min-height: 28px;
+  min-width: 28px;
+  padding: 2px 28px 2px 0;
+  border-radius: 14px;
+}
+
+.rm-stage .mapboxgl-ctrl-attrib-button {
+  min-width: 28px;
+  min-height: 28px;
+  width: 28px;
+  height: 28px;
+}
+
+.rm-stage .mapboxgl-ctrl-attrib-inner a {
+  display: inline-block;
+  min-height: 25px;
+  min-width: 25px;
+  line-height: 25px;
+  padding: 0 5px;
+}
+
+.rm-stage .mapboxgl-ctrl-group > button:hover {
+  background-color: var(--color-bg-surface);
+}
+
+.rm-stage .mapboxgl-ctrl-group > button:focus-visible {
+  outline: 2px solid var(--color-accent-text);
+  outline-offset: -2px;
+}
+
+:root.dark .rm-stage .mapboxgl-ctrl-group > button .mapboxgl-ctrl-icon {
+  filter: invert(0.92) hue-rotate(180deg);
+}
+
+/* ── Floating Cartographic HUD (Top-Right) ──────────────────────────────── */
+.rm-hud {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 14;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: calc(100% - 32px);
+  pointer-events: none;
+}
+
+.rm-hud-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.rm-hud-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 45px;
+  min-height: 45px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.rm-hud-btn:hover {
+  background: var(--color-bg-surface);
+  border-color: var(--color-accent);
+}
+
+.rm-hud-btn--reset {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-color: var(--color-accent);
+}
+
+.rm-hud-btn--reset:hover {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  box-shadow: var(--shadow-md);
+  filter: brightness(1.06);
+}
+
+.rm-hud-btn--active {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+  color: var(--color-text-primary);
+}
+
+.rm-hud-icon {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+
+/* Segmented Non-Contiguous U.S. & Territory Inset Jump Pills */
+.rm-inset-group {
+  display: inline-flex;
+  align-items: center;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.rm-inset-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 45px;
+  min-height: 45px;
+  padding: 0 10px;
+  border: none;
+  border-right: 1px solid var(--color-border-subtle);
+  background: transparent;
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.rm-inset-btn:last-child {
+  border-right: none;
+}
+
+.rm-inset-btn:hover {
+  background: var(--color-bg-surface);
+  color: var(--color-accent-text);
+}
+
+.rm-inset-btn--active {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.rm-inset-btn--active:hover {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.rm-inset-btn:focus-visible {
+  outline: 2px solid var(--color-accent-text);
+  outline-offset: -2px;
+  position: relative;
+  z-index: 2;
+}
+
+/* ── Collapsible Map Legend Card ────────────────────────────────────────── */
+.rm-legend-card {
+  pointer-events: auto;
+  width: 244px;
+  padding: 12px 14px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text-primary);
+}
+
+.rm-legend-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.rm-legend-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.rm-legend-layer-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+  border: 1px solid var(--color-accent);
+  white-space: nowrap;
+}
+
+.rm-legend-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rm-legend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.3;
+}
+
+.rm-legend-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rm-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.rm-legend-swatch--dem {
+  background: var(--color-democrat);
+}
+
+.rm-legend-swatch--rep {
+  background: var(--color-republican);
+}
+
+.rm-legend-swatch--ind {
+  background: var(--color-independent);
+}
+
+.rm-legend-line {
+  width: 14px;
+  height: 0;
+  flex: none;
+}
+
+.rm-legend-line--current {
+  border-top: 2.5px solid var(--color-text-secondary);
+}
+
+.rm-legend-line--historical {
+  border-top: 2.5px dashed #d97706;
+}
+
+:root.dark .rm-legend-line--historical {
+  border-top-color: #fbbf24;
+}
+
+.rm-legend-ring {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #db2777;
+  background: var(--color-bg-surface);
+  flex: none;
+}
+
+.rm-legend-sub {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+/* ── Territory Callout Card (when jumping to PR & Territories) ──────────── */
+.rm-territory-card {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 340px;
+  padding: 10px 12px 10px 14px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text-primary);
+}
+
+.rm-territory-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.rm-territory-title {
+  margin: 0 0 3px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.rm-territory-desc {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.rm-icon-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 45px;
+  min-height: 45px;
+  margin: -6px -6px -6px 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  flex: none;
+}
+
+.rm-icon-close-btn:hover {
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+/* ── Error & Zoom Notices ───────────────────────────────────────────────── */
+.rm-error-banner {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  max-width: 420px;
+  padding: 10px 16px;
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  pointer-events: none;
+}
+
+.rm-zoom-pill {
+  position: absolute;
+  bottom: 14px;
+  left: 60px;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px 0 14px;
+  min-height: 45px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rm-zoom-pill-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 45px;
+  min-height: 45px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.rm-zoom-pill-close:hover {
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+/* ── Rich Cartographic Hover Tooltip ────────────────────────────────────── */
+.rm-hover-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 22;
+  min-width: 196px;
+  max-width: 268px;
+  padding: 9px 12px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  color: var(--color-text-primary);
+  pointer-events: none;
+  transform: translate3d(var(--hx, -9999px), var(--hy, -9999px), 0);
+  will-change: transform;
+}
+
+.rm-hover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rm-hover-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.25;
+}
+
+.rm-hover-code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.rm-hover-rep {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.rm-hover-rep-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rm-hover-party {
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1.5px 7px;
+  border-radius: var(--radius-full);
+  border: 1px solid currentColor;
+  line-height: 1.3;
+}
+
+.rm-hover-party--democrat {
+  color: var(--color-democrat-text);
+  background: var(--color-bg-surface);
+}
+
+.rm-hover-party--republican {
+  color: var(--color-republican-text);
+  background: var(--color-bg-surface);
+}
+
+.rm-hover-party--independent,
+.rm-hover-party--other {
+  color: var(--color-independent-text);
+  background: var(--color-bg-surface);
+}
+
+.rm-hover-cue {
+  margin-top: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-accent-text);
+  line-height: 1.25;
+}
+
+/* ── Editorial Map Loading Veil ─────────────────────────────────────────── */
+.rm-loading-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--color-map-bg);
+  color: var(--color-text-primary);
+}
+
+.rm-loading-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 24px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.rm-loading-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.rm-loading-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-secondary);
+}
+
+.rm-loading-bar {
+  width: 164px;
+  height: 3px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-elevated);
+  overflow: hidden;
+}
+
+.rm-loading-bar-fill {
+  width: 45%;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  animation: rm-veil-bar 1.4s ease-in-out infinite;
+}
+
+/* ── No-Token / Offline Cartographic Atlas Backdrop ─────────────────────── */
+.rm-fallback {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 24px 188px;
+  background: var(--color-map-bg);
+}
+
+.rm-fallback--redistrict {
+  align-items: flex-start;
+  padding-top: 28px;
+  padding-bottom: 196px;
+}
+
+.rm-fallback-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.rm-atlas-grid-minor {
+  stroke: var(--color-border-subtle);
+  opacity: 0.7;
+}
+
+.rm-atlas-grid-major {
+  stroke: var(--color-border);
+  opacity: 0.85;
+}
+
+.rm-atlas-arc {
+  stroke: var(--color-border-control);
+  opacity: 0.35;
+}
+
+.rm-atlas-land {
+  fill: var(--color-bg-surface);
+  stroke: var(--color-border-control);
+  stroke-width: 1.5;
+  opacity: 0.78;
+}
+
+.rm-atlas-land-dot {
+  fill: var(--color-bg-surface);
+  stroke: var(--color-border-control);
+  stroke-width: 1.5;
+  opacity: 0.78;
+}
+
+.rm-atlas-seam {
+  stroke: var(--color-border);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.rm-atlas-inset-box {
+  fill: var(--color-bg-primary);
+  fill-opacity: 0.45;
+  stroke: var(--color-border);
+  stroke-width: 1.2;
+  stroke-dasharray: 4 3;
+}
+
+.rm-atlas-compass {
+  stroke: var(--color-border-control);
+  fill: var(--color-accent);
+  opacity: 0.45;
+}
+
+.rm-fallback-card {
+  position: relative;
+  z-index: 4;
+  width: 100%;
+  max-width: 468px;
+  padding: 20px 22px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--color-accent);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text-primary);
+}
+
+.rm-fallback-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-accent-text);
+  margin-bottom: 8px;
+}
+
+.rm-fallback-eyebrow-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  flex: none;
+}
+
+.rm-fallback-title {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  color: var(--color-text-primary);
+}
+
+.rm-fallback-desc {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+.rm-fallback-scope {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 9px 12px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.rm-fallback-scope-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+}
+
+.rm-fallback-scope-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.rm-fallback-jumps {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.rm-fallback-jumps-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.rm-fallback-jumps-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.rm-fallback-jump-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 45px;
+  min-width: 45px;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-control);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.rm-fallback-jump-btn:hover {
+  border-color: var(--color-accent);
+  background: var(--color-bg-surface);
+}
+
+.rm-fallback-jump-btn--active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.rm-fallback-jump-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text-primary);
+}
+
+.rm-fallback-jump-meta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+/* ── Responsive Phone / Tablet Strip Adjustments ────────────────────────── */
+@media (max-width: 1080px) {
+  .rm-inset-group {
+    display: none;
+  }
+}
+
+@media (max-width: 960px) {
+  .rm-zoom-pill {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-map-area .mapboxgl-ctrl-bottom-left,
+  .app-map-area .mapboxgl-ctrl-bottom-right {
+    bottom: 22px;
+  }
+
+  .rm-hud {
+    top: 8px;
+    right: 8px;
+  }
+
+  .rm-legend-card {
+    width: 216px;
+  }
+
+  /* Compact cartographic strip when ExplorePanel is a bottom sheet (>=96px strip) */
+  .rm-fallback,
+  .rm-fallback--redistrict {
+    align-items: center;
+    padding: 8px 12px;
+  }
+
+  .rm-fallback--redistrict .rm-fallback-card {
+    display: none;
+  }
+
+  .rm-fallback-card {
+    max-width: 360px;
+    padding: 8px 12px;
+    border-top-width: 2px;
+  }
+
+  .rm-fallback-eyebrow {
+    margin-bottom: 2px;
+    font-size: 10px;
+  }
+
+  .rm-fallback-title {
+    margin: 0;
+    font-size: 12.5px;
+  }
+
+  .rm-fallback-desc,
+  .rm-fallback-scope,
+  .rm-fallback-jumps {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .rm-hud-reset-extra {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rm-loading-bar-fill {
+    animation: none;
+  }
+}

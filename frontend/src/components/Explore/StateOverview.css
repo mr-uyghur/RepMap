@@ -1,4 +1,185 @@
-/* ── State level: race rows, member rows, how-to-vote links ─────────────────── */
+/* ── Editorial State Delegation View: summary bar, House filter, race rows ─── */
+.state-ov-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.state-ov-header-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.state-ov-postal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+}
+
+/* Delegation party balance strip */
+.state-ov-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: var(--space-2);
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+}
+
+.state-ov-summary-bar {
+  display: flex;
+  width: 100%;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-elevated);
+  gap: 1.5px;
+}
+
+.state-ov-summary-seg {
+  height: 100%;
+  min-width: 6px;
+}
+
+.state-ov-summary-seg--dem {
+  background: var(--color-democrat);
+}
+
+.state-ov-summary-seg--ind {
+  background: var(--color-independent);
+}
+
+.state-ov-summary-seg--rep {
+  background: var(--color-republican);
+}
+
+.state-ov-summary-counts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.state-ov-party {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.state-ov-party--dem {
+  color: var(--color-democrat-text);
+}
+
+.state-ov-party--ind {
+  color: var(--color-independent-text);
+}
+
+.state-ov-party--rep {
+  color: var(--color-republican-text);
+}
+
+/* Large-state House filter */
+.state-ov-filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.state-ov-filter-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.state-ov-filter-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 44px 0 12px;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 14px;
+}
+
+.state-ov-filter-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.state-ov-filter-input:focus-visible {
+  outline: 2px solid var(--color-accent-text);
+  outline-offset: 1px;
+  border-color: var(--color-accent-text);
+}
+
+.state-ov-filter-clear {
+  position: absolute;
+  right: 0;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.state-ov-filter-clear:hover {
+  color: var(--color-text-primary);
+}
+
+.state-ov-party-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.state-ov-party-pill {
+  min-height: 44px;
+  min-width: 52px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.state-ov-party-pill:hover {
+  border-color: var(--color-border-control);
+  background: var(--color-bg-elevated);
+}
+
+.state-ov-party-pill--active {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-weight: 700;
+}
+
+/* Lists & Race Rows */
 .state-ov-list {
   list-style: none;
   margin: 0;
@@ -8,14 +189,26 @@
   gap: var(--space-2);
 }
 
+.state-ov-fec-note {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--color-note-border);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: var(--color-note-bg);
+  color: var(--color-note-text);
+  font-size: 12.5px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+
 .state-ov-race,
 .state-ov-link {
   width: 100%;
-  min-height: 44px;
+  min-height: 56px;
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  padding: 10px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-primary);
@@ -24,12 +217,13 @@
   text-align: left;
   text-decoration: none;
   cursor: pointer;
-  transition: border-color var(--transition-fast), background var(--transition-fast);
+  transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 :is(.state-ov-race, .state-ov-link):hover {
   border-color: var(--color-border-control);
   background: var(--color-bg-surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .state-ov-race > svg {
@@ -37,12 +231,33 @@
   color: var(--color-text-muted);
 }
 
+.state-ov-race-badge {
+  flex: none;
+  min-width: 48px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 .state-ov-race--empty {
   cursor: default;
   border-style: dashed;
   background: transparent;
 }
-.state-ov-race--empty:hover { border-color: var(--color-border); background: transparent; }
+
+.state-ov-race--empty:hover {
+  border-color: var(--color-border);
+  background: transparent;
+  box-shadow: none;
+}
 
 .state-ov-race-text,
 .state-ov-link-text {
@@ -55,38 +270,55 @@
 
 .state-ov-race-title,
 .state-ov-link-title {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 14.5px;
+  font-weight: 750;
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
 
+.state-ov-holder {
+  color: var(--color-text-primary);
+  font-weight: 650;
+}
+
 .state-ov-race-line,
 .state-ov-link-sub {
-  font-size: 13px;
+  font-size: 12.5px;
   line-height: 1.4;
   color: var(--color-text-muted);
+}
+
+.state-ov-race-line--nums {
+  font-variant-numeric: tabular-nums;
 }
 
 .state-ov-tag {
   display: inline-block;
   margin-left: var(--space-2);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-}
-
-.state-ov-tag--special {
   padding: 1px 6px;
-  border: 1px solid var(--color-accent-text);
   border-radius: var(--radius-sm);
-  color: var(--color-accent-text);
-  font-weight: 700;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--color-text-muted);
   vertical-align: 1px;
 }
 
-/* ── Links ───────────────────────────────────────────────────────────────── */
-.state-ov-link-title { color: var(--color-link); text-decoration: underline; text-underline-offset: 3px; }
+.state-ov-tag--special {
+  border-color: var(--color-accent-text);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+  font-weight: 750;
+}
+
+/* External voting links */
+.state-ov-link-title {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .state-ov-link::after {
   content: '↗';
   flex: none;
@@ -94,55 +326,110 @@
   font-weight: 700;
 }
 
-/* ── Jump chips (season and final only) ─────────────────────────────────── */
-.state-ov-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+/* Jump chips (season and final only) */
+.state-ov-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
 .state-ov-chip {
   min-height: 44px;
+  min-width: 44px;
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: 0 var(--space-4);
+  gap: 7px;
+  padding: 0 14px;
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-full);
   background: var(--color-bg-primary);
   color: var(--color-accent-text);
   font: inherit;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
-.state-ov-chip:hover { background: var(--color-bg-surface); }
 
-.state-ov-compare { align-self: flex-start; }
+.state-ov-chip:hover {
+  background: var(--color-bg-surface);
+  border-color: var(--color-accent-text);
+}
+
+.state-ov-chip--primary {
+  background: var(--color-accent-soft);
+}
+
+.state-ov-compare {
+  align-self: flex-start;
+  margin-top: 2px;
+}
 
 /* Focus is moved here by the "How to vote" chip; it isn't a control. */
-.state-ov-focus-target:focus { outline: none; }
+.state-ov-focus-target:focus {
+  outline: none;
+}
 
-/* ── Races: a disclosure whose default follows the election phase ────────── */
-.state-ov-races-heading { margin: var(--space-2) 0 0; font-size: 16px; }
+/* Races disclosure */
+.state-ov-races-heading {
+  margin: var(--space-1) 0 0;
+  font-size: 16px;
+}
+
 .state-ov-disclosure {
   width: 100%;
-  min-height: 44px;
+  min-height: 48px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
+  padding: 10px 14px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-surface);
   color: var(--color-text-primary);
   font: inherit;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 15.5px;
+  font-weight: 750;
   line-height: 1.3;
   text-align: left;
   cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
 }
-.state-ov-disclosure:hover { border-color: var(--color-border-control); }
-.state-ov-disclosure-text { min-width: 0; overflow-wrap: anywhere; }
-.state-ov-disclosure-count { font-weight: 600; color: var(--color-text-muted); }
-.state-ov-disclosure-icon { flex: none; color: var(--color-text-muted); transition: transform var(--transition-fast); }
-.state-ov-disclosure[aria-expanded='true'] .state-ov-disclosure-icon { transform: rotate(90deg); }
-.state-ov-races-body { display: flex; flex-direction: column; gap: var(--space-2); }
-.state-ov-races-body[hidden] { display: none; }
+
+.state-ov-disclosure:hover {
+  border-color: var(--color-border-control);
+  background: var(--color-bg-elevated);
+}
+
+.state-ov-disclosure-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.state-ov-disclosure-count {
+  font-weight: 650;
+  color: var(--color-text-muted);
+}
+
+.state-ov-disclosure-icon {
+  flex: none;
+  color: var(--color-text-muted);
+  transition: transform var(--transition-fast);
+}
+
+.state-ov-disclosure[aria-expanded='true'] .state-ov-disclosure-icon {
+  transform: rotate(90deg);
+}
+
+.state-ov-races-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.state-ov-races-body[hidden] {
+  display: none;
+}

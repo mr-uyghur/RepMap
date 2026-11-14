@@ -1,86 +1,239 @@
+/* Legislative Scorecard — Editorial Civic Atlas data-journalism card.
+   Tokens strictly from src/styles/variables.css. */
+
 .report-card {
-  margin-top: 20px;
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
+}
+
+.rc-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.rc-eyebrow {
+  margin: 0 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
 }
 
 .report-card-title {
-  margin: 0 0 14px;
-  font-family: var(--font-body);
+  margin: 0;
+  font-family: var(--font-display);
   font-size: 16px;
   font-weight: 700;
+  line-height: 1.25;
   color: var(--color-text-primary);
 }
 
+/* ── KPI Ledger Strip ───────────────────────────────────────────────────── */
+.rc-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.rc-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rc-kpi + .rc-kpi {
+  padding-left: var(--space-2);
+  border-left: 1px solid var(--color-border-subtle);
+}
+
+.rc-kpi-num {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+.rc-kpi-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* ── Metric Gauges ──────────────────────────────────────────────────────── */
 .report-card-gauges {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-4);
 }
 
-.report-card-gauge-header {
+.rc-metric {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 4px;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.report-card-gauge-label {
-  font-size: 13px;
+.rc-metric-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.rc-metric-label-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rc-metric-label {
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-text-primary);
 }
 
-.report-card-gauge-value {
-  font-size: 14px;
-  font-weight: 700;
+.rc-metric-badge {
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
 }
 
-.report-card-gauge-track {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--color-border);
+.rc-metric-value {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+  flex-shrink: 0;
+}
+
+.rc-metric--strong .rc-metric-value   { color: var(--color-accent-text); }
+.rc-metric--moderate .rc-metric-value { color: var(--color-text-primary); }
+.rc-metric--low .rc-metric-value      { color: var(--color-error-text); }
+.rc-metric--muted .rc-metric-value    { color: var(--color-text-muted); }
+
+.rc-metric-track {
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
   overflow: hidden;
 }
 
-.report-card-gauge-fill {
+.rc-metric-fill {
   height: 100%;
-  border-radius: 3px;
-  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  transition: width var(--transition-spring);
 }
 
-.report-card-gauge-subtitle {
-  margin: 3px 0 0;
+.rc-metric--moderate .rc-metric-fill { background: var(--color-accent); opacity: 0.82; }
+.rc-metric--low .rc-metric-fill      { background: var(--color-error); }
+.rc-metric--muted .rc-metric-fill    { background: var(--color-text-muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-metric-fill { transition: none; }
+}
+
+.rc-metric-caption {
+  margin: 0;
   font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Methodology Disclosure (>= 44px target) ────────────────────────────── */
+.rc-methodology {
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: var(--space-1);
+}
+
+.rc-methodology-summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  min-width: 44px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-link);
+  cursor: pointer;
+  user-select: none;
+}
+
+.rc-methodology-summary:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.rc-methodology-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: var(--space-1);
+  font-size: 12px;
+  line-height: 1.5;
   color: var(--color-text-muted);
 }
 
-.report-card-note {
-  margin: 14px 0 0;
-  font-size: 12px;
-  color: var(--color-text-muted);
-  font-style: italic;
+.rc-methodology-body p {
+  margin: 0;
 }
 
 .report-card-empty {
   margin: 0;
   font-size: 13px;
+  line-height: 1.45;
   color: var(--color-text-muted);
 }
 
 .report-card--loading .report-card-skeleton {
-  height: 36px;
+  height: 44px;
   border-radius: var(--radius-md);
-  background: linear-gradient(90deg, var(--color-border) 25%, var(--color-bg-elevated) 50%, var(--color-border) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-elevated) 25%,
+    var(--color-bg-primary) 50%,
+    var(--color-bg-elevated) 75%
+  );
   background-size: 200% 100%;
-  animation: skeleton-shimmer 1.5s ease-in-out infinite;
-  margin-bottom: 10px;
+  animation: repmap-shimmer 1.5s ease-in-out infinite;
 }
 
-@keyframes skeleton-shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+@media (prefers-reduced-motion: reduce) {
+  .report-card--loading .report-card-skeleton { animation: none; }
+}
+
+@media (max-width: 420px) {
+  .rc-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: var(--space-3);
+  }
+  .rc-kpi:nth-child(3) {
+    padding-left: 0;
+    border-left: 0;
+  }
 }

@@ -18,9 +18,50 @@ function isPlainClick(e: MouseEvent) {
   return e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey
 }
 
+function BackChevron() {
+  return (
+    <svg
+      className="breadcrumb-back"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  )
+}
+
+function SepChevron() {
+  return (
+    <svg
+      className="breadcrumb-sep"
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <polyline points="9 6 15 12 9 18" />
+    </svg>
+  )
+}
+
 /**
+ * Sticky editorial wayfinding trail.
  * Desktop: "United States › Nebraska › District 2".
- * Phone (CSS): only the parent link remains, as "‹ Nebraska".
+ * Phone (CSS): collapses cleanly to the immediate parent back-step ("‹ Nebraska").
  */
 export default function Breadcrumb({ items, current, onNavigate }: Props) {
   if (items.length === 0) return null
@@ -39,10 +80,10 @@ export default function Breadcrumb({ items, current, onNavigate }: Props) {
                 onNavigate(item.href)
               }}
             >
-              {i === parentIndex && <span className="breadcrumb-back" aria-hidden="true">‹</span>}
-              {item.label}
+              {i === parentIndex && <BackChevron />}
+              <span className="breadcrumb-link-label">{item.label}</span>
             </a>
-            <span className="breadcrumb-sep" aria-hidden="true">›</span>
+            <SepChevron />
           </li>
         ))}
         <li className="breadcrumb-item breadcrumb-item--current">

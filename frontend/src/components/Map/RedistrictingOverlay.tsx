@@ -17,6 +17,7 @@ const histCache: Record<string, GeoJSONFeatureCollection> = {}
 
 export default function RedistrictingOverlay({ stateCode }: Props) {
   const sliderValue = useMapStore((s) => s.redistrictingSliderValue)
+  const darkMode = useMapStore((s) => s.darkMode)
   const [geojson, setGeojson] = useState<GeoJSONFeatureCollection | null>(
     histCache[stateCode] ?? null
   )
@@ -49,18 +50,18 @@ export default function RedistrictingOverlay({ stateCode }: Props) {
         id="historical-districts-fill"
         type="fill"
         paint={{
-          'fill-color': '#f59e0b',
-          'fill-opacity': historicalOpacity * 0.2,
+          'fill-color': darkMode ? '#fbbf24' : '#d97706',
+          'fill-opacity': historicalOpacity * (darkMode ? 0.22 : 0.16),
         }}
       />
       <Layer
         id="historical-districts-line"
         type="line"
         paint={{
-          'line-color': '#d97706',
-          'line-width': 2.5,
+          'line-color': darkMode ? '#fbbf24' : '#b45309',
+          'line-width': 2.6,
           'line-opacity': historicalOpacity,
-          'line-dasharray': [4, 2],
+          'line-dasharray': [3, 2],
         }}
       />
     </Source>

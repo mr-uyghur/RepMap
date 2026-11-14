@@ -16,18 +16,20 @@ interface Props {
 }
 
 /**
- * The level shell. Desktop: a fixed left column beside the map. Phone (<=768px):
- * a bottom sheet under the map that can grow, always leaving >=96px of map.
- * It is the page's main content, not a modal: the map stays usable beside it.
+ * The level shell. Desktop: an authoritative left editorial column beside the map.
+ * Phone (<=768px): an ergonomic bottom sheet under the map that can expand while
+ * always leaving >=96px of interactive map above.
  */
 export default function ExplorePanel({ level, label, crumbs, current, onNavigate, focusKey, children }: Props) {
   const [expanded, setExpanded] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const rootRef = useRef<HTMLElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const firstKey = useRef(focusKey)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 })
+    setScrolled(false)
     // Initial load keeps focus where the browser put it; later moves announce the new level.
     if (focusKey === firstKey.current) return
     firstKey.current = '\u0000'
@@ -43,7 +45,7 @@ export default function ExplorePanel({ level, label, crumbs, current, onNavigate
       ref={rootRef}
       tabIndex={-1}
       aria-label={label}
-      className={`explore-panel explore-panel--${level}${expanded ? ' explore-panel--expanded' : ''}`}
+      className={`explore-panel explore-panel--${level}${expanded ? ' explore-panel--expanded' : ''}${scrolled ? ' explore-panel--scrolled' : ''}`}
     >
       <button
         type="button"
@@ -54,9 +56,18 @@ export default function ExplorePanel({ level, label, crumbs, current, onNavigate
         <span className="explore-sheet-grip" aria-hidden="true" />
         <span className="sr-only">{expanded ? 'Show more map' : 'Expand panel'}</span>
       </button>
-      <div ref={scrollRef} className="explore-panel-scroll">
+      <div
+        ref={scrollRef}
+        className="explore-panel-scroll"
+        onScroll={(e) => {
+          const next = e.currentTarget.scrollTop > 4
+          if (next !== scrolled) setScrolled(next)
+        }}
+      >
         <Breadcrumb items={crumbs} current={current} onNavigate={onNavigate} />
-        {children}
+        <div className="explore-panel-content">
+          {children}
+        </div>
       </div>
     </main>
   )

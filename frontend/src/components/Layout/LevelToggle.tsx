@@ -4,7 +4,6 @@ import './LevelToggle.css'
 
 const OPTIONS: { value: ViewLevel; label: string }[] = [
   { value: 'federal', label: 'Federal' },
-  // { value: 'state', label: 'State' },
 ]
 
 export default function LevelToggle() {

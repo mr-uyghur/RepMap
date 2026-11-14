@@ -1,7 +1,7 @@
 import { useEffect, useId, useState, type ReactNode } from 'react'
 import { getElectionCycle } from '../../api/representatives'
 import type { ElectionCycleData, ElectionRace, FecCandidate } from '../../types'
-import { formatDate, racesForLocation, stateName, type ElectionPhase } from '../../utils/elections'
+import { formatDate, formatMoney, racesForLocation, stateName, type ElectionPhase } from '../../utils/elections'
 import { groupCandidates } from '../../utils/raceGroups'
 import { STATE_VOTING_RESOURCES } from '../Panel/HowToVoteTab'
 import './BallotStrip.css'
@@ -9,7 +9,7 @@ import './BallotStrip.css'
 // "On the ballot Nov 3" strip under a place's members (ZIP / district page).
 // Context for the place, so it is never dismissible. Prominence follows the phase:
 //   final  : the race rows list the pre-election filers by name
-//   season : the race rows give counts only
+//   season : the race rows give counts + fundraising totals
 //   off    : one line with the next federal election date
 //   post   : "Results", linking to the state's election office
 
@@ -70,6 +70,7 @@ function BallotIcon() {
 
 interface RowProps {
   id: string
+  badge: string
   title: string
   race: ElectionRace
   cycle: number
@@ -77,9 +78,11 @@ interface RowProps {
   onSelectRace: (raceId: string) => void
 }
 
-function RaceRow({ id, title, race, cycle, detailed, onSelectRace }: RowProps) {
+function RaceRow({ id, badge, title, race, cycle, detailed, onSelectRace }: RowProps) {
   const total = race.candidates.length
   const groups = groupCandidates(race.candidates, cycle)
+  const totalRaised = race.candidates.reduce((sum, c) => sum + Math.max(0, c.receipts ?? 0), 0)
+
   let detail: ReactNode
   if (total === 0) {
     detail = <span className="bs-row-sub">No one has filed with the FEC yet</span>
@@ -89,6 +92,7 @@ function RaceRow({ id, title, race, cycle, detailed, onSelectRace }: RowProps) {
         {groups.grouped
           ? `${plural(groups.reporting.length, 'candidate')} filed a pre-election report · ${plural(total, 'FEC filer')} in all`
           : `${plural(total, 'candidate')} filed with the FEC`}
+        {totalRaised > 0 && <> · {formatMoney(totalRaised)} raised</>}
       </span>
     )
   } else {
@@ -99,13 +103,19 @@ function RaceRow({ id, title, race, cycle, detailed, onSelectRace }: RowProps) {
       <>
         <span className="bs-row-label">
           {groups.grouped ? 'Filed a pre-election report' : 'Raised the most (FEC)'}
+          {totalRaised > 0 && <> · {formatMoney(totalRaised)} total raised</>}
         </span>
         <span className="bs-names">
-          {shown.map((c) => (
-            <span key={c.fec_id} className="bs-name">
-              {c.name}<span className="bs-party">, {c.party_label}</span>
-            </span>
-          ))}
+          {shown.map((c) => {
+            const pMod = c.party === 'democrat' ? 'dem' : c.party === 'republican' ? 'rep' : 'ind'
+            return (
+              <span key={c.fec_id} className="bs-name">
+                <span className={`bs-dot bs-dot--${pMod}`} aria-hidden="true" />
+                {c.name}
+                <span className="bs-party">, {c.party_label}</span>
+              </span>
+            )
+          })}
           {more > 0 && <span className="bs-more">+{more} more</span>}
         </span>
       </>
@@ -114,6 +124,7 @@ function RaceRow({ id, title, race, cycle, detailed, onSelectRace }: RowProps) {
   return (
     <li>
       <button type="button" className="bs-row" onClick={() => onSelectRace(id)}>
+        <span className="bs-chamber-badge" aria-hidden="true">{badge}</span>
         <span className="bs-row-main">
           <span className="bs-row-title">{title}</span>
           {detail}
@@ -150,9 +161,11 @@ export default function BallotStrip({ state, district, phase, onSelectRace }: Pr
       <section className="bs bs--quiet" aria-labelledby={headingId}>
         <h3 className="bs-quiet-text" id={headingId}>
           <BallotIcon />
-          {cycle
-            ? <>Next federal election <strong>{formatDate(cycle.general_date)}</strong></>
-            : 'No upcoming federal election in our data yet'}
+          <span>
+            {cycle
+              ? <>Next federal election <strong>{formatDate(cycle.general_date)}</strong></>
+              : 'No upcoming federal election in our data yet'}
+          </span>
         </h3>
       </section>
     )
@@ -220,13 +233,22 @@ export default function BallotStrip({ state, district, phase, onSelectRace }: Pr
   const { house, senate } = racesForLocation(data, state, district)
   const detailed = phase.phase === 'final'
   const houseTitle = district ? `U.S. House · District ${district}` : 'U.S. House · At-large'
+  const houseBadge = district ? `CD-${String(district).padStart(2, '0')}` : 'AT-LG'
 
   return (
     <section className="bs" aria-labelledby={headingId}>
       {head}
       <ul className="bs-rows">
         {house ? (
-          <RaceRow id={house.id} title={houseTitle} race={house.race} cycle={data.cycle} detailed={detailed} onSelectRace={onSelectRace} />
+          <RaceRow
+            id={house.id}
+            badge={houseBadge}
+            title={houseTitle}
+            race={house.race}
+            cycle={data.cycle}
+            detailed={detailed}
+            onSelectRace={onSelectRace}
+          />
         ) : (
           <li className="bs-static">{houseTitle}: no FEC data for this race yet</li>
         )}
@@ -235,6 +257,7 @@ export default function BallotStrip({ state, district, phase, onSelectRace }: Pr
             <RaceRow
               key={id}
               id={id}
+              badge={race.special ? 'SEN SP' : 'SENATE'}
               title={race.special ? 'U.S. Senate · Special election' : 'U.S. Senate'}
               race={race}
               cycle={data.cycle}
@@ -254,7 +277,7 @@ export default function BallotStrip({ state, district, phase, onSelectRace }: Pr
         <a className="bs-official" href={site} target="_blank" rel="noopener noreferrer">
           Official ballot and voting info for {where}
           <span className="sr-only"> (opens in a new tab)</span>
-          <span aria-hidden="true"> ›</span>
+          <span aria-hidden="true"> ↗</span>
         </a>
       )}
     </section>

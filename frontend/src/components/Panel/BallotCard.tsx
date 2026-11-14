@@ -74,16 +74,15 @@ function BallotIcon() {
   return (
     <svg className="bc-line-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="5" y="3" width="14" height="18" rx="2" />
-      <line x1="9" y1="8" x2="15" y2="8" />
-      <line x1="9" y1="12" x2="15" y2="12" />
-      <line x1="9" y1="16" x2="12" y2="16" />
+      <path d="m9 11 2 2 4-4" />
+      <line x1="9" y1="17" x2="15" y2="17" />
     </svg>
   )
 }
 
 function Chevron() {
   return (
-    <svg className="bc-line-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg className="bc-line-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <polyline points="9 6 15 12 9 18" />
     </svg>
   )
@@ -188,7 +187,7 @@ export default function BallotCard({ rep, onOpenRace, variant = 'full' }: Props)
           </h3>
           {next && (
             <p className="bc-sub">
-              {rep.level === 'us_senate' ? 'This Senate seat' : 'This seat'} is next up for election in <strong>{next}</strong>.
+              {rep.level === 'us_senate' ? 'This Senate seat' : 'This seat'} is next up for election in <strong className="bc-tabular">{next}</strong>.
             </p>
           )}
         </section>
@@ -219,18 +218,21 @@ export default function BallotCard({ rep, onOpenRace, variant = 'full' }: Props)
   return (
     <div className="bc">
       <section className="bc-card" aria-labelledby={headingId}>
-        <p className="bc-eyebrow">
-          {special ? 'Special election · ' : ''}On the {monthDay(seatCycle.general_date)} ballot
-        </p>
+        <div className="bc-card-head">
+          <p className="bc-eyebrow">
+            {special ? 'Special election · ' : ''}On the {monthDay(seatCycle.general_date)} ballot
+          </p>
+          <span className="bc-countdown-pill bc-tabular">{countdownText(seatCycle.general_date)}</span>
+        </div>
         <h3 id={headingId} className="bc-title">
           {race ? raceTitle(race, seatCycle.cycle) : 'This seat is up for election'}
         </h3>
         <p className="bc-date">
-          Election Day {formatShortDate(seatCycle.general_date)} · <strong>{countdownText(seatCycle.general_date)}</strong>
+          Election Day {formatShortDate(seatCycle.general_date)} · <strong className="bc-tabular">{countdownText(seatCycle.general_date)}</strong>
         </p>
         {status && <p className="bc-sub">{status}</p>}
         {redistricted && (
-          <p className="bc-sub">
+          <p className="bc-sub bc-sub--callout">
             Maps were redrawn for {seatCycle.cycle}: {lastName} is running in a different district than the one shown on the map.
           </p>
         )}
@@ -251,7 +253,7 @@ export default function BallotCard({ rep, onOpenRace, variant = 'full' }: Props)
               ))}
             </ul>
             {race.candidates.length > top.length && (
-              <p className="bc-more">
+              <p className="bc-more bc-tabular">
                 {race.candidates.length - top.length} other FEC filer{race.candidates.length - top.length === 1 ? '' : 's'} in this race
               </p>
             )}
@@ -265,7 +267,8 @@ export default function BallotCard({ rep, onOpenRace, variant = 'full' }: Props)
 
         {found && (
           <button type="button" className="bc-cta" onClick={() => onOpenRace(found.id)}>
-            See the race <span aria-hidden="true">›</span>
+            <span>See the race</span>
+            <Chevron />
           </button>
         )}
       </section>
@@ -326,7 +329,7 @@ function BallotLine({
         <BallotIcon />
         <span className="bc-line-text">
           <strong>{upcoming ? `Not on the ${monthDay(upcoming.general_date)} ballot` : 'No upcoming election in our data'}</strong>
-          {next && <> · Seat up in {next}</>}
+          {next && <> · Seat up in <span className="bc-tabular">{next}</span></>}
         </span>
       </p>
     )
@@ -341,7 +344,7 @@ function BallotLine({
   const text = (
     <>
       <strong>{lead} {formatShortDate(seatCycle.general_date)}</strong>
-      {left && <> · <span className="bc-line-nowrap">{left}</span></>}
+      {left && <> · <span className="bc-line-nowrap bc-tabular">{left}</span></>}
     </>
   )
   if (!found) {

@@ -1,170 +1,196 @@
-/* ── "Plain Map" tokens (REDESIGN_PROPOSAL.md › Visual direction) ─────────────
-   White and cool grey surfaces, near-black text, one deep green accent, the
-   device's own font. Light is the default theme; :root.dark is the dark set.
-   Every colour token is defined in BOTH blocks (R-25). Contrast ratios in the
-   comments are WCAG 2.x, measured against the surface named. */
+/* ── "Editorial Civic Atlas" Design Tokens ────────────────────────────────────
+   Inspired by NYT Election Desk cartographic journalism + Linear/Stripe craft.
+   Warm alabaster & slate surfaces, deep civic pine accent (non-partisan),
+   editorial display serif paired with precision UI grotesque & tabular figures.
+   Light is the default theme; :root.dark is the dark set.
+   Every colour & shadow token is defined in BOTH blocks (R-25) and meets
+   WCAG 2.2 AA (>= 4.5:1 normal text, >= 3:1 UI controls/borders). */
 :root {
   /* ── Layout ────────────────────────────────────────────────────────────── */
-  --nav-height:  56px;
-  --panel-width: 400px;
+  --nav-height:  60px;
+  --panel-width: 416px;
 
   /* ── Border Radius ─────────────────────────────────────────────────────── */
-  --radius-sm:   4px;
+  --radius-xs:   3px;
+  --radius-sm:   5px;
   --radius-md:   8px;
   --radius-lg:   12px;
   --radius-xl:   16px;
+  --radius-2xl:  20px;
   --radius-full: 9999px;
 
   /* ── 8pt Spacing Scale ─────────────────────────────────────────────────── */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-7: 28px;
-  --space-8: 32px;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-7:  28px;
+  --space-8:  32px;
+  --space-9:  40px;
+  --space-10: 48px;
 
-  /* ── Shadows (flat: only floating layers get a soft lift) ──────────────── */
-  --shadow-sm:      0 1px 2px rgba(16, 24, 40, 0.08);
-  --shadow-md:      0 2px 8px rgba(16, 24, 40, 0.10);
-  --shadow-lg:      0 8px 24px rgba(16, 24, 40, 0.14);
-  --shadow-glow:    0 0 0 1px var(--color-accent);
+  /* ── Tactile Layered Shadows ───────────────────────────────────────────── */
+  --shadow-xs:      0 1px 1px rgba(15, 23, 42, 0.04);
+  --shadow-sm:      0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.05);
+  --shadow-md:      0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 2px 4px -1px rgba(15, 23, 42, 0.05);
+  --shadow-lg:      0 12px 28px -4px rgba(15, 23, 42, 0.12), 0 4px 10px -2px rgba(15, 23, 42, 0.06);
+  --shadow-xl:      0 20px 44px -8px rgba(15, 23, 42, 0.16), 0 8px 16px -4px rgba(15, 23, 42, 0.08);
+  --shadow-inset:   inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --shadow-glow:    0 0 0 1px var(--color-accent), 0 0 0 4px var(--color-accent-glow);
   --shadow-premium: var(--shadow-md);
 
-  /* ── Transitions ───────────────────────────────────────────────────────── */
-  --transition-fast:   0.15s ease;
-  --transition-base:   0.2s ease;
-  --transition-spring: 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  /* ── Transitions & Focus ───────────────────────────────────────────────── */
+  --transition-fast:   140ms cubic-bezier(0.2, 0, 0, 1);
+  --transition-base:   200ms cubic-bezier(0.2, 0, 0, 1);
+  --transition-spring: 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  --focus-ring:        0 0 0 2px var(--color-bg-primary), 0 0 0 4px var(--color-accent-text);
 
-  /* ── Typography: the device's own font, nothing downloaded ─────────────── */
-  --font-body:    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-display: var(--font-body);
-  --font-mono:    ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  /* ── Typography: zero external downloads (strict CSP) ──────────────────── */
+  --font-body:      system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-display:   'Iowan Old Style', 'Charter', 'Bitstream Charter', 'Sitka Display', Georgia, Cambria, 'Times New Roman', serif;
+  --font-editorial: var(--font-display);
+  --font-mono:      ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
 
-  /* ── Party fills (bars, map tints, swatches). Text uses the -text set. ── */
-  --color-democrat:    #2563eb;
-  --color-republican:  #dc2626;
-  --color-independent: #6b7280;
+  /* ── Party fills (bars, map tints, badges; >= 5.7:1 with --color-on-party) */
+  --color-democrat:    #1d5fd6;
+  --color-republican:  #c82222;
+  --color-independent: #5b6472;
 
-  /* ── Accent: deep green (neither party's colour) ───────────────────────── */
-  --color-accent:      #0b6146;          /* 7.5:1 on white */
-  --color-accent-rgb:  11, 97, 70;
-  --color-accent-glow: rgba(11, 97, 70, 0.18);
-  --color-accent-text: #0b6146;          /* 7.5 white · 6.8 surface · 6.3 elevated */
-  --color-accent-soft: #e6f2ed;          /* tinted background for selected rows */
-  --color-on-accent:   #ffffff;          /* 7.5:1 on the accent */
+  /* ── Accent: deep civic pine (non-partisan; 8.0:1 on primary) ──────────── */
+  --color-accent:        #0a5c42;
+  --color-accent-hover:  #084c36;
+  --color-accent-rgb:    10, 92, 66;
+  --color-accent-glow:   rgba(10, 92, 66, 0.18);
+  --color-accent-text:   #0a5c42;        /* 8.0 primary · 7.5 surface · 6.8 elevated */
+  --color-accent-soft:   #e3f1ec;        /* selected row / subtle badge fill */
+  --color-accent-border: #9fd0be;
+  --color-on-accent:     #ffffff;        /* 8.2:1 on --color-accent */
 
-  /* Party colours as TEXT (>=5.4:1 on every light surface). */
-  --color-democrat-text:    #1d4ed8;     /* 6.7 on white */
-  --color-republican-text:  #b91c1c;     /* 6.5 on white */
-  --color-independent-text: #4f5563;     /* 7.5 on white */
-  /* Text on a party fill from PARTY_COLORS (#2563eb 5.2 · #dc2626 4.8 · #6b7280 4.8). */
-  --color-on-party: #ffffff;
+  /* ── Party colours as TEXT (>= 6.3:1 on every light surface) ───────────── */
+  --color-democrat-text:    #1849a9;     /* 8.1 primary · 6.8 elevated */
+  --color-republican-text:  #a61b1b;     /* 7.5 primary · 6.3 elevated */
+  --color-independent-text: #47505d;     /* 8.0 primary · 6.8 elevated */
+  --color-democrat-soft:    #e8effd;
+  --color-republican-soft:  #fdeaea;
+  --color-independent-soft: #edeff2;
+  --color-on-party:         #ffffff;
 
-  /* ── Text ──────────────────────────────────────────────────────────────── */
-  --color-text-primary:   #15191f;       /* 17.6 on white */
-  --color-text-secondary: #303743;       /* 12.0 on white */
-  --color-text-muted:     #4b5361;       /* 7.1 on surface */
-  --color-text-subtle:    #59616e;       /* 5.3 on elevated */
+  /* ── Text Hierarchy ────────────────────────────────────────────────────── */
+  --color-text-primary:   #11151c;       /* 18.1 on primary */
+  --color-text-secondary: #2b323d;       /* 12.6 on primary */
+  --color-text-muted:     #464f5d;       /* 7.6 on surface */
+  --color-text-subtle:    #555e6d;       /* 5.35 on elevated */
 
-  /* ── Backgrounds (flat; "glass" is now an opaque surface) ──────────────── */
-  --color-bg-primary:      #ffffff;
-  --color-bg-surface:      #f4f5f7;
-  --color-bg-elevated:     #e9ecf0;
-  --color-bg-glass:        #ffffff;
-  --color-bg-glass-border: #dde1e6;
+  /* ── Surfaces (opaque for deterministic axe contrast checks) ───────────── */
+  --color-bg-primary:      #fcfcfb;
+  --color-bg-surface:      #f3f4f6;
+  --color-bg-elevated:     #e7e9ee;
+  --color-bg-glass:        #fcfcfb;
+  --color-bg-glass-border: #d8dce3;
 
-  /* ── Border ────────────────────────────────────────────────────────────── */
-  --color-border:         #d5d9df;       /* decorative card edges */
-  --color-border-subtle:  #e6e9ed;
-  --color-border-control: #7b8492;       /* inputs/controls: 3.8:1 on white (needs 3:1) */
+  /* ── Hairline & Control Borders ────────────────────────────────────────── */
+  --color-border:         #d4d9e1;       /* structural card/panel hairlines */
+  --color-border-subtle:  #e5e8ee;       /* subtle internal dividers */
+  --color-border-control: #6e7785;       /* interactive inputs/buttons: 4.45:1 on primary (>=3:1) */
 
-  /* ── Data note (amber box: "Who filed with the FEC, not the official ballot") */
-  --color-note-bg:     #fff6dc;
-  --color-note-text:   #5a3e00;          /* 9.2 on note-bg */
-  --color-note-border: #c58b00;
+  /* ── Data Provenance Note (amber editorial callout) ────────────────────── */
+  --color-note-bg:     #fef6df;
+  --color-note-text:   #593d00;          /* 9.4 on note-bg */
+  --color-note-border: #c48a00;
 
-  /* ── Map overlays ──────────────────────────────────────────────────────── */
-  --color-map-bg: #eef0f3;               /* behind the map canvas / no-token fallback */
-  --color-scrim:  rgba(16, 19, 23, 0.45); /* dialog backdrop */
+  /* ── Map & Backdrop ────────────────────────────────────────────────────── */
+  --color-map-bg: #eaedf2;
+  --color-scrim:  rgba(13, 17, 23, 0.52);
 
-  /* ── Semantic ──────────────────────────────────────────────────────────── */
-  --color-link:             #0b6146;
-  --color-error:            #c81e3c;
-  --color-error-bg:         #fdecef;
-  --color-error-text:       #b4183a;     /* 5.9 on error-bg */
-  --color-success:          #0f766e;     /* 5.0 on success-bg */
-  --color-success-bg:       #ecf7f3;
-  --color-success-border:   #9ed2bf;
+  /* ── Semantic States ───────────────────────────────────────────────────── */
+  --color-link:           #0a5c42;
+  --color-error:          #be123c;
+  --color-error-bg:       #fff1f3;
+  --color-error-text:     #9f1239;       /* 7.2 on error-bg */
+  --color-success:        #0d6859;       /* 6.1 on success-bg */
+  --color-success-bg:     #e9f6f2;
+  --color-success-border: #96ceb9;
 
-  /* Aliases for older component CSS that referenced these names. */
+  /* ── Legacy Component Aliases ──────────────────────────────────────────── */
   --color-surface: var(--color-bg-surface);
   --color-hover:   var(--color-bg-elevated);
 }
 
-/* ── Dark theme ─────────────────────────────────────────────────────────────── */
+/* ── Dark Theme ("Night Desk") ──────────────────────────────────────────────── */
 :root.dark {
-  /* ── Shadows ─────────────────────────────────────────────────────────── */
-  --shadow-sm:      0 1px 2px rgba(0, 0, 0, 0.40);
-  --shadow-md:      0 4px 12px rgba(0, 0, 0, 0.45);
-  --shadow-lg:      0 12px 32px rgba(0, 0, 0, 0.55);
-  --shadow-glow:    0 0 0 1px var(--color-accent);
+  /* ── Shadows ───────────────────────────────────────────────────────────── */
+  --shadow-xs:      0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-sm:      0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md:      0 6px 16px -2px rgba(0, 0, 0, 0.50), 0 2px 6px -1px rgba(0, 0, 0, 0.40);
+  --shadow-lg:      0 16px 36px -4px rgba(0, 0, 0, 0.62), 0 6px 14px -2px rgba(0, 0, 0, 0.45);
+  --shadow-xl:      0 24px 52px -8px rgba(0, 0, 0, 0.72), 0 10px 20px -4px rgba(0, 0, 0, 0.50);
+  --shadow-inset:   inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-glow:    0 0 0 1px var(--color-accent), 0 0 0 4px var(--color-accent-glow);
   --shadow-premium: var(--shadow-md);
 
-  /* ── Party fills ──────────────────────────────────────────────────────── */
+  /* ── Party fills ───────────────────────────────────────────────────────── */
   --color-democrat:    #3b82f6;
   --color-republican:  #ef4444;
   --color-independent: #94a3b8;
 
-  /* ── Accent: mint on near-black ───────────────────────────────────────── */
-  --color-accent:      #5cd3a6;          /* 10.0 on bg */
-  --color-accent-rgb:  92, 211, 166;
-  --color-accent-glow: rgba(92, 211, 166, 0.24);
-  --color-accent-text: #5cd3a6;          /* 10.0 bg · 9.2 surface · 8.0 elevated */
-  --color-accent-soft: #13261f;
-  --color-on-accent:   #08130e;          /* 10.2 on the accent */
+  /* ── Accent: luminous mint on obsidian ─────────────────────────────────── */
+  --color-accent:        #56d6a6;        /* 10.8 on primary */
+  --color-accent-hover:  #6ee0b5;
+  --color-accent-rgb:    86, 214, 166;
+  --color-accent-glow:   rgba(86, 214, 166, 0.24);
+  --color-accent-text:   #56d6a6;        /* 10.8 primary · 9.7 surface · 8.4 elevated */
+  --color-accent-soft:   #11261e;
+  --color-accent-border: #255945;
+  --color-on-accent:     #06130e;        /* 10.9 on --color-accent */
 
-  --color-democrat-text:    #8ab4ff;     /* 8.9 on bg */
-  --color-republican-text:  #ff8f8f;     /* 8.5 on bg */
-  --color-independent-text: #b4bcc8;     /* 9.7 on bg */
-  --color-on-party: #ffffff;             /* PARTY_COLORS fills are the same in both themes */
+  /* ── Party colours as TEXT (>= 7.1:1 on every dark surface) ────────────── */
+  --color-democrat-text:    #8bb6ff;     /* 9.4 primary · 7.4 elevated */
+  --color-republican-text:  #ff9494;     /* 9.0 primary · 7.1 elevated */
+  --color-independent-text: #b8c2cf;     /* 10.4 primary · 8.2 elevated */
+  --color-democrat-soft:    #14223d;
+  --color-republican-soft:  #31171b;
+  --color-independent-soft: #1e242d;
+  --color-on-party:         #ffffff;
 
-  /* ── Text ─────────────────────────────────────────────────────────────── */
-  --color-text-primary:   #eef1f5;       /* 16.4 on bg */
-  --color-text-secondary: #cdd3db;
-  --color-text-muted:     #a7b0bd;       /* 7.8 on surface */
-  --color-text-subtle:    #98a2b0;       /* 5.7 on elevated */
+  /* ── Text Hierarchy ────────────────────────────────────────────────────── */
+  --color-text-primary:   #f0f3f7;       /* 17.2 on primary */
+  --color-text-secondary: #cfd6e0;       /* 12.8 on primary */
+  --color-text-muted:     #a6b0bf;       /* 8.3 on surface */
+  --color-text-subtle:    #94a0b2;       /* 6.1 on elevated */
 
-  /* ── Backgrounds ──────────────────────────────────────────────────────── */
-  --color-bg-primary:      #101317;
-  --color-bg-surface:      #181c22;
-  --color-bg-elevated:     #222831;
-  --color-bg-glass:        #101317;
-  --color-bg-glass-border: #2c333c;
+  /* ── Surfaces ──────────────────────────────────────────────────────────── */
+  --color-bg-primary:      #0d1015;
+  --color-bg-surface:      #151a22;
+  --color-bg-elevated:     #1e2530;
+  --color-bg-glass:        #0d1015;
+  --color-bg-glass-border: #28303d;
 
-  /* ── Border ───────────────────────────────────────────────────────────── */
-  --color-border:         #333a44;
-  --color-border-subtle:  #242a32;
-  --color-border-control: #6f7987;       /* 4.2 on bg · 3.9 on surface */
+  /* ── Hairline & Control Borders ────────────────────────────────────────── */
+  --color-border:         #2c3543;
+  --color-border-subtle:  #1f2631;
+  --color-border-control: #737f90;       /* 4.6 on primary · 4.1 on surface (>=3:1) */
 
-  /* ── Data note ────────────────────────────────────────────────────────── */
-  --color-note-bg:     #2a2312;
-  --color-note-text:   #ffd98a;          /* 11.5 on note-bg */
-  --color-note-border: #a77c1c;
+  /* ── Data Provenance Note ──────────────────────────────────────────────── */
+  --color-note-bg:     #272010;
+  --color-note-text:   #ffdc8e;          /* 12.1 on note-bg */
+  --color-note-border: #a87d1c;
 
-  --color-map-bg: #181c22;
-  --color-scrim:  rgba(0, 0, 0, 0.62);
+  /* ── Map & Backdrop ────────────────────────────────────────────────────── */
+  --color-map-bg: #141921;
+  --color-scrim:  rgba(4, 6, 10, 0.68);
 
-  /* ── Semantic ─────────────────────────────────────────────────────────── */
-  --color-link:             #5cd3a6;
-  --color-error:            #ff6b81;
-  --color-error-bg:         #2a1519;
-  --color-error-text:       #ff8a9a;     /* 7.7 on error-bg */
-  --color-success:          #5cd3a6;
-  --color-success-bg:       #13261f;
-  --color-success-border:   #2f6b55;
+  /* ── Semantic States ───────────────────────────────────────────────────── */
+  --color-link:           #56d6a6;
+  --color-error:          #ff6b81;
+  --color-error-bg:       #2b1419;
+  --color-error-text:     #ff94a2;       /* 8.3 on error-bg */
+  --color-success:        #56d6a6;
+  --color-success-bg:     #11261e;
+  --color-success-border: #29634e;
 
+  /* ── Legacy Component Aliases ──────────────────────────────────────────── */
   --color-surface: var(--color-bg-surface);
   --color-hover:   var(--color-bg-elevated);
 }

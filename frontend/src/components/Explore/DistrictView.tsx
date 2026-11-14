@@ -38,8 +38,28 @@ function districtLine(state: string, district: number | null): string {
   return `${stateName(state)} · ${district ? `${ordinal(district)} District` : 'At-large district'}`
 }
 
-/** ZIP result and district page: the House member and the two senators as cards (Call,
- *  Website), "Compare your two senators", then the phase-aware ballot strip. */
+function districtCodeBadge(state: string, district: number | null): string {
+  if (state === 'DC') return 'DC-AL'
+  return district ? `${state}-${String(district).padStart(2, '0')}` : `${state}-AL`
+}
+
+function CompareIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      <path d="M16 3h5v5" />
+      <line x1="4" y1="20" x2="21" y2="3" />
+      <path d="M21 16v5h-5" />
+      <line x1="15" y1="15" x2="21" y2="21" />
+      <line x1="4" y1="4" x2="9" y2="9" />
+    </svg>
+  )
+}
+
+/**
+ * Local representation page (`/?zip=95112` and `/?district=CA-18`):
+ * Leads with the U.S. House Representative and two U.S. Senators as tactile civic profile
+ * cards (with 44px Call & Website actions), Senator comparison, and phase-aware BallotStrip.
+ */
 export default function DistrictView({
   state, district, fromZip, onSelectRep, onSelectRace, onSelectState, onCompare,
 }: Props) {
@@ -59,9 +79,16 @@ export default function DistrictView({
   const name = stateName(code)
   const board = STATE_VOTING_RESOURCES[code]?.boardUrl
   const title = fromZip ? `Your members for ZIP ${fromZip}` : districtTitle(code, district)
+  const badgeCode = districtCodeBadge(code, district)
 
   const header = (
-    <header>
+    <header className="overview-hero">
+      <div className="district-view-header-top">
+        <span className="district-view-badge" aria-hidden="true">{badgeCode}</span>
+        <span className="overview-kicker">
+          {fromZip ? `ZIP ${fromZip} Lookup` : 'Congressional Delegation'}
+        </span>
+      </div>
       <h2 id={titleId} className="overview-title" tabIndex={-1}>{title}</h2>
       <p className="overview-subtitle">{districtLine(code, district)}</p>
     </header>
@@ -105,23 +132,29 @@ export default function DistrictView({
       {header}
 
       {fromZip && (
-        <p className="overview-note district-view-zip-note">
-          ZIPs can cross district lines. Near a boundary? Confirm your district with {board ? 'your state' : `the ${name} elections office`}.
+        <div className="district-view-zip-callout">
+          <p className="district-view-zip-text">
+            <strong>ZIPs can cross district lines.</strong> Near a boundary? Confirm your exact street address with{' '}
+            {board ? 'your state elections office' : `the ${name} elections office`}.
+          </p>
           {board && (
-            <>
-              {' '}
-              <a href={board} target="_blank" rel="noopener noreferrer" className="district-view-link">
-                {name} elections office<span className="sr-only"> (opens in a new tab)</span> ↗
-              </a>
-            </>
+            <a href={board} target="_blank" rel="noopener noreferrer" className="district-view-link">
+              {name} elections office
+              <span className="sr-only"> (opens in a new tab)</span>
+              <span aria-hidden="true"> ↗</span>
+            </a>
           )}
-        </p>
+        </div>
       )}
 
       <section className="overview-section" aria-labelledby={membersId}>
         <h3 id={membersId} className="sr-only">
           {code === 'DC' ? 'Your delegate' : 'Your U.S. Representative and senators'}
         </h3>
+
+        <p className="district-view-chamber-label" aria-hidden="true">
+          {code === 'DC' ? 'U.S. House Delegate' : 'U.S. House of Representatives'}
+        </p>
         <ul className="district-view-list">
           <li>
             {rep ? (
@@ -137,12 +170,23 @@ export default function DistrictView({
               </div>
             )}
           </li>
-          {senators.map((s) => (
-            <li key={s.id}>
-              <MemberCard rep={s} variant="card" status={status(s)} onSelect={onSelectRep} />
-            </li>
-          ))}
         </ul>
+
+        {senators.length > 0 && (
+          <>
+            <p className="district-view-chamber-label" aria-hidden="true">
+              U.S. Senate · Statewide ({senators.length})
+            </p>
+            <ul className="district-view-list">
+              {senators.map((s) => (
+                <li key={s.id}>
+                  <MemberCard rep={s} variant="card" status={status(s)} onSelect={onSelectRep} />
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
         {code === 'DC' ? (
           <p className="overview-note">D.C. has no U.S. senators.</p>
         ) : senators.length < 2 ? (
@@ -150,12 +194,17 @@ export default function DistrictView({
             {senators.length === 1 ? 'One Senate seat is vacant in our data.' : `No senators for ${name} in our data.`}
           </p>
         ) : null}
-        <p className="overview-note">Phone numbers are Washington, D.C. offices.</p>
+        <p className="overview-note">Phone numbers connect to Washington, D.C. offices.</p>
       </section>
 
       {senators.length === 2 && (
-        <button type="button" className="district-view-compare" onClick={() => onCompare(senators[0].id, senators[1].id)}>
-          {fromZip ? 'Compare your two senators' : `Compare ${name}'s senators`}
+        <button
+          type="button"
+          className="district-view-compare"
+          onClick={() => onCompare(senators[0].id, senators[1].id)}
+        >
+          <CompareIcon />
+          <span>{fromZip ? 'Compare your two senators' : `Compare ${name}'s senators`}</span>
         </button>
       )}
 
@@ -177,7 +226,7 @@ export default function DistrictView({
 
       {code !== 'DC' && (
         <button type="button" className="overview-text-button district-view-state" onClick={() => onSelectState(code)}>
-          All {name} members ›
+          All {name} members <span aria-hidden="true">›</span>
         </button>
       )}
     </section>

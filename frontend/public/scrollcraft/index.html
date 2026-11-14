@@ -18,14 +18,52 @@
 
   <header class="atlas-chrome">
     <a href="/" class="atlas-brand" id="top-brand-link">
-      <span class="atlas-brand__mark" aria-hidden="true">RM</span>
-      <span>RepMap</span>
+      <span class="atlas-brand__mark" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
+          <rect x="2" y="2" width="12" height="12" rx="2.5"/>
+          <path d="M2 7.5h12M7.5 2v12"/>
+        </svg>
+      </span>
+      <span class="atlas-brand__name">RepMap</span>
       <span class="atlas-brand__meta">Civic Story<span data-bind="data-asof"></span></span>
     </a>
+
+    <nav class="atlas-chapters" aria-label="Story chapters">
+      <a href="#atlas" target="_self" class="atlas-chapter-link" data-chapter="atlas" aria-current="location">
+        <span class="atlas-chapter-num">01</span>District
+      </a>
+      <a href="#scale" target="_self" class="atlas-chapter-link" data-chapter="scale">
+        <span class="atlas-chapter-num">02</span>Scale
+      </a>
+      <a href="#redraw" target="_self" class="atlas-chapter-link" data-chapter="redraw">
+        <span class="atlas-chapter-num">03</span>Lines
+      </a>
+      <a href="#delegation" target="_self" class="atlas-chapter-link" data-chapter="delegation">
+        <span class="atlas-chapter-num">04</span>Members
+      </a>
+      <a href="#committees" target="_self" class="atlas-chapter-link" data-chapter="committees">
+        <span class="atlas-chapter-num">05</span>Committees
+      </a>
+      <a href="#enter" target="_self" class="atlas-chapter-link" data-chapter="enter">
+        <span class="atlas-chapter-num">06</span>Atlas
+      </a>
+    </nav>
+
     <div class="atlas-chrome__actions">
       <div class="atlas-active-pill" id="chrome-active-zip"></div>
+      <button type="button" class="atlas-theme-btn" id="story-theme-btn" aria-label="Switch color theme">
+        <svg class="atlas-theme-icon atlas-theme-icon--moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+        <svg class="atlas-theme-icon atlas-theme-icon--sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="5"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+      </button>
       <a href="/" class="atlas-cta" id="chrome-launch-cta">Open the map</a>
     </div>
+
+    <div class="atlas-progress" data-sc-progress aria-hidden="true"></div>
   </header>
 
   <main data-sc-root>
@@ -37,11 +75,17 @@
         <div class="hero-plane hero-plane--graticule" data-sc-parallax="-0.08" aria-hidden="true">
           <svg width="100%" height="100%" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
             <defs>
-              <pattern id="survey-grid" width="90" height="90" patternUnits="userSpaceOnUse">
-                <path class="grid-line" d="M 90 0 L 0 0 0 90" fill="none" stroke-width="1"/>
+              <pattern id="survey-grid" width="72" height="72" patternUnits="userSpaceOnUse">
+                <path class="grid-line" d="M 72 0 L 0 0 0 72" fill="none" stroke-width="1"/>
+              </pattern>
+              <pattern id="survey-grid-major" width="288" height="288" patternUnits="userSpaceOnUse">
+                <path class="grid-line grid-line--major" d="M 288 0 L 0 0 0 288" fill="none" stroke-width="1.2"/>
               </pattern>
             </defs>
             <rect width="1440" height="900" fill="url(#survey-grid)"/>
+            <rect width="1440" height="900" fill="url(#survey-grid-major)"/>
+            <path class="survey-arc" d="M 520 120 Q 1040 240 1420 140" fill="none" stroke-width="1" stroke-dasharray="5 5"/>
+            <path class="survey-arc" d="M 520 740 Q 1040 640 1420 730" fill="none" stroke-width="1" stroke-dasharray="5 5"/>
           </svg>
         </div>
 
@@ -59,9 +103,9 @@
 
         <div class="hero-plane hero-plane--hud" data-sc-parallax="-0.16" aria-hidden="true">
           <div class="hero-hud-Readout">
-            <div><span>ZIP location</span><strong id="hud-coord"></strong></div>
-            <div><span>District</span><strong id="hud-district"></strong></div>
-            <div><span>Boundaries</span><strong>U.S. Census</strong></div>
+            <div><span>ZIP centroid</span><strong id="hud-coord"></strong></div>
+            <div><span>House district</span><strong id="hud-district"></strong></div>
+            <div><span>Boundary datum</span><strong>U.S. Census TIGER</strong></div>
           </div>
         </div>
 
@@ -70,7 +114,7 @@
         <div class="hero-copy-layer">
 
           <div class="cue-plate hero-beat" data-sc-cue="0 0.48 0 0.12">
-            <p class="cue-plate__eyebrow">Civic Story<span data-bind="congress-suffix"></span></p>
+            <p class="cue-plate__eyebrow">Chapter 01 · Civic Story<span data-bind="congress-suffix"></span></p>
             <a href="/" class="election-chip" id="hero-election-chip" hidden>
               <span class="election-chip__when" id="hero-election-when"></span>
               <span class="election-chip__go">See races for ZIP <span id="hero-election-zip"></span> &rarr;</span>
@@ -99,6 +143,7 @@
           </div>
 
           <div class="cue-plate hero-beat" data-sc-cue="0.50 1.00 0.12 0">
+            <p class="cue-plate__eyebrow">Chapter 01 · Local Delegation</p>
             <h2 class="cue-plate__title cue-plate__title--md" id="beat2-heading">One ZIP. Three members of Congress.</h2>
             <p class="cue-plate__body" id="beat2-sub"></p>
             <div class="hero-delegation-list" id="hero-delegation-list"></div>
@@ -114,6 +159,7 @@
     <section id="scale" class="act-scale" data-sc-act="flow" aria-label="What RepMap covers">
       <div class="scale-inner">
         <div class="scale-rule" data-sc-reveal="up" aria-hidden="true"></div>
+        <p class="section-kicker" data-sc-in>Chapter 02 · National Coverage</p>
         <div class="scale-header">
           <h2 class="scale-title" data-sc-in>Every ZIP code and every seat in Congress, on one map.</h2>
           <p class="scale-lede" data-sc-in>
@@ -122,16 +168,19 @@
         </div>
         <div class="scale-grid" data-sc-stagger="90">
           <article class="scale-card" data-sc-in>
+            <span class="scale-card__kicker">01 · Postal Index</span>
             <div class="scale-card__num" data-bind-count="zips"></div>
             <h3 class="scale-card__label">ZIP codes mapped</h3>
             <p class="scale-card__meta">Each one matched to its U.S. House district</p>
           </article>
           <article class="scale-card" data-sc-in>
+            <span class="scale-card__kicker">02 · Federal Roster</span>
             <div class="scale-card__num" data-bind-count="members"></div>
             <h3 class="scale-card__label">Members of Congress</h3>
             <p class="scale-card__meta" id="scale-members-meta"></p>
           </article>
           <article class="scale-card" data-sc-in>
+            <span class="scale-card__kicker">03 · Boundary Archive</span>
             <div class="scale-card__num" data-bind-count="historicalStates"></div>
             <h3 class="scale-card__label">States and DC with district history</h3>
             <p class="scale-card__meta">Compare 116th and 119th Congress district lines</p>
@@ -165,25 +214,27 @@
 
             <div class="redraw-telemetry-bar">
               <div class="redraw-telemetry-cell"><span>116th Congress (2019–2021)</span><strong id="nc-then"></strong></div>
-              <div class="redraw-telemetry-cell"><span>Change</span><strong id="nc-shift-metric"></strong></div>
-              <div class="redraw-telemetry-cell"><span>Held today</span><strong id="nc-now"></strong></div>
+              <div class="redraw-telemetry-cell"><span>Apportionment Shift</span><strong id="nc-shift-metric"></strong></div>
+              <div class="redraw-telemetry-cell"><span>Held today (119th)</span><strong id="nc-now"></strong></div>
             </div>
           </div>
         </div>
 
         <div class="redraw-copy-layer">
           <div class="cue-plate redraw-beat" data-sc-cue="0 0.30 0 0.15">
-            <p class="cue-plate__eyebrow">District lines · North Carolina</p>
+            <p class="cue-plate__eyebrow">Chapter 03 · District Lines · North Carolina</p>
             <h2 class="cue-plate__title cue-plate__title--md">Before anyone votes, the map itself can move.</h2>
             <p class="cue-plate__body" id="nc-beat1"></p>
           </div>
 
           <div class="cue-plate redraw-beat" data-sc-cue="0.33 0.67 0.15 0.15">
+            <p class="cue-plate__eyebrow">Chapter 03 · Decennial Census</p>
             <h2 class="cue-plate__title cue-plate__title--md">A census can add a seat and redraw the lines.</h2>
             <p class="cue-plate__body" id="nc-beat2"></p>
           </div>
 
           <div class="cue-plate redraw-beat" data-sc-cue="0.70 1.00 0.15 0">
+            <p class="cue-plate__eyebrow">Chapter 03 · Current Map</p>
             <h2 class="cue-plate__title cue-plate__title--md" id="nc-beat3-title"></h2>
             <p class="cue-plate__body" id="nc-beat3"></p>
             <a href="/?redistrict=NC" class="atlas-cta">Open North Carolina district history</a>
@@ -197,6 +248,7 @@
       <div data-sc-stage class="sc-stage delegation-stage">
         <div class="delegation-header">
           <div>
+            <p class="section-kicker">Chapter 04 · Member Dossiers</p>
             <h2 class="delegation-header__title">Three seats per address. Here is who holds them.</h2>
             <p class="delegation-header__sub">Office, phone and committee assignments come from the current member list.</p>
           </div>
@@ -210,6 +262,7 @@
     <section id="committees" class="act-committees" data-sc-act="flow" aria-label="Committees">
       <div class="committees-inner">
         <div class="committees-header">
+          <p class="section-kicker" data-sc-in>Chapter 05 · Legislative Jurisdiction</p>
           <h2 class="committees-title" data-sc-in>Floor votes come last. Bills are shaped in committee.</h2>
           <p class="scale-lede" data-sc-in>
             Members from different states sit on the same committees. Pick a committee to see which of the House members above share it.
@@ -234,6 +287,7 @@
         <div class="enter-console">
           <div class="enter-main-plate" data-sc-cue="-0.20">
             <div>
+              <p class="cue-plate__eyebrow">Chapter 06 · Interactive Civic Atlas</p>
               <h2 class="cue-plate__title cue-plate__title--md">Open the full map.</h2>
               <p class="cue-plate__body">
                 Search any ZIP, state, district or name. See who holds each seat now and who has filed with the FEC to run for it.
@@ -244,7 +298,7 @@
               </div>
             </div>
             <dl class="enter-selection-readout">
-              <div><dt>ZIP</dt><dd id="close-readout-zip"></dd></div>
+              <div><dt>Selected ZIP</dt><dd id="close-readout-zip"></dd></div>
               <div><dt>U.S. House</dt><dd id="close-readout-rep"></dd></div>
               <div><dt>U.S. Senate</dt><dd id="close-readout-senate"></dd></div>
             </dl>
@@ -252,14 +306,17 @@
 
           <div class="enter-dock-grid" data-sc-cue="0.02">
             <a href="/?redistrict=NC" class="enter-dock-card">
+              <span class="enter-dock-card__kicker">Archive</span>
               <h3 class="enter-dock-card__title">District history</h3>
               <p class="enter-dock-card__desc">Compare 116th and 119th Congress district lines in any state.</p>
             </a>
             <a href="/" class="enter-dock-card" id="close-compare-card">
+              <span class="enter-dock-card__kicker">Side by Side</span>
               <h3 class="enter-dock-card__title">Compare members</h3>
               <p class="enter-dock-card__desc">Put two members of Congress side by side.</p>
             </a>
             <a href="/" class="enter-dock-card" id="close-comm-card">
+              <span class="enter-dock-card__kicker">Network</span>
               <h3 class="enter-dock-card__title">Committee graph</h3>
               <p class="enter-dock-card__desc" id="close-comm-desc">See every member's committee assignments as a network.</p>
             </a>

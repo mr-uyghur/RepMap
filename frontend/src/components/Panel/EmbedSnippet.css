@@ -1,31 +1,34 @@
-/* "Embed on a website" dialog, opened from the member Share menu. Tokens only. */
+/* "Embed on a website" dialog, portaled to document.body above map & shell.
+   Editorial Civic Atlas tokens only (variables.css). */
 
 .embed-snippet-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 1100;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: var(--space-4);
-  background: color-mix(in srgb, var(--color-text-primary) 45%, transparent);
+  background: var(--color-scrim);
 }
 
 .embed-snippet-modal {
   width: 100%;
-  max-width: 520px;
-  max-height: calc(100% - 2 * var(--space-4));
+  max-width: 540px;
+  max-height: calc(100vh - 2 * var(--space-4));
   overflow-y: auto;
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
   font-family: var(--font-body);
   color: var(--color-text-primary);
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .embed-snippet-overlay { animation: embed-snippet-fade-in 0.18s ease both; }
+  .embed-snippet-overlay {
+    animation: embed-snippet-fade-in 0.16s ease both;
+  }
   @keyframes embed-snippet-fade-in {
     from { opacity: 0; }
     to   { opacity: 1; }
@@ -34,10 +37,24 @@
 
 .embed-snippet-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-3) 0 var(--space-4);
+  padding: var(--space-4) var(--space-4) var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.embed-snippet-header-copy {
+  min-width: 0;
+}
+
+.embed-snippet-kicker {
+  margin: 0 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent-text);
 }
 
 .embed-snippet-title {
@@ -45,81 +62,197 @@
   align-items: center;
   gap: var(--space-2);
   margin: 0;
-  font-size: 16px;
+  font-family: var(--font-display);
+  font-size: 18px;
   font-weight: 700;
+  line-height: 1.25;
   color: var(--color-text-primary);
 }
 
 .embed-snippet-icon {
   padding: 2px 6px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-accent-border);
+  background: var(--color-accent-soft);
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--color-accent-text);
 }
 
 .embed-snippet-close {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 45px;
+  height: 45px;
+  flex-shrink: 0;
   padding: 0;
-  border: 0;
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-full);
-  background: transparent;
+  background: var(--color-bg-surface);
   color: var(--color-text-secondary);
   cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
 }
-.embed-snippet-close:hover { background: var(--color-bg-surface); color: var(--color-text-primary); }
+
+.embed-snippet-close:hover {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-border-control);
+  color: var(--color-text-primary);
+}
+
+/* Preview card strip */
+.embed-snippet-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-4) var(--space-5) var(--space-3);
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-independent);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+}
+
+.embed-snippet-preview--democrat {
+  border-left-color: var(--color-democrat);
+}
+
+.embed-snippet-preview--republican {
+  border-left-color: var(--color-republican);
+}
+
+.embed-snippet-avatar {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+}
+
+.embed-snippet-avatar--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.embed-snippet-preview-body {
+  flex: 1;
+  min-width: 0;
+}
 
 .embed-snippet-rep-name {
-  margin: 0 var(--space-4) var(--space-3);
-  font-size: 14px;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.embed-snippet-rep-meta {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+.embed-snippet-party {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--color-independent-soft);
+  color: var(--color-independent-text);
+}
+
+.embed-snippet-party--democrat {
+  background: var(--color-democrat-soft);
+  color: var(--color-democrat-text);
+}
+
+.embed-snippet-party--republican {
+  background: var(--color-republican-soft);
+  color: var(--color-republican-text);
+}
+
+.embed-snippet-party-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+}
+
+.embed-snippet-section {
+  padding: 0 var(--space-5) var(--space-3);
+}
+
+.embed-snippet-label {
+  display: block;
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--color-text-muted);
 }
 
 .embed-snippet-sizes {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-2);
-  padding: 0 var(--space-4) var(--space-3);
 }
 
 .embed-snippet-size-btn {
-  flex: 1;
-  min-height: 44px;
+  min-height: 48px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: var(--space-2) var(--space-1);
-  border: 1px solid var(--color-border);
+  padding: 6px var(--space-2);
+  border: 1px solid var(--color-border-control);
   border-radius: var(--radius-md);
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
   font: inherit;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
-.embed-snippet-size-btn:hover { background: var(--color-bg-surface); }
-.embed-snippet-size-btn--active {
-  border: 2px solid var(--color-accent);
-  color: var(--color-accent-text);
+
+.embed-snippet-size-btn:hover {
   background: var(--color-bg-surface);
 }
 
+.embed-snippet-size-btn--active {
+  border-color: var(--color-accent);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+  color: var(--color-accent-text);
+  background: var(--color-accent-soft);
+}
+
 .embed-snippet-size-dims {
-  font-size: 12px;
-  font-weight: 400;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
   color: var(--color-text-muted);
 }
 
 .embed-snippet-code-wrap {
-  margin: 0 var(--space-4);
+  margin: 0 var(--space-5);
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -128,35 +261,54 @@
 
 .embed-snippet-code {
   margin: 0;
-  padding: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   overflow-x: auto;
   white-space: pre;
   font-family: var(--font-mono);
   font-size: 12px;
-  line-height: 1.7;
+  line-height: 1.65;
   color: var(--color-text-primary);
+}
+
+.embed-snippet-code:focus-visible {
+  outline: 2px solid var(--color-accent-text);
+  outline-offset: -2px;
 }
 
 .embed-snippet-footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4) var(--space-4);
+  padding: var(--space-3) var(--space-5) var(--space-4);
 }
 
-.embed-snippet-url {
-  min-width: 0;
-  font-size: 12px;
-  color: var(--color-text-muted);
-  overflow-wrap: anywhere;
+.embed-snippet-preview-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 45px;
+  min-width: 45px;
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  color: var(--color-link);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.embed-snippet-preview-link:hover {
+  background: var(--color-bg-surface);
 }
 
 .embed-snippet-copy-btn {
   flex-shrink: 0;
-  min-height: 44px;
+  min-height: 45px;
+  min-width: 45px;
   padding: 0 var(--space-4);
-  border: 0;
+  border: 1px solid transparent;
   border-radius: var(--radius-md);
   background: var(--color-accent);
   color: var(--color-on-accent);
@@ -164,6 +316,32 @@
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
+  transition: background var(--transition-fast);
 }
-.embed-snippet-copy-btn:hover { filter: brightness(1.06); }
-.embed-snippet-copy-btn--copied { background: var(--color-success); color: var(--color-bg-primary); }
+
+.embed-snippet-copy-btn:hover {
+  background: var(--color-accent-hover);
+}
+
+.embed-snippet-copy-btn--copied {
+  background: var(--color-success-bg);
+  border-color: var(--color-success-border);
+  color: var(--color-success);
+}
+
+@media (max-width: 480px) {
+  .embed-snippet-preview {
+    flex-wrap: wrap;
+    margin-left: var(--space-4);
+    margin-right: var(--space-4);
+  }
+  .embed-snippet-section,
+  .embed-snippet-footer {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+  .embed-snippet-code-wrap {
+    margin-left: var(--space-4);
+    margin-right: var(--space-4);
+  }
+}

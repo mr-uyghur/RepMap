@@ -1,7 +1,7 @@
 import { useId, useMemo, useState } from 'react'
 import type { FecCandidate } from '../../types'
 import { formatMoney, formatShortDate } from '../../utils/elections'
-import { byReceipts } from '../../utils/raceGroups'
+import { byReceipts, partyLetter } from '../../utils/raceGroups'
 import './CandidateFunding.css'
 
 const COLLAPSED_COUNT = 6
@@ -20,10 +20,16 @@ export const FUNDING_NOTE = 'Money raised is from FEC filings. It is not a poll 
 export function FundingLegend({ id }: { id?: string }) {
   return (
     <div className="cf-legend" id={id}>
-      <p className="cf-legend-keys">
-        <span className="cf-legend-item"><span className="cf-key" aria-hidden="true" />Money raised</span>
-        <span className="cf-legend-item"><span className="cf-key cf-key--cash" aria-hidden="true" />Cash on hand</span>
-      </p>
+      <div className="cf-legend-keys">
+        <span className="cf-legend-item">
+          <span className="cf-key" aria-hidden="true" />
+          Money raised
+        </span>
+        <span className="cf-legend-item">
+          <span className="cf-key cf-key--cash" aria-hidden="true" />
+          Cash on hand
+        </span>
+      </div>
       <p className="cf-legend-note">{FUNDING_NOTE}</p>
     </div>
   )
@@ -37,6 +43,8 @@ interface Props {
   tagFor?: (c: FecCandidate) => string | undefined
   /** Shared bar scale, so several lists in one race line up. Defaults to this list's top fundraiser. */
   max?: number
+  /** Optional total receipts across the entire race for computing % share of fundraising. */
+  raceTotal?: number
   /** Render the bar key and note above the list (default true). Off when the caller renders FundingLegend. */
   legend?: boolean
   /** Fold long lists behind "Show N more" (default true). Off when the caller groups candidates itself. */
@@ -47,13 +55,18 @@ interface Props {
   label?: string
 }
 
-/** FEC-filed candidates with a money-raised bar each. Bars are decorative:
- *  every number is also in the row's text. */
+function isPrimaryTag(tag: string): boolean {
+  return tag === 'Current member' || tag === 'Incumbent' || tag === 'Member of Congress'
+}
+
+/** FEC-filed candidates with comparative money-raised & cash-on-hand bars.
+ *  Bars are decorative (`aria-hidden="true"`): every number is written out in text. */
 export default function CandidateFunding({
   candidates,
   nameFor,
   tagFor,
   max: maxProp,
+  raceTotal,
   legend = true,
   collapsible: allowCollapse = true,
   describedBy,
@@ -66,7 +79,7 @@ export default function CandidateFunding({
   const max = maxProp ?? Math.max(0, ...sorted.map((c) => c.receipts ?? 0))
   const collapsible = allowCollapse && sorted.length > COLLAPSE_THRESHOLD
   const visible = expanded || !collapsible ? sorted : sorted.slice(0, COLLAPSED_COUNT)
-  const pct = (n: number | null) => (n && max > 0 ? Math.min(100, Math.max(1.5, (n / max) * 100)) : 0)
+  const pct = (n: number | null) => (n && max > 0 ? Math.min(100, Math.max(2, (n / max) * 100)) : 0)
   const tag = tagFor ?? ((c: FecCandidate) => (c.incumbent ? 'Incumbent' : undefined))
 
   return (
@@ -75,12 +88,22 @@ export default function CandidateFunding({
       <ul className="cf-list" aria-describedby={legend ? legendId : describedBy} aria-label={label}>
         {visible.map((c) => {
           const t = tag(c)
+          const partyMod = PARTY_CLASS[c.party] ?? 'other'
+          const sharePct =
+            raceTotal && raceTotal > 0 && c.receipts != null && c.receipts > 0 && raceTotal > c.receipts
+              ? Math.round((c.receipts / raceTotal) * 100)
+              : null
+
           return (
-            <li key={c.fec_id} className={`cf-row cf-row--${PARTY_CLASS[c.party] ?? 'other'}`}>
+            <li key={c.fec_id} className={`cf-row cf-row--${partyMod}`}>
               <div className="cf-head">
-                <span className="cf-name">
-                  {nameFor?.(c) ?? c.name}
-                  {t && <span className="cf-tag">{t}</span>}
+                <span className="cf-name-wrap">
+                  <span className="cf-name">{nameFor?.(c) ?? c.name}</span>
+                  {t && (
+                    <span className={`cf-tag${isPrimaryTag(t) ? ' cf-tag--incumbent' : ''}`}>
+                      {t}
+                    </span>
+                  )}
                 </span>
                 <span className="cf-amount">
                   {c.receipts != null ? (
@@ -89,23 +112,48 @@ export default function CandidateFunding({
                       <span className="cf-amount-label"> raised</span>
                     </>
                   ) : (
-                    <span className="cf-amount-label">No report yet</span>
+                    <span className="cf-amount-none">No report yet</span>
                   )}
                 </span>
               </div>
+
               {c.receipts != null && (
                 <div className="cf-bars" aria-hidden="true">
-                  <span className="cf-bar" style={{ width: `${pct(c.receipts)}%` }} />
+                  <span className="cf-track">
+                    <span className="cf-bar" style={{ width: `${pct(c.receipts)}%` }} />
+                  </span>
                   {c.cash != null && c.cash > 0 && (
-                    <span className="cf-bar cf-bar--cash" style={{ width: `${pct(c.cash)}%` }} />
+                    <span className="cf-track cf-track--cash">
+                      <span className="cf-bar cf-bar--cash" style={{ width: `${pct(c.cash)}%` }} />
+                    </span>
                   )}
                 </div>
               )}
-              <span className="cf-meta">
-                <span className="cf-party">{c.party_label}</span>
-                {c.cash != null && <> · {formatMoney(c.cash)} cash on hand</>}
-                {c.reports_through && <> · report through {formatShortDate(c.reports_through).replace(/^\w+, /, "")}</>}
-              </span>
+
+              <div className="cf-meta">
+                <span className="cf-party">
+                  <span className="cf-party-code" aria-hidden="true">{partyLetter(c)}</span>
+                  {c.party_label}
+                </span>
+                {c.cash != null && (
+                  <span className="cf-stat">
+                    <span className="cf-sep" aria-hidden="true">·</span>
+                    <strong>{formatMoney(c.cash)}</strong> cash on hand
+                  </span>
+                )}
+                {sharePct != null && sharePct >= 1 && (
+                  <span className="cf-stat">
+                    <span className="cf-sep" aria-hidden="true">·</span>
+                    {sharePct}% of race total
+                  </span>
+                )}
+                {c.reports_through && (
+                  <span className="cf-stat cf-stat--date">
+                    <span className="cf-sep" aria-hidden="true">·</span>
+                    thru {formatShortDate(c.reports_through).replace(/^\w+, /, '')}
+                  </span>
+                )}
+              </div>
             </li>
           )
         })}

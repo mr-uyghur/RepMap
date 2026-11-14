@@ -12,9 +12,11 @@ import {
   getBioguideId,
   partyKey,
   partyLabel,
+  phoneHref,
   seatLabel,
   termInfo,
 } from '../Compare/compareFormat'
+import { ensureCommitteesLoaded } from './ensureCommittees'
 import './ComparePanel.css'
 
 interface Props {
@@ -102,6 +104,12 @@ function sharedVotes(votesA: Vote[] | null, votesB: Vote[] | null): SharedVote[]
   return out.sort((x, y) => (x.date < y.date ? 1 : x.date > y.date ? -1 : 0))
 }
 
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return `${parts[0][0] ?? ''}${parts[parts.length - 1][0] ?? ''}`.toUpperCase()
+}
+
 const RECENT_VOTES = 6
 
 // ── Table pieces ───────────────────────────────────────────────────────────────
@@ -141,9 +149,10 @@ function Muted({ children }: { children: ReactNode }) {
 }
 
 function PartyText({ rep }: { rep: Representative }) {
+  const pKey = partyKey(rep.party)
   return (
-    <span className="cmp-party">
-      <span className={`cmp-swatch cmp-swatch--${partyKey(rep.party)}`} aria-hidden="true" />
+    <span className={`cmp-party cmp-party--${pKey}`}>
+      <span className={`cmp-swatch cmp-swatch--${pKey}`} aria-hidden="true" />
       {partyLabel(rep.party)}
     </span>
   )
@@ -164,13 +173,22 @@ function MemberHeader({ rep, side, profileHref, onProfile }: {
       </th>
     )
   }
+  const pKey = partyKey(rep.party)
   return (
-    <th scope="col" role="columnheader" className={`cmp-member cmp-member--${partyKey(rep.party)}`}>
+    <th scope="col" role="columnheader" className={`cmp-member cmp-member--${pKey}`}>
       <div className="cmp-member-top">
         {rep.photo_url && !photoFailed ? (
-          <img className="cmp-photo" src={rep.photo_url} alt="" loading="lazy" onError={() => setPhotoFailed(true)} />
+          <img
+            className={`cmp-photo cmp-photo--${pKey}`}
+            src={rep.photo_url}
+            alt=""
+            loading="lazy"
+            onError={() => setPhotoFailed(true)}
+          />
         ) : (
-          <span className="cmp-photo cmp-photo--empty" aria-hidden="true" />
+          <span className={`cmp-photo cmp-photo--empty cmp-photo--${pKey}`} aria-hidden="true">
+            {initialsOf(rep.name)}
+          </span>
         )}
         <div className="cmp-member-id">
           <h3 className="cmp-name">{rep.name}</h3>
@@ -180,37 +198,55 @@ function MemberHeader({ rep, side, profileHref, onProfile }: {
         </div>
       </div>
       <p className="cmp-member-seat">
-        {chamberLabel(rep)}, {seatLabel(rep)}
+        {chamberLabel(rep)} · {seatLabel(rep)}
       </p>
       {profileHref && (
-        <a
-          className="cmp-link cmp-profile-link"
-          href={profileHref}
-          onClick={(e) => {
-            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
-            e.preventDefault()
-            onProfile(profileHref)
-          }}
-        >
-          Profile<span className="sr-only">: {rep.name}</span>
-        </a>
+        <div className="cmp-member-links">
+          <a
+            className="cmp-link cmp-profile-link"
+            href={profileHref}
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
+              e.preventDefault()
+              onProfile(profileHref)
+            }}
+          >
+            Profile<span className="sr-only">: {rep.name}</span>
+            <span aria-hidden="true"> →</span>
+          </a>
+        </div>
       )}
     </th>
   )
 }
 
-function ScoreCell({ value, other, loading }: { value: number | null | undefined; other: number | null | undefined; loading: boolean }) {
+function ScoreCell({
+  value,
+  other,
+  loading,
+  party,
+}: {
+  value: number | null | undefined
+  other: number | null | undefined
+  loading: boolean
+  party?: Representative['party']
+}) {
   if (loading) return <span className="cmp-skel" aria-hidden="true" />
   if (value == null) return <Muted>Not available</Muted>
   const v = Math.round(value)
   const higher = other != null && v > Math.round(other)
+  const pKey = party ? partyKey(party) : 'independent'
   return (
     <span className="cmp-score">
       <span className={`cmp-score-value${higher ? ' cmp-score-value--higher' : ''}`}>
-        {v}%{higher && <span className="cmp-higher"> higher</span>}
+        <span>{v}%</span>
+        {higher && <span className="cmp-higher">Higher</span>}
       </span>
       <span className="cmp-bar" aria-hidden="true">
-        <span className="cmp-bar-fill" style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
+        <span
+          className={`cmp-bar-fill cmp-bar-fill--${pKey}`}
+          style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
+        />
       </span>
     </span>
   )
@@ -226,15 +262,24 @@ function CommitteeList({ list, shared, onCommitteeClick }: {
   return (
     <ul className="cmp-committees">
       {ordered.map((c) => {
-        const both = shared.has(c) ? <span className="cmp-tag">Both</span> : null
+        const isShared = shared.has(c)
+        const both = isShared ? <span className="cmp-tag">Both</span> : null
         return (
           <li key={c}>
             {onCommitteeClick ? (
-              <button type="button" className="cmp-committee cmp-committee--btn" onClick={() => onCommitteeClick(c)}>
-                <span>{c}</span>{both}
+              <button
+                type="button"
+                className={`cmp-committee cmp-committee--btn${isShared ? ' cmp-committee--shared' : ''}`}
+                onClick={() => onCommitteeClick(c)}
+              >
+                <span>{c}</span>
+                {both}
               </button>
             ) : (
-              <span className="cmp-committee"><span>{c}</span>{both}</span>
+              <span className={`cmp-committee${isShared ? ' cmp-committee--shared' : ''}`}>
+                <span>{c}</span>
+                {both}
+              </span>
             )}
           </li>
         )
@@ -245,6 +290,18 @@ function CommitteeList({ list, shared, onCommitteeClick }: {
 
 function VotePos({ pos }: { pos: Position }) {
   return <span className={`cmp-pos cmp-pos--${pos}`}>{pos === 'yes' ? 'Yes' : 'No'}</span>
+}
+
+function PhoneValue({ rep }: { rep: Representative }) {
+  if (!rep.phone) return <Muted>Not listed</Muted>
+  const href = phoneHref(rep.phone)
+  if (!href) return <span className="cmp-tabular">{rep.phone}</span>
+  return (
+    <a className="cmp-link cmp-phone-link cmp-tabular" href={href}>
+      {rep.phone}
+      <span className="sr-only"> ({rep.name} D.C. office)</span>
+    </a>
+  )
 }
 
 // ── Panel ──────────────────────────────────────────────────────────────────────
@@ -264,9 +321,12 @@ export default function ComparePanel({ repIdA, repIdB, onClose, onCommitteeClick
   const panelRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const changeButtonRef = useRef<HTMLButtonElement>(null)
-  // App passes a new onClose each render; keep the focus/keyboard effect mounted once.
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
+
+  useEffect(() => {
+    ensureCommitteesLoaded()
+  }, [])
 
   const nav = parseNav(location.pathname, location.search)
   const compareUrl = (a: string, b: string) => buildNavUrl({ ...nav, compare: [a, b] })
@@ -331,8 +391,6 @@ export default function ComparePanel({ repIdA, repIdB, onClose, onCommitteeClick
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       document.removeEventListener('focusin', keepFocusInDialog)
-      // Return focus to where compare was opened from; on a deep link, to the
-      // member panel that replaces this view.
       requestAnimationFrame(() => {
         if (previous?.isConnected && previous !== document.body) {
           previous.focus()
@@ -379,7 +437,7 @@ export default function ComparePanel({ repIdA, repIdB, onClose, onCommitteeClick
 
   return (
     <>
-      <div className="compare-backdrop" aria-hidden="true" />
+      <div className="compare-backdrop" aria-hidden="true" onClick={() => onCloseRef.current()} />
       <div
         className="compare-panel cmp"
         ref={panelRef}
@@ -389,13 +447,15 @@ export default function ComparePanel({ repIdA, repIdB, onClose, onCommitteeClick
       >
         <header className="cmp-head">
           <div className="cmp-head-text">
-            <p className="cmp-eyebrow">Compare</p>
+            <p className="cmp-eyebrow">Head-to-Head Dossier</p>
             <h2 id="compare-panel-title" className="cmp-title">{titleText}</h2>
           </div>
           <div className="cmp-actions">
             <button type="button" className="cmp-btn" onClick={swap} disabled={!both}>
-              <svg aria-hidden="true" viewBox="0 0 20 20" width="16" height="16"><path d="M6 4 2 8l4 4M2 8h12M14 8l4 4-4 4M18 12H6" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              Swap sides
+              <svg aria-hidden="true" viewBox="0 0 20 20" width="16" height="16">
+                <path d="M6 4 2 8l4 4M2 8h12M14 8l4 4-4 4M18 12H6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span>Swap sides</span>
             </button>
             <button
               ref={changeButtonRef}
@@ -406,7 +466,11 @@ export default function ComparePanel({ repIdA, repIdB, onClose, onCommitteeClick
               onClick={() => setPicking((p) => !p)}
               disabled={!repA}
             >
-              Change second member
+              <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+              <span>Change second member</span>
             </button>
             <button
               ref={closeButtonRef}
@@ -415,7 +479,7 @@ export default function ComparePanel({ repIdA, repIdB, onClose, onCommitteeClick
               onClick={() => onCloseRef.current()}
             >
               <span aria-hidden="true" className="cmp-x">×</span>
-              Exit compare
+              <span>Exit compare</span>
               <kbd className="cmp-kbd" aria-hidden="true">Esc</kbd>
             </button>
           </div>
@@ -426,6 +490,7 @@ export default function ComparePanel({ repIdA, repIdB, onClose, onCommitteeClick
             <MemberPicker
               excludeIds={[repA.id, ...(repB ? [repB.id] : [])]}
               keepName={repA.name}
+              keepState={repA.state}
               onPick={changeSecond}
               onCancel={cancelPicking}
             />
@@ -444,45 +509,57 @@ export default function ComparePanel({ repIdA, repIdB, onClose, onCommitteeClick
             </thead>
             {both && (
               <tbody role="rowgroup">
-                <GroupRow title="Office" />
+                <GroupRow title="Office & Tenure" />
                 <Row label="Party" note={sameParty ? 'Same' : null} a={<PartyText rep={repA} />} b={<PartyText rep={repB} />} />
                 <Row label="Chamber" note={sameChamber ? 'Same' : null} a={chamberLabel(repA)} b={chamberLabel(repB)} />
                 <Row label="Seat" note={sameState ? 'Same state' : null} a={seatLabel(repA)} b={seatLabel(repB)} />
                 <Row
                   label="Current term"
                   note={sameTerm ? 'Same' : null}
-                  a={termA ? <>{termA.range}{termA.pct != null && <Muted> · {termA.pct}% served</Muted>}</> : <Muted>Not listed</Muted>}
-                  b={termB ? <>{termB.range}{termB.pct != null && <Muted> · {termB.pct}% served</Muted>}</> : <Muted>Not listed</Muted>}
+                  a={termA ? <span className="cmp-tabular">{termA.range}{termA.pct != null && <Muted> · {termA.pct}% served</Muted>}</span> : <Muted>Not listed</Muted>}
+                  b={termB ? <span className="cmp-tabular">{termB.range}{termB.pct != null && <Muted> · {termB.pct}% served</Muted>}</span> : <Muted>Not listed</Muted>}
                 />
 
-                <GroupRow title="Record" />
+                <GroupRow title="Legislative Scorecard" />
                 <Row
                   label="Attendance"
-                  a={<ScoreCell value={dataA.report?.attendance_pct} other={dataB.report?.attendance_pct} loading={dataA.reportLoading} />}
-                  b={<ScoreCell value={dataB.report?.attendance_pct} other={dataA.report?.attendance_pct} loading={dataB.reportLoading} />}
+                  a={<ScoreCell value={dataA.report?.attendance_pct} other={dataB.report?.attendance_pct} loading={dataA.reportLoading} party={repA.party} />}
+                  b={<ScoreCell value={dataB.report?.attendance_pct} other={dataA.report?.attendance_pct} loading={dataB.reportLoading} party={repB.party} />}
                 />
                 <Row
                   label="Effectiveness"
-                  a={<ScoreCell value={dataA.report?.effectiveness_score} other={dataB.report?.effectiveness_score} loading={dataA.reportLoading} />}
-                  b={<ScoreCell value={dataB.report?.effectiveness_score} other={dataA.report?.effectiveness_score} loading={dataB.reportLoading} />}
+                  a={<ScoreCell value={dataA.report?.effectiveness_score} other={dataB.report?.effectiveness_score} loading={dataA.reportLoading} party={repA.party} />}
+                  b={<ScoreCell value={dataB.report?.effectiveness_score} other={dataA.report?.effectiveness_score} loading={dataB.reportLoading} party={repB.party} />}
                 />
                 <Row
                   label="Bipartisanship"
-                  a={<ScoreCell value={dataA.report?.bipartisanship_score} other={dataB.report?.bipartisanship_score} loading={dataA.reportLoading} />}
-                  b={<ScoreCell value={dataB.report?.bipartisanship_score} other={dataA.report?.bipartisanship_score} loading={dataB.reportLoading} />}
+                  a={<ScoreCell value={dataA.report?.bipartisanship_score} other={dataB.report?.bipartisanship_score} loading={dataA.reportLoading} party={repA.party} />}
+                  b={<ScoreCell value={dataB.report?.bipartisanship_score} other={dataA.report?.bipartisanship_score} loading={dataB.reportLoading} party={repB.party} />}
                 />
+                {(dataA.report || dataB.report) && (
+                  <Row
+                    label="Bills analyzed"
+                    a={dataA.report ? <span className="cmp-tabular"><strong>{dataA.report.bills_analyzed}</strong> bills <Muted>· {dataA.report.bills_became_law} enacted</Muted></span> : <Muted>Not available</Muted>}
+                    b={dataB.report ? <span className="cmp-tabular"><strong>{dataB.report.bills_analyzed}</strong> bills <Muted>· {dataB.report.bills_became_law} enacted</Muted></span> : <Muted>Not available</Muted>}
+                  />
+                )}
 
-                <GroupRow title="Votes together" />
+                <GroupRow title="Roll-Call Alignment" />
                 <WideRow label="Agreement">
                   {shared === null ? (
                     <span role="status"><Muted>Loading roll-call votes…</Muted></span>
                   ) : agreement ? (
-                    <span className="cmp-agree">
-                      <strong className="cmp-agree-pct">{agreement.pct}%</strong>
-                      <span>
-                        Voted the same way on {agreement.agreed} of {agreement.total} shared roll-call vote{agreement.total === 1 ? '' : 's'}
+                    <div className="cmp-agree-wrap">
+                      <span className="cmp-agree">
+                        <strong className="cmp-agree-pct">{agreement.pct}%</strong>
+                        <span className="cmp-tabular">
+                          Voted the same way on {agreement.agreed} of {agreement.total} shared roll-call vote{agreement.total === 1 ? '' : 's'}
+                        </span>
                       </span>
-                    </span>
+                      <span className="cmp-bar cmp-bar--wide" aria-hidden="true">
+                        <span className="cmp-bar-fill cmp-bar-fill--accent" style={{ width: `${agreement.pct}%` }} />
+                      </span>
+                    </div>
                   ) : !sameChamber ? (
                     <Muted>Different chambers (House and Senate) vote separately, so there are no shared roll calls.</Muted>
                   ) : (
@@ -507,8 +584,8 @@ export default function ComparePanel({ repIdA, repIdB, onClose, onCommitteeClick
                   b={<CommitteeList list={committeesB} shared={sharedCommittees} onCommitteeClick={onCommitteeClick} />}
                 />
 
-                <GroupRow title="Contact" />
-                <Row label="Phone" a={repA.phone || <Muted>Not listed</Muted>} b={repB.phone || <Muted>Not listed</Muted>} />
+                <GroupRow title="D.C. Office Contact" />
+                <Row label="Phone" a={<PhoneValue rep={repA} />} b={<PhoneValue rep={repB} />} />
                 <Row
                   label="Website"
                   a={<Website rep={repA} />}
@@ -528,7 +605,8 @@ function Website({ rep }: { rep: Representative }) {
   if (!href) return <Muted>Not listed</Muted>
   return (
     <a className="cmp-link" href={href} target="_blank" rel="noopener noreferrer">
-      Official site<span className="sr-only"> of {rep.name} (opens in a new tab)</span>
+      Official site <span aria-hidden="true">↗</span>
+      <span className="sr-only"> of {rep.name} (opens in a new tab)</span>
     </a>
   )
 }

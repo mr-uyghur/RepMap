@@ -206,7 +206,6 @@ export default function BallotPanel({
           fromZip={zip}
           onSelectRep={onOpenRep}
           onSelectRace={onSelectRace}
-          // Phase 1: there is no state level here yet; go back to this ZIP's races.
           onSelectState={() => onSelectRace(null)}
         />
       </aside>
@@ -266,7 +265,6 @@ export default function BallotPanel({
   } else {
     const { summary, data, loc } = load
     const { house, senate } = racesForLocation(data, loc.state, loc.district)
-    const all = [...(house ? [house] : []), ...senate]
     const houseRep = allRepresentatives.find(
       (r) => r.level === 'us_house' && r.state === loc.state && r.district_number === loc.district,
     )
@@ -284,91 +282,92 @@ export default function BallotPanel({
       </p>
     )
 
-    {
-      body = (
-        <>
-          {header(summary.label, `Races for ZIP ${zip}`)}
-          {countdown}
-          {caveat}
-          <ul className="ballot-races" aria-label={`Congressional races for ZIP ${zip}`}>
-            {house ? (
-              <li>
-                <button type="button" className="ballot-row" onClick={() => onSelectRace(house.id)}>
-                  <span className="ballot-row-badge" aria-hidden="true">House</span>
+    body = (
+      <>
+        {header(summary.label, `Races for ZIP ${zip}`)}
+        {countdown}
+        {caveat}
+        <ul className="ballot-races" aria-label={`Congressional races for ZIP ${zip}`}>
+          {house ? (
+            <li>
+              <button type="button" className="ballot-row" onClick={() => onSelectRace(house.id)}>
+                <span className="ballot-row-badge" aria-hidden="true">House</span>
+                <span className="ballot-row-text">
+                  <span className="ballot-row-title">U.S. House · {raceTitle(house.race, summary.cycle)}</span>
+                  <span className="ballot-row-sub">
+                    {(() => {
+                      if (house.race.candidates.length === 0) return <>No candidates have filed yet</>
+                      const inc = house.race.candidates.find((c) => c.incumbent)
+                      return (
+                        <>
+                          {house.race.candidates.length} filed
+                          {inc ? <> · incumbent {inc.name} ({inc.party_label})</> : <> · no incumbent filed</>}
+                        </>
+                      )
+                    })()}
+                  </span>
+                </span>
+                <ChevronIcon />
+              </button>
+            </li>
+          ) : (
+            <li className="ballot-row ballot-row--empty">
+              <span className="ballot-row-text">
+                <span className="ballot-row-title">U.S. House</span>
+                <span className="ballot-row-sub">No House race found for this district in our data.</span>
+              </span>
+            </li>
+          )}
+          {senate.length > 0 ? (
+            senate.map((s) => (
+              <li key={s.id}>
+                <button type="button" className="ballot-row" onClick={() => onSelectRace(s.id)}>
+                  <span className="ballot-row-badge" aria-hidden="true">Senate</span>
                   <span className="ballot-row-text">
-                    <span className="ballot-row-title">U.S. House · {raceTitle(house.race, summary.cycle)}</span>
-                    <span className="ballot-row-sub">
-                      {(() => {
-                        // With nobody filed yet (common years ahead of a cycle) we can't
-                        // tell an open seat from an incumbent who hasn't filed.
-                        if (house.race.candidates.length === 0) return <>No candidates have filed yet</>
-                        const inc = house.race.candidates.find((c) => c.incumbent)
-                        return <>{house.race.candidates.length} filed{inc ? <> · incumbent {inc.name} ({inc.party_label})</> : <> · open seat</>}</>
-                      })()}
+                    <span className="ballot-row-title">
+                      U.S. Senate · {stateName(loc.state)}
+                      {s.race.special && <span className="ballot-special">Special election</span>}
                     </span>
+                    <span className="ballot-row-sub">{s.race.candidates.length} filed</span>
                   </span>
                   <ChevronIcon />
                 </button>
               </li>
-            ) : (
-              <li className="ballot-row ballot-row--empty">
-                <span className="ballot-row-text">
-                  <span className="ballot-row-title">U.S. House</span>
-                  <span className="ballot-row-sub">No House race found for this district in our data.</span>
-                </span>
-              </li>
-            )}
-            {senate.length > 0 ? (
-              senate.map((s) => (
-                <li key={s.id}>
-                  <button type="button" className="ballot-row" onClick={() => onSelectRace(s.id)}>
-                    <span className="ballot-row-badge" aria-hidden="true">Senate</span>
-                    <span className="ballot-row-text">
-                      <span className="ballot-row-title">
-                        U.S. Senate · {stateName(loc.state)}
-                        {s.race.special && <span className="ballot-special">Special election</span>}
-                      </span>
-                      <span className="ballot-row-sub">{s.race.candidates.length} filed</span>
-                    </span>
-                    <ChevronIcon />
-                  </button>
-                </li>
-              ))
-            ) : (
-              <li className="ballot-row ballot-row--empty">
-                <span className="ballot-row-text">
-                  <span className="ballot-row-title">U.S. Senate</span>
-                  <span className="ballot-row-sub">No U.S. Senate race in {stateName(loc.state)} this cycle.</span>
-                </span>
-              </li>
-            )}
-          </ul>
-
-          <p className="ballot-note">
-            ZIP codes can cross district lines; we use the ZIP&apos;s center. Check your exact address with your state&apos;s elections office.
-          </p>
-
-          {(houseRep || senators.length > 0) && (
-            <section className="ballot-members" aria-labelledby={`${titleId}-members`}>
-              <h3 id={`${titleId}-members`} className="ballot-subhead">Current members of Congress for this ZIP</h3>
-              <div className="ballot-member-list">
-                {[...(houseRep ? [houseRep] : []), ...senators].map((r) => (
-                  <button key={r.id} type="button" className="ballot-member" onClick={() => onOpenRep(r)}>
-                    {r.name}
-                    <span className="ballot-member-role">{r.level === 'us_senate' ? 'Senator' : 'Representative'}</span>
-                  </button>
-                ))}
-              </div>
-            </section>
+            ))
+          ) : (
+            <li className="ballot-row ballot-row--empty">
+              <span className="ballot-row-text">
+                <span className="ballot-row-title">U.S. Senate</span>
+                <span className="ballot-row-sub">No U.S. Senate race in {stateName(loc.state)} this cycle.</span>
+              </span>
+            </li>
           )}
+        </ul>
 
-          <ExternalLinks cycle={summary.cycle} state={loc.state} />
-          <p className="ballot-zip-change">
-            <button type="button" className="ballot-text-btn" onClick={() => onSubmitZip('')}>Change ZIP code</button>
-          </p>
-        </>
-      )
-    }
+        <p className="ballot-note">
+          ZIP codes can cross district lines; we use the ZIP&apos;s center. Check your exact address with your state&apos;s elections office.
+        </p>
+
+        {(houseRep || senators.length > 0) && (
+          <section className="ballot-members" aria-labelledby={`${titleId}-members`}>
+            <h3 id={`${titleId}-members`} className="ballot-subhead">Current members of Congress for this ZIP</h3>
+            <div className="ballot-member-list">
+              {[...(houseRep ? [houseRep] : []), ...senators].map((r) => (
+                <button key={r.id} type="button" className="ballot-member" onClick={() => onOpenRep(r)}>
+                  {r.name}
+                  <span className="ballot-member-role">{r.level === 'us_senate' ? 'Senator' : 'Representative'}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <ExternalLinks cycle={summary.cycle} state={loc.state} />
+        <p className="ballot-zip-change">
+          <button type="button" className="ballot-text-btn" onClick={() => onSubmitZip('')}>Change ZIP code</button>
+        </p>
+      </>
+    )
   }
 
   return (

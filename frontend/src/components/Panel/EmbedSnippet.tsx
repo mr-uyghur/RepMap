@@ -1,12 +1,14 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useId, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import type { Representative } from '../../types'
 import { copyToClipboard } from '../../utils/clipboard'
+import { chamberLabel, partyKey, partyLabel, seatLabel } from '../Compare/compareFormat'
 import './EmbedSnippet.css'
 
 const SIZE_PRESETS = [
-  { label: 'Small',  width: '400',  height: '300' },
-  { label: 'Medium', width: '600',  height: '400' },
-  { label: 'Large',  width: '100%', height: '500' },
+  { label: 'Compact', width: '400', height: '320' },
+  { label: 'Standard', width: '600', height: '420' },
+  { label: 'Responsive', width: '100%', height: '500' },
 ] as const
 
 type SizePreset = typeof SIZE_PRESETS[number]
@@ -22,8 +24,14 @@ function buildEmbedUrl(rep: Representative): string {
   return `${window.location.origin}/embed`
 }
 
-function buildSnippet(embedUrl: string, width: string, height: string): string {
-  return `<iframe\n  src="${embedUrl}"\n  width="${width}"\n  height="${height}"\n  frameborder="0"\n  style="border:0"\n  loading="lazy"\n  allowfullscreen\n></iframe>`
+function buildSnippet(embedUrl: string, width: string, height: string, title: string): string {
+  return `<iframe\n  src="${embedUrl}"\n  title="${title} — RepMap Civic Card"\n  width="${width}"\n  height="${height}"\n  style="border:0;border-radius:12px"\n  loading="lazy"\n  allowfullscreen\n></iframe>`
+}
+
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return `${parts[0][0] ?? ''}${parts[parts.length - 1][0] ?? ''}`.toUpperCase()
 }
 
 interface Props {
@@ -34,11 +42,15 @@ interface Props {
 export default function EmbedSnippet({ rep, onClose }: Props) {
   const [selected, setSelected] = useState<SizePreset>(SIZE_PRESETS[1])
   const [copied, setCopied] = useState(false)
+  const [photoFailed, setPhotoFailed] = useState(false)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const modalRef = useRef<HTMLDivElement>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
+  const titleId = useId()
 
   const embedUrl = buildEmbedUrl(rep)
-  const snippet = buildSnippet(embedUrl, selected.width, selected.height)
+  const snippet = buildSnippet(embedUrl, selected.width, selected.height, rep.name)
+  const pKey = partyKey(rep.party)
 
   useEffect(() => {
     closeButtonRef.current?.focus()
@@ -47,8 +59,28 @@ export default function EmbedSnippet({ rep, onClose }: Props) {
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
+        e.preventDefault()
         e.stopPropagation()
         onClose()
+        return
+      }
+      if (e.key !== 'Tab') return
+      const modal = modalRef.current
+      if (!modal) return
+      const focusable = Array.from(
+        modal.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      )
+      if (!focusable.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
       }
     }
     window.addEventListener('keydown', handleKey, true)
@@ -59,7 +91,7 @@ export default function EmbedSnippet({ rep, onClose }: Props) {
     const ok = await copyToClipboard(snippet)
     if (ok) {
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      window.setTimeout(() => setCopied(false), 2200)
     }
   }
 
@@ -67,7 +99,7 @@ export default function EmbedSnippet({ rep, onClose }: Props) {
     if (e.target === overlayRef.current) onClose()
   }
 
-  return (
+  return createPortal(
     <div
       className="embed-snippet-overlay"
       ref={overlayRef}
@@ -76,15 +108,19 @@ export default function EmbedSnippet({ rep, onClose }: Props) {
     >
       <div
         className="embed-snippet-modal"
+        ref={modalRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Get embed code"
+        aria-labelledby={titleId}
       >
         <div className="embed-snippet-header">
-          <h3 className="embed-snippet-title">
-            <span className="embed-snippet-icon" aria-hidden="true">{'</>'}</span>
-            Embed this representative
-          </h3>
+          <div className="embed-snippet-header-copy">
+            <p className="embed-snippet-kicker">Civic Embed Card</p>
+            <h3 id={titleId} className="embed-snippet-title">
+              <span className="embed-snippet-icon" aria-hidden="true">{'</>'}</span>
+              Embed this representative
+            </h3>
+          </div>
           <button
             type="button"
             ref={closeButtonRef}
@@ -92,48 +128,93 @@ export default function EmbedSnippet({ rep, onClose }: Props) {
             aria-label="Close embed code dialog"
             className="embed-snippet-close"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>
 
-        <p className="embed-snippet-rep-name">{rep.name}</p>
+        <div className={`embed-snippet-preview embed-snippet-preview--${pKey}`}>
+          {rep.photo_url && !photoFailed ? (
+            <img
+              src={rep.photo_url}
+              alt=""
+              className="embed-snippet-avatar"
+              loading="lazy"
+              onError={() => setPhotoFailed(true)}
+            />
+          ) : (
+            <span className="embed-snippet-avatar embed-snippet-avatar--fallback" aria-hidden="true">
+              {initialsOf(rep.name)}
+            </span>
+          )}
+          <div className="embed-snippet-preview-body">
+            <p className="embed-snippet-rep-name">{rep.name}</p>
+            <p className="embed-snippet-rep-meta">
+              {chamberLabel(rep)} · {seatLabel(rep)}
+            </p>
+          </div>
+          <span className={`embed-snippet-party embed-snippet-party--${pKey}`}>
+            <span className="embed-snippet-party-dot" aria-hidden="true" />
+            {partyLabel(rep.party)}
+          </span>
+        </div>
 
-        <div className="embed-snippet-sizes">
-          {SIZE_PRESETS.map((preset) => (
-            <button
-              key={preset.label}
-              type="button"
-              className={`embed-snippet-size-btn${selected === preset ? ' embed-snippet-size-btn--active' : ''}`}
-              onClick={() => setSelected(preset)}
-            >
-              {preset.label}
-              <span className="embed-snippet-size-dims">
-                {preset.width} × {preset.height}
-              </span>
-            </button>
-          ))}
+        <div className="embed-snippet-section">
+          <span className="embed-snippet-label">Frame dimensions</span>
+          <div className="embed-snippet-sizes" role="group" aria-label="Embed frame dimensions">
+            {SIZE_PRESETS.map((preset) => {
+              const active = selected === preset
+              return (
+                <button
+                  key={preset.label}
+                  type="button"
+                  aria-pressed={active}
+                  className={`embed-snippet-size-btn${active ? ' embed-snippet-size-btn--active' : ''}`}
+                  onClick={() => setSelected(preset)}
+                >
+                  <span>{preset.label}</span>
+                  <span className="embed-snippet-size-dims">
+                    {preset.width} × {preset.height}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         <div className="embed-snippet-code-wrap">
-          <pre className="embed-snippet-code">{snippet}</pre>
+          <pre
+            className="embed-snippet-code"
+            tabIndex={0}
+            role="region"
+            aria-label="HTML embed code"
+          >
+            {snippet}
+          </pre>
         </div>
 
         <div className="embed-snippet-footer">
-          <span className="embed-snippet-url" title={embedUrl}>
-            {embedUrl}
-          </span>
+          <a
+            href={embedUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="embed-snippet-preview-link"
+          >
+            Preview card <span aria-hidden="true">↗</span>
+            <span className="sr-only"> (opens in a new tab)</span>
+          </a>
           <button
             type="button"
             onClick={handleCopy}
             className={`embed-snippet-copy-btn${copied ? ' embed-snippet-copy-btn--copied' : ''}`}
           >
-            {copied ? '✓ Copied!' : 'Copy snippet'}
+            {copied ? '✓ Snippet copied' : 'Copy snippet'}
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

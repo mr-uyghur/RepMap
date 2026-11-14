@@ -1,5 +1,22 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { test, expect, type Page } from '@playwright/test'
 import { applyAppTheme, finish, record, smallTargets } from './helpers/checks'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const REPS_DATA: Array<{ id: number; bioguide_id?: string }> = (() => {
+  const raw = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'public', 'data', 'representatives.json'), 'utf8'))
+  return Array.isArray(raw) ? raw : raw.representatives
+})()
+const numericIdFor = (bioguide: string) => {
+  const id = REPS_DATA.find((r) => r.bioguide_id === bioguide)?.id
+  if (id == null) throw new Error(`Missing bioguide_id ${bioguide} in representatives.json`)
+  return id
+}
+const LOFGREN_ID = numericIdFor('L000397')
+const BACON_ID = numericIdFor('B001298')
+const FISCHER_ID = numericIdFor('F000463')
 
 // Scenes assert on the navigation shell (URL, breadcrumb, search, NavBar, panel
 // landmark). Level content (UsOverview, StateOverview, RaceView, BallotCard) is
@@ -251,8 +268,8 @@ test.describe('RepMap navigation shell', () => {
 
   test('S11 compare and redistricting deep links still work', async ({ page }) => {
     // Legacy numeric IDs still resolve; these are Lofgren and Bacon.
-    await page.goto('/?mode=map&compare=145,268')
-    await expect(page).toHaveURL(/\/\?compare=145,268$/)
+    await page.goto(`/?mode=map&compare=${LOFGREN_ID},${BACON_ID}`)
+    await expect(page).toHaveURL(new RegExp(`\\/\\?compare=${LOFGREN_ID},${BACON_ID}$`))
     const compare = page.locator('.compare-panel')
     await expect(compare).toBeVisible({ timeout: 20_000 })
     await page.keyboard.press('Escape')
@@ -457,10 +474,10 @@ test.describe('Compare view', () => {
     // then enter compare client-side (the theme is not persisted across loads).
     await page.goto('/')
     await applyAppTheme(page, scheme(info))
-    await page.evaluate(() => {
-      history.pushState({}, '', '/?compare=145,268')
+    await page.evaluate(([a, b]) => {
+      history.pushState({}, '', `/?compare=${a},${b}`)
       dispatchEvent(new PopStateEvent('popstate'))
-    })
+    }, [LOFGREN_ID, BACON_ID] as const)
     const dialog = page.getByRole('dialog', { name: 'Zoe Lofgren and Don Bacon' })
     await expect(dialog).toBeVisible({ timeout: 20_000 })
     const heads = dialog.locator('.cmp-member')
@@ -485,7 +502,7 @@ test.describe('Compare view', () => {
 
     // Swap sides rewrites the URL and keeps the view open.
     await dialog.getByRole('button', { name: 'Swap sides' }).click()
-    await expect(page).toHaveURL(/\?compare=268,145$/)
+    await expect(page).toHaveURL(new RegExp(`\\?compare=${BACON_ID},${LOFGREN_ID}$`))
     await expect(page.getByRole('dialog', { name: 'Don Bacon and Zoe Lofgren' })).toBeVisible()
 
     // Change the second member through the inline picker.
@@ -494,7 +511,7 @@ test.describe('Compare view', () => {
     await expect(input).toBeFocused()
     await input.fill('Fischer')
     await page.getByRole('button', { name: /Deb Fischer/ }).click()
-    await expect(page).toHaveURL(/\?compare=268,57$/)
+    await expect(page).toHaveURL(new RegExp(`\\?compare=${BACON_ID},${FISCHER_ID}$`))
     const mixed = page.getByRole('dialog', { name: 'Don Bacon and Deb Fischer' })
     await expect(mixed).toContainText('U.S. Senator')
     await expect(mixed.getByRole('row', { name: /^Party/ })).toContainText('Same')
@@ -853,5 +870,53 @@ test.describe('Members first: navigation', () => {
     const menu = await openMenu(page, scheme(info))
     await page.waitForTimeout(500) // the election index has loaded by now
     await expect(menu.getByRole('link', { name: /elections/ })).toHaveCount(0)
+  })
+})
+
+test.describe('Dossier modals & Embed surfaces', () => {
+  test('D1 Committee Network modal: keyboard, >=44px targets, axe & Escape', async ({ page }, info) => {
+    test.slow() // axe-core scans 500+ SVG legislator nodes & co-membership edges
+    const rec = record(page)
+    await page.goto('/')
+    await expect(page.getByRole('main', { name: 'United States' })).toBeVisible()
+    await applyAppTheme(page, scheme(info))
+    await page.locator('.navbar-menu-btn').click()
+    await page.locator('.navbar-menu').getByRole('button', { name: 'Committees' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Committee Network' })
+    await expect(dialog).toBeVisible({ timeout: 20_000 })
+    await dialog.evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)))
+    expect.soft(await smallTargets(page, '.committee-modal'), 'targets < 44px').toEqual([])
+    await page.waitForTimeout(400)
+    await finish(page, info, 'committee', rec)
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+  })
+
+  test('D2 Embed snippet modal from member Share menu: >=44px targets, axe & Escape', async ({ page }, info) => {
+    const rec = record(page)
+    await page.goto('/?rep=L000397')
+    await applyAppTheme(page, scheme(info))
+    const panel = page.getByRole('region', { name: 'Representative details' })
+    await expect(panel.getByRole('heading', { level: 2, name: 'Zoe Lofgren' })).toBeVisible({ timeout: 20_000 })
+    await panel.getByRole('button', { name: 'Share' }).click()
+    await panel.getByRole('button', { name: /Embed on a website/ }).click()
+    const dialog = page.getByRole('dialog', { name: /Embed this representative/ })
+    await expect(dialog).toBeVisible()
+    await dialog.evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)))
+    expect.soft(await smallTargets(page, '.embed-snippet-modal'), 'targets < 44px').toEqual([])
+    await finish(page, info, 'embed-snippet', rec)
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+  })
+
+  test('D3 Standalone /embed card: >=44px targets, axe & CSP', async ({ page }, info) => {
+    const rec = record(page)
+    await page.goto(`/embed?rep=L000397&theme=${scheme(info)}`)
+    const card = page.getByRole('complementary', { name: 'Zoe Lofgren civic card' })
+    await expect(card).toBeVisible({ timeout: 20_000 })
+    await expect(card).toContainText('Democrat')
+    expect.soft(await smallTargets(page, '.embed-panel, .embed-watermark'), 'targets < 44px').toEqual([])
+    await page.waitForTimeout(600)
+    await finish(page, info, 'embed-card', rec)
   })
 })

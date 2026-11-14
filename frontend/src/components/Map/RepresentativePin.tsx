@@ -1,18 +1,30 @@
-import { useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react'
 import { Marker } from 'react-map-gl'
 import type { Representative } from '../../types'
 import { PARTY_COLORS } from '../../constants'
-
-const SENATOR_RING = '#ec4899' // pink-500
-const SPRING = 'all 0.28s cubic-bezier(0.16, 1, 0.3, 1)'
+import './RepresentativePin.css'
 
 /** Tier-based sizing configuration. */
 const TIER_CONFIG = {
-  1: { size: 14, borderWidth: 0, fontSize: 0 },
-  2: { size: 30, borderWidth: 2, fontSize: 0 },
+  1: { size: 14, borderWidth: 2, fontSize: 10 },
+  2: { size: 32, borderWidth: 2.5, fontSize: 10 },
   3: { size: 40, borderWidth: 2.5, fontSize: 10 },
   4: { size: 48, borderWidth: 3, fontSize: 11 },
 } as const
+
+function partyWord(party: Representative['party']): string {
+  if (party === 'democrat') return 'Democrat'
+  if (party === 'republican') return 'Republican'
+  if (party === 'independent') return 'Independent'
+  return 'Other'
+}
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
+}
 
 interface Props {
   rep: Representative
@@ -39,21 +51,52 @@ export default function RepresentativePin({
   isSelected = false,
 }: Props) {
   const [hovered, setHovered] = useState(false)
+  const [imgFailed, setImgFailed] = useState(false)
+  const pinRef = useRef<HTMLDivElement>(null)
+
+  // Mapbox GL v3's <Marker> wrapper adds aria-label="Map marker" / role / tabindex
+  // on `.mapboxgl-marker`, which causes axe `nested-interactive` around `.rm-pin[role="button"]`.
+  useLayoutEffect(() => {
+    const el = pinRef.current?.closest('.mapboxgl-marker')
+    if (!el) return
+    const stripInteractiveWrapperAttrs = () => {
+      if (el.hasAttribute('role')) el.removeAttribute('role')
+      if (el.hasAttribute('aria-label')) el.removeAttribute('aria-label')
+      if (el.hasAttribute('tabindex')) el.removeAttribute('tabindex')
+    }
+    stripInteractiveWrapperAttrs()
+    const observer = new MutationObserver(stripInteractiveWrapperAttrs)
+    observer.observe(el, { attributes: true, attributeFilter: ['role', 'aria-label', 'tabindex'] })
+    return () => observer.disconnect()
+  }, [zoomTier])
+
   const color = PARTY_COLORS[rep.party] || '#6b7280'
+  const partyLabel = partyWord(rep.party)
   const isSenator = rep.level === 'us_senate' || rep.level === 'state_senate'
   const config = TIER_CONFIG[zoomTier]
 
-  const levelPrefix = rep.level === 'state_senate' ? 'State Sen.'
-    : rep.level === 'state_house' ? 'State Rep.'
-    : rep.level === 'us_senate' ? 'Sen.'
-    : 'Rep.'
+  const levelPrefix =
+    rep.level === 'state_senate'
+      ? 'State Sen.'
+      : rep.level === 'state_house'
+        ? 'State Rep.'
+        : rep.level === 'us_senate'
+          ? 'Sen.'
+          : 'Rep.'
 
-  const districtLabel = (rep.level === 'us_senate' || rep.level === 'state_senate')
+  const seatShort = isSenator
+    ? `${rep.state} · ${levelPrefix.replace('.', '')}`
+    : rep.district_number != null && rep.district_number > 0
+      ? `${rep.state}-${rep.district_number}`
+      : `${rep.state}-AL`
+
+  const districtSpoken = isSenator
     ? `${rep.state} senator`
-    : rep.district_number != null
+    : rep.district_number != null && rep.district_number > 0
       ? `${rep.state} district ${rep.district_number}`
       : `${rep.state} at-large`
-  const accessibleLabel = `Select ${levelPrefix} ${rep.name}, ${districtLabel}`
+
+  const accessibleLabel = `Select ${levelPrefix} ${rep.name}, ${partyLabel}, ${districtSpoken}`
 
   const handlePinClick = (e: MouseEvent<HTMLDivElement>) => {
     e.stopPropagation()
@@ -68,9 +111,17 @@ export default function RepresentativePin({
   }
 
   // Z-index hierarchy: selected > hovered > senator > house/state
-  const zIndex = isSelected ? 20 : hovered ? 15 : isSenator ? 3 : 1
+  const zIndex = isSelected ? 25 : hovered ? 18 : isSenator ? 4 : 1
 
-  // ─── Tier 1: Party-colored dot ───────────────────────────────────────
+  const pinVars = {
+    '--pin-color': color,
+    '--pin-size': `${config.size}px`,
+    '--pin-border': `${config.borderWidth}px`,
+    '--pin-label-size': `${config.fontSize}px`,
+    '--pin-initials-size': `${Math.max(11, Math.round(config.size * 0.34))}px`,
+  } as CSSProperties
+
+  // ─── Tier 1: Party-colored dot with active halo ──────────────────────
   if (zoomTier === 1) {
     return (
       <Marker
@@ -81,81 +132,30 @@ export default function RepresentativePin({
         style={{ zIndex, cursor: 'pointer' }}
       >
         <div
+          ref={pinRef}
           role="button"
           tabIndex={tabIndex}
           aria-label={accessibleLabel}
           aria-pressed={isSelected}
+          className={`rm-pin${isSelected ? ' rm-pin--selected' : ''}`}
+          style={pinVars}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
+          onFocus={() => setHovered(true)}
+          onBlur={() => setHovered(false)}
           onClick={handlePinClick}
           onKeyDown={handlePinKeyDown}
-          style={{
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            pointerEvents: 'auto',
-            padding: '8px',
-            margin: '-8px',
-          }}
         >
-          <div
-            style={{
-              width: hovered ? 20 : 14,
-              height: hovered ? 20 : 14,
-              borderRadius: '50%',
-              background: `radial-gradient(circle at 35% 35%, ${color}dd, ${color})`,
-              boxShadow: hovered
-                ? `0 0 0 3px ${color}44, 0 0 12px ${color}66`
-                : `0 0 6px ${color}55`,
-              border: isSenator
-                ? `2px solid ${SENATOR_RING}`
-                : `1.5px solid ${color}88`,
-              transition: SPRING,
-            }}
-            title={`${rep.name} (${rep.party.charAt(0).toUpperCase()}) — ${rep.state}`}
-          />
-          {/* Hover tooltip for dots */}
+          <div className="rm-pin-dot-wrap">
+            {isSelected && <span className="rm-pin-pulse" aria-hidden="true" />}
+            <div className={`rm-pin-dot${isSenator ? ' rm-pin-dot--senator' : ''}`} />
+          </div>
           {hovered && (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '100%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                marginBottom: '8px',
-                background: 'var(--color-bg-glass)',
-                backdropFilter: 'blur(16px) saturate(1.8)',
-                WebkitBackdropFilter: 'blur(16px) saturate(1.8)',
-                padding: '5px 10px',
-                borderRadius: '6px',
-                fontSize: '11px',
-                fontWeight: '600',
-                color: 'var(--color-text-primary)',
-                border: '1px solid var(--color-border-subtle)',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
-                whiteSpace: 'nowrap',
-                pointerEvents: 'none',
-                zIndex: 30,
-                lineHeight: '1.3',
-              }}
-            >
-              <div>{rep.name}</div>
-              <div
-                style={{
-                  fontSize: '9px',
-                  color: 'var(--color-text-muted)',
-                  fontWeight: '500',
-                  marginTop: '1px',
-                }}
-              >
-                {rep.party.charAt(0).toUpperCase()} · {rep.state}
-                {isSenator
-                  ? ` · ${levelPrefix.replace('.', '')}`
-                  : rep.district_number != null
-                    ? ` · District ${rep.district_number}`
-                    : ' · At-Large'}
+            <div className="rm-pin-tooltip" aria-hidden="true">
+              <div className="rm-pin-tooltip-name">{rep.name}</div>
+              <div className="rm-pin-tooltip-meta">
+                <span className="rm-pin-tooltip-swatch" />
+                <span>{partyLabel} · {seatShort}</span>
               </div>
             </div>
           )}
@@ -164,18 +164,9 @@ export default function RepresentativePin({
     )
   }
 
-  // ─── Tiers 2, 3, 4: Avatar-based ────────────────────────────────────
-
-  const baseShadow = isSenator
-    ? `0 0 0 ${config.borderWidth}px ${SENATOR_RING}, 0 2px 8px rgba(0,0,0,0.30)`
-    : '0 2px 8px rgba(0,0,0,0.30)'
-
-  const hoverShadow = isSenator
-    ? `0 0 0 ${config.borderWidth}px ${SENATOR_RING}, 0 0 0 ${config.borderWidth + 3}px ${color}55, 0 8px 24px rgba(0,0,0,0.60), 0 0 18px ${color}55`
-    : `0 0 0 3px ${color}, 0 8px 24px rgba(0,0,0,0.58), 0 0 18px ${color}55`
-
-  // Persistent labels show only in tiers 3–4, and only when not decluttered.
-  const shouldShowLabel = showLabel && zoomTier >= 3
+  // ─── Tiers 2, 3, 4: Avatar marker with selection halo & label ────────
+  const shouldShowLabel = isSelected || (showLabel && zoomTier >= 3)
+  const lastName = rep.name.trim().split(/\s+/).slice(-1)[0]
 
   return (
     <Marker
@@ -186,136 +177,56 @@ export default function RepresentativePin({
       style={{ zIndex, cursor: 'pointer' }}
     >
       <div
+        ref={pinRef}
         role="button"
         tabIndex={tabIndex}
         aria-label={accessibleLabel}
         aria-pressed={isSelected}
-        style={{
-          position: 'relative',
-          cursor: 'pointer',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: zoomTier === 2 ? '2px' : '4px',
-          pointerEvents: 'auto',
-          padding: '8px',
-          margin: '-8px',
-        }}
+        className={`rm-pin${isSelected ? ' rm-pin--selected' : ''}`}
+        style={pinVars}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
+        onFocus={() => setHovered(true)}
+        onBlur={() => setHovered(false)}
         onClick={handlePinClick}
         onKeyDown={handlePinKeyDown}
       >
-        {/* Avatar circle */}
-        <div
-          style={{
-            width: `${config.size}px`,
-            height: `${config.size}px`,
-            borderRadius: '50%',
-            border: `${config.borderWidth}px solid ${color}`,
-            overflow: 'hidden',
-            backgroundColor: '#f3f4f6',
-            boxShadow: hovered ? hoverShadow : baseShadow,
-            transform: hovered ? 'scale(1.18)' : 'scale(1)',
-            transition: SPRING,
-            willChange: 'transform',
-          }}
-        >
-          {rep.photo_url ? (
-            <img
-              src={rep.photo_url}
-              alt={rep.name}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              onError={(e) => {
-                const target = e.target as HTMLImageElement
-                target.style.display = 'none'
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: `${Math.round(config.size * 0.38)}px`,
-                fontWeight: 'bold',
-                color,
-                backgroundColor: `${color}20`,
-              }}
-            >
-              {rep.name.charAt(0)}
-            </div>
+        <div className="rm-pin-avatar-stage">
+          {isSelected && (
+            <>
+              <span className="rm-pin-halo" aria-hidden="true" />
+              <span className="rm-pin-pulse" aria-hidden="true" />
+            </>
           )}
+          <div className={`rm-pin-avatar${isSenator ? ' rm-pin-avatar--senator' : ''}`}>
+            {rep.photo_url && !imgFailed ? (
+              <img
+                src={rep.photo_url}
+                alt=""
+                className="rm-pin-img"
+                onError={() => setImgFailed(true)}
+              />
+            ) : (
+              <div className="rm-pin-initials" aria-hidden="true">
+                {getInitials(rep.name)}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Persistent name label — tiers 3–4 only, hidden when decluttered */}
         {shouldShowLabel && (
-          <div
-            style={{
-              background: 'var(--color-bg-glass)',
-              padding: '2px 7px',
-              borderRadius: '5px',
-              fontSize: `${config.fontSize}px`,
-              fontWeight: '600',
-              color: 'var(--color-text-primary)',
-              border: '1px solid var(--color-border-subtle)',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
-              maxWidth: '100px',
-              textAlign: 'center' as const,
-              lineHeight: '1.2',
-              whiteSpace: 'nowrap' as const,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              transform: hovered ? 'scale(1.08)' : 'scale(1)',
-              transition: SPRING,
-            }}
-          >
-            {rep.name.split(' ').slice(-1)[0]}
+          <div className="rm-pin-label" aria-hidden="true">
+            <span className="rm-pin-label-dot" />
+            <span>{lastName}</span>
           </div>
         )}
 
-        {/* Hover tooltip — shown when no persistent label (tiers 1–2, or decluttered tier 3) */}
-        {hovered && !shouldShowLabel && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '100%',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              marginBottom: '6px',
-              background: 'var(--color-bg-glass)',
-              backdropFilter: 'blur(16px) saturate(1.8)',
-              WebkitBackdropFilter: 'blur(16px) saturate(1.8)',
-              padding: '5px 10px',
-              borderRadius: '6px',
-              fontSize: '11px',
-              fontWeight: '600',
-              color: 'var(--color-text-primary)',
-              border: '1px solid var(--color-border-subtle)',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
-              whiteSpace: 'nowrap',
-              pointerEvents: 'none',
-              zIndex: 30,
-              lineHeight: '1.3',
-            }}
-          >
-            <div>{rep.name}</div>
-            <div
-              style={{
-                fontSize: '9px',
-                color: 'var(--color-text-muted)',
-                fontWeight: '500',
-                marginTop: '1px',
-              }}
-            >
-              {rep.party.charAt(0).toUpperCase()} · {rep.state}
-              {isSenator
-                ? ` · ${levelPrefix.replace('.', '')}`
-                : rep.district_number != null
-                  ? ` · District ${rep.district_number}`
-                  : ' · At-Large'}
+        {hovered && (
+          <div className="rm-pin-tooltip" aria-hidden="true">
+            <div className="rm-pin-tooltip-name">{levelPrefix} {rep.name}</div>
+            <div className="rm-pin-tooltip-meta">
+              <span className="rm-pin-tooltip-swatch" />
+              <span>{partyLabel} · {seatShort}</span>
             </div>
           </div>
         )}

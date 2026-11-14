@@ -1,13 +1,19 @@
-/* "On the ballot Nov 3" strip on the ZIP / district page. Tokens only. */
+/* ── BallotStrip: Local Election Intelligence Module on DistrictView ────────
+   Pure CSS custom properties from variables.css (WCAG 2.2 AA in light & dark). */
 .bs {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding: var(--space-3);
+  padding: 13px;
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   color: var(--color-text-primary);
+}
+
+.bs :is(button, a):focus-visible {
+  outline: 2px solid var(--color-accent-text);
+  outline-offset: 2px;
 }
 
 .bs-head {
@@ -16,7 +22,7 @@
   justify-content: space-between;
   gap: var(--space-2);
   flex-wrap: wrap;
-  padding: var(--space-1) var(--space-1) 0;
+  padding: 2px 2px 2px;
 }
 
 .bs-title,
@@ -27,20 +33,28 @@
   gap: var(--space-2);
   font-family: var(--font-body);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 750;
   line-height: 1.35;
+  letter-spacing: -0.01em;
   color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
 }
+
 .bs-title svg,
-.bs-quiet-text svg { flex-shrink: 0; color: var(--color-text-muted); }
+.bs-quiet-text svg {
+  flex-shrink: 0;
+  color: var(--color-accent-text);
+}
 
 .bs-badge {
-  padding: 2px var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
   border-radius: var(--radius-full);
   background: var(--color-accent);
   color: var(--color-on-accent);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 750;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -59,8 +73,9 @@
   align-items: center;
   gap: var(--space-3);
   width: 100%;
-  min-height: 44px;
-  padding: var(--space-3);
+  min-height: 56px;
+  min-width: 44px;
+  padding: 11px 12px;
   box-sizing: border-box;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -70,10 +85,34 @@
   text-align: left;
   text-decoration: none;
   cursor: pointer;
-  transition: border-color var(--transition-fast), background var(--transition-fast);
+  transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
 }
-.bs-row:hover { border-color: var(--color-accent); }
-.bs-row:hover .bs-row-title { color: var(--color-link); }
+
+.bs-row:hover {
+  border-color: var(--color-border-control);
+  background: var(--color-bg-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.bs-row:hover .bs-row-title {
+  color: var(--color-link);
+}
+
+.bs-chamber-badge {
+  flex: none;
+  min-width: 50px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
 
 .bs-row-main {
   flex: 1;
@@ -82,79 +121,151 @@
   flex-direction: column;
   gap: 2px;
 }
+
 .bs-row-title {
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.35;
+  font-size: 14.5px;
+  font-weight: 750;
+  line-height: 1.32;
   overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
+
 .bs-row-sub,
 .bs-row-label {
-  font-size: 13px;
+  font-size: 12.5px;
   line-height: 1.45;
   color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
 }
-.bs-row-label { margin-top: 2px; }
+
+.bs-row-label {
+  margin-top: 1px;
+}
 
 .bs-names {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px var(--space-3);
-  font-size: 14px;
-  line-height: 1.45;
+  gap: 3px 12px;
+  margin-top: 2px;
+  font-size: 13.5px;
+  line-height: 1.42;
 }
-.bs-name { font-weight: 600; color: var(--color-text-primary); overflow-wrap: anywhere; }
-.bs-party { font-weight: 400; color: var(--color-text-secondary); }
-.bs-more { color: var(--color-text-muted); }
 
-.bs-chevron { flex-shrink: 0; color: var(--color-text-muted); }
+.bs-name {
+  display: inline-flex;
+  align-items: baseline;
+  font-weight: 650;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.bs-dot {
+  display: inline-block;
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin-right: 5px;
+  vertical-align: 1px;
+  border-radius: var(--radius-full);
+  background: var(--color-independent);
+}
+
+.bs-dot--dem {
+  background: var(--color-democrat);
+}
+
+.bs-dot--rep {
+  background: var(--color-republican);
+}
+
+.bs-party {
+  font-weight: 450;
+  color: var(--color-text-secondary);
+}
+
+.bs-more {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.bs-chevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
 
 .bs-static {
   padding: var(--space-3);
-  border: 1px dashed var(--color-border);
+  border: 1px dashed var(--color-border-control);
   border-radius: var(--radius-md);
-  font-size: 14px;
+  background: var(--color-bg-primary);
+  font-size: 13.5px;
   line-height: 1.45;
   color: var(--color-text-secondary);
 }
 
 .bs-note {
   margin: 0;
-  padding: var(--space-2) var(--space-3);
+  padding: 8px 12px;
   border: 1px solid var(--color-note-border);
+  border-left-width: 3px;
   border-radius: var(--radius-md);
   background: var(--color-note-bg);
   color: var(--color-note-text);
-  font-size: 13px;
+  font-size: 12.5px;
   line-height: 1.45;
+  font-variant-numeric: tabular-nums;
 }
 
 .bs-official {
   align-self: flex-start;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   min-height: 44px;
+  min-width: 44px;
   box-sizing: border-box;
-  padding: var(--space-3) var(--space-1);
-  line-height: 20px;
-  font-size: 14px;
-  font-weight: 600;
+  padding: 0 13px;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  font-size: 13px;
+  font-weight: 700;
   color: var(--color-link);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  text-decoration: none;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.bs-official:hover {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-accent-text);
 }
 
 /* Off season: one quiet line. */
-.bs--quiet { padding: var(--space-3) var(--space-4); }
-.bs-quiet-text { font-weight: 500; color: var(--color-text-secondary); }
-.bs-quiet-text strong { color: var(--color-text-primary); font-weight: 700; }
+.bs--quiet {
+  padding: var(--space-3) var(--space-4);
+}
+
+.bs-quiet-text {
+  font-size: 14px;
+  font-weight: 550;
+  color: var(--color-text-secondary);
+}
+
+.bs-quiet-text strong {
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
 
 /* After the election. */
 .bs-post {
   margin: 0;
-  padding: 0 var(--space-1);
-  font-size: 14px;
+  padding: 0 2px;
+  font-size: 13.5px;
   line-height: 1.5;
   color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 .bs-error {
@@ -162,22 +273,31 @@
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-2);
-  padding: 0 var(--space-1);
+  padding: 0 2px;
   font-size: 14px;
   color: var(--color-text-secondary);
 }
-.bs-error p { margin: 0; }
+
+.bs-error p {
+  margin: 0;
+}
+
 .bs-retry {
   min-height: 44px;
+  min-width: 44px;
   padding: 0 var(--space-4);
   border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   background: var(--color-bg-primary);
   color: var(--color-link);
   font: inherit;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
+}
+
+.bs-retry:hover {
+  background: var(--color-bg-elevated);
 }
 
 .bs-skeleton {

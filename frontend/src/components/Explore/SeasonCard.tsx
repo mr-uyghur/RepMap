@@ -26,7 +26,7 @@ function readHidden(key: string | null): boolean {
 
 function BallotIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
       <rect x="4" y="3" width="16" height="18" rx="2" />
       <line x1="8" y1="8" x2="16" y2="8" />
       <line x1="8" y1="12" x2="16" y2="12" />
@@ -37,18 +37,20 @@ function BallotIcon() {
 
 function CloseIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" aria-hidden="true" focusable="false">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" aria-hidden="true" focusable="false">
       <line x1="6" y1="6" x2="18" y2="18" />
       <line x1="18" y1="6" x2="6" y2="18" />
     </svg>
   )
 }
 
-/** Home's small election card. Its prominence follows the calendar (`electionPhase()`):
- *  - off: not shown
- *  - season: small, can be hidden (saved per cycle)
- *  - final: countdown; on Election Day "Today · Find your polling place" (can't be hidden)
- *  - post: points to official results */
+/**
+ * Home's phase-aware election intelligence module (`electionPhase()`):
+ *  - off: retired automatically
+ *  - season: compact notice + mode link to races, dismissible per cycle
+ *  - final: urgent countdown badge; on Election Day "Today · Find your polling place" (non-dismissible)
+ *  - post: directs visitors to certified state election results
+ */
 export default function SeasonCard({ phase, senateUp = 0 }: Props) {
   const key = phase ? storageKey(phase) : null
   const [hidden, setHidden] = useState(() => readHidden(key))
@@ -64,48 +66,72 @@ export default function SeasonCard({ phase, senateUp = 0 }: Props) {
     try {
       if (key) window.localStorage.setItem(key, '1')
     } catch {
-      // Private mode or blocked storage: it stays hidden for this visit only.
+      // Private mode or blocked storage: stays hidden for this visit.
     }
   }
 
   const date = formatShortDate(cycle.general_date)
   const seats = `Every U.S. House seat and ${senateUp > 0 ? `${senateUp} Senate seats are` : 'about a third of the Senate is'} up.`
 
+  let badgeLabel: string
   let kicker: React.ReactNode
   let body: React.ReactNode
   let action: React.ReactNode
+
   if (phase.phase === 'post') {
-    kicker = <>{cycle.cycle} election · {date}</>
-    body = <>Results: check your state&apos;s official results. The new Congress is sworn in Jan 3.</>
+    badgeLabel = 'Post-Election'
+    kicker = <>{cycle.cycle} General · {date}</>
+    body = <>Check certified vote totals from state election authorities. The new Congress convenes Jan 3.</>
     action = (
       <a className="season-card-link" href="https://www.usa.gov/election-results" target="_blank" rel="noopener noreferrer">
-        Find official results<span className="sr-only"> (opens in a new tab)</span> ↗
+        Find official results<span className="sr-only"> (opens in a new tab)</span>
+        <span aria-hidden="true"> ↗</span>
       </a>
     )
   } else if (today) {
+    badgeLabel = 'Polls Open'
     kicker = <>Today · Election Day</>
-    body = <>Polls are open. Your state sets the hours and polling places.</>
+    body = <>Polls are open nationwide. Hours and polling locations are set by your state.</>
     action = (
       <a className="season-card-link" href="https://www.vote.org/polling-place-locator/" target="_blank" rel="noopener noreferrer">
-        Find your polling place<span className="sr-only"> (vote.org, opens in a new tab)</span> ↗
+        Find your polling place<span className="sr-only"> (vote.org, opens in a new tab)</span>
+        <span aria-hidden="true"> ↗</span>
       </a>
     )
   } else {
     const countdown = days === 1 ? 'tomorrow' : `${days} days`
+    badgeLabel = phase.phase === 'final' ? 'Final Stretch' : 'Election Season'
     kicker = (
       <>
         Election Day · <time dateTime={cycle.general_date}>{date}</time>
-        {phase.phase === 'final' && <> · <strong className="season-card-count">{countdown}</strong></>}
+        {phase.phase === 'final' ? (
+          <> · <strong className="season-card-count">{countdown}</strong></>
+        ) : (
+          days != null && <> · <span className="season-card-days">{countdown} out</span></>
+        )}
       </>
     )
-    body = <>{seats} Your ZIP result shows the races too.</>
-    action = <Link className="season-card-link" to="/?view=races">See {cycle.cycle} races by state ›</Link>
+    body = <>{seats} Enter a ZIP above to see local races alongside current members.</>
+    action = (
+      <div className="season-card-actions">
+        <span className="season-card-mode-active" aria-hidden="true">Members</span>
+        <Link className="season-card-link season-card-link--pill" to="/?view=races">
+          See {cycle.cycle} races by state <span aria-hidden="true">›</span>
+        </Link>
+      </div>
+    )
   }
 
   return (
     <aside className={`season-card season-card--${phase.phase}`} aria-label={`${cycle.cycle} election`}>
       <div className="season-card-text">
-        <p className="season-card-kicker"><BallotIcon /><span>{kicker}</span></p>
+        <div className="season-card-top">
+          <span className={`season-card-phase season-card-phase--${phase.phase}`}>
+            <BallotIcon />
+            <span>{badgeLabel}</span>
+          </span>
+        </div>
+        <p className="season-card-kicker">{kicker}</p>
         <p className="season-card-body">{body}</p>
         {action}
       </div>

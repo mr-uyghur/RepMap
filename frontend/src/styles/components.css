@@ -1,32 +1,80 @@
-/* ── Utilities ──────────────────────────────────────────────────────────── */
+/* ── Global Design System Utilities & Shared Primitives ──────────────────── */
 
 /* Visually hidden but accessible to screen readers */
 .sr-only {
   position: absolute;
-  width: 1px; height: 1px;
-  padding: 0; margin: -1px;
-  overflow: hidden; clip: rect(0,0,0,0);
-  white-space: nowrap; border: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-/* Dark-mode toggle button position transition, disabled for reduced-motion users */
+/* Tabular figures for counts, percentages, dates, and district numbers */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tactile keycap hint badge */
+.kbd-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border: 1px solid var(--color-border);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-xs);
+  background: var(--color-bg-primary);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  box-shadow: var(--shadow-xs);
+}
+
+/* Skeleton loading primitive (motion-safe) */
+.skeleton {
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+}
+
 @media (prefers-reduced-motion: no-preference) {
-  .dark-mode-toggle-transition { transition: right 0.25s ease; }
+  .dark-mode-toggle-transition {
+    transition: right 0.25s ease;
+  }
+
+  @keyframes atlas-shimmer {
+    0%   { opacity: 0.55; }
+    50%  { opacity: 1; }
+    100% { opacity: 0.55; }
+  }
+
+  .skeleton {
+    animation: atlas-shimmer 1.5s ease-in-out infinite;
+  }
 }
 
 /* ── Card Base ────────────────────────────────────────────────────────────── */
 .card {
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
 }
 
-/* ── Search Bar ───────────────────────────────────────────────────────────── */
+/* ── Command-Style Search Bar ─────────────────────────────────────────────── */
 .searchbar {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
+  width: 100%;
 }
 
 .searchbar-container {
@@ -39,18 +87,31 @@
   flex: 1;
   width: 100%;
   min-width: 0;
-  height: 44px;
-  padding: 0 12px;
+  height: 45px;
+  padding: 0 72px 0 16px;
   border: 1px solid var(--color-border-control);
   border-radius: var(--radius-full);
   font-family: var(--font-body);
   font-size: 15px;
-  background: var(--color-bg-primary);
+  font-weight: 450;
+  letter-spacing: -0.005em;
+  background: var(--color-bg-surface);
   color: var(--color-text-primary);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
   outline: none;
   -webkit-appearance: none;
   appearance: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+/* Hide browser-native clear 'x' so it never collides with submit icon or shortcut badge */
+.searchbar-input::-webkit-search-cancel-button,
+.searchbar-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .searchbar-input::placeholder {
@@ -58,24 +119,70 @@
   opacity: 1;
 }
 
+.searchbar-input:hover:not(:focus) {
+  border-color: var(--color-text-muted);
+  background: var(--color-bg-primary);
+}
+
 :root.dark .searchbar-input {
   background: var(--color-bg-surface);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+:root.dark .searchbar-input:hover:not(:focus) {
+  background: var(--color-bg-elevated);
 }
 
 .searchbar-input:focus {
+  background: var(--color-bg-primary);
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px var(--color-accent-glow);
 }
 
-/* The submit button sits inside the pill as a quiet icon (Enter also submits). */
-.searchbar-input { padding: 0 48px 0 16px; }
+:root.dark .searchbar-input:focus {
+  background: var(--color-bg-primary);
+}
+
+/* Visual '/' shortcut badge inside the search pill (non-interactive, desktop only) */
+.searchbar-kbd {
+  position: absolute;
+  right: 44px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--color-border);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-primary);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  transition: opacity var(--transition-fast);
+}
+
+@media (max-width: 680px), (hover: none) {
+  .searchbar-kbd {
+    display: none;
+  }
+  .searchbar-input {
+    padding-right: 46px;
+  }
+}
 
 .searchbar-btn {
   position: absolute;
   top: 0;
   right: 0;
-  height: 44px;
-  width: 44px;
+  height: 45px;
+  width: 45px;
   padding: 0;
   background: transparent;
   color: var(--color-text-secondary);
@@ -86,7 +193,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .searchbar-btn:hover {
@@ -97,7 +206,6 @@
 .searchbar-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -112,82 +220,234 @@
 
 .searchbar-error {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   left: 0;
   right: 0;
-  font-size: 12px;
-  color: var(--color-error);
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  z-index: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  box-shadow: var(--shadow-sm);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--color-error-text);
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  z-index: 55;
+  box-shadow: var(--shadow-md);
 }
 
-/* ── BioTab ─────────────────────────────────────────────────────────────── */
-
-/* Name and state autocomplete results */
-.searchbar-dropdown {
+/* ── Command-Palette Autocomplete Popover ─────────────────────────────────── */
+.searchbar-popover {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   right: 0;
   left: 0;
   z-index: 50;
-  max-height: 356px;
-  margin: 0;
-  padding: 4px;
-  overflow-y: auto;
-  list-style: none;
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes popover-enter {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .searchbar-popover {
+    animation: popover-enter 120ms ease-out;
+  }
+}
+
+.searchbar-dropdown {
+  max-height: 368px;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+}
+
+.searchbar-group + .searchbar-group {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.searchbar-group-label {
+  padding: 4px 10px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  user-select: none;
 }
 
 .searchbar-dropdown-item {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  padding: 8px;
+  gap: 12px;
+  min-height: 52px;
+  padding: 7px 10px;
   color: inherit;
   cursor: pointer;
   border-radius: var(--radius-md);
-  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+  transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.searchbar-dropdown-item--active {
+.searchbar-dropdown-item:hover {
   background: var(--color-bg-surface);
+}
+
+.searchbar-dropdown-item--active,
+.searchbar-dropdown-item--active:hover {
+  background: var(--color-accent-soft);
   box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.searchbar-item-trail {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.searchbar-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.searchbar-badge--code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.searchbar-badge--democrat {
+  border-color: transparent;
+  background: var(--color-democrat-soft);
+  color: var(--color-democrat-text);
+}
+
+.searchbar-badge--republican {
+  border-color: transparent;
+  background: var(--color-republican-soft);
+  color: var(--color-republican-text);
+}
+
+.searchbar-badge--independent {
+  border-color: transparent;
+  background: var(--color-independent-soft);
+  color: var(--color-independent-text);
+}
+
+.searchbar-party-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.searchbar-party-dot--democrat { background: var(--color-democrat); }
+.searchbar-party-dot--republican { background: var(--color-republican); }
+.searchbar-party-dot--independent { background: var(--color-independent); }
+
+.searchbar-enter-cue {
+  opacity: 0;
+  color: var(--color-accent-text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  transition: opacity var(--transition-fast);
+}
+
+.searchbar-dropdown-item--active .searchbar-enter-cue {
+  opacity: 1;
+}
+
+.searchbar-dropdown-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 12px;
+  border-top: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.searchbar-dropdown-footer-keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.searchbar-dropdown-footer-keys span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.searchbar-empty-hint {
+  padding: 14px 16px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.searchbar-empty-hint strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
 }
 
 @media (max-width: 768px) {
   .searchbar-dropdown {
-    max-height: 280px;
+    max-height: 292px;
+  }
+  .searchbar-dropdown-footer {
+    display: none;
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 520px) {
   .searchbar-dropdown-item {
     grid-template-columns: 38px minmax(0, 1fr);
+    gap: 10px;
   }
-
-  .searchbar-dropdown-item .zip-result-party {
+  .searchbar-item-trail {
     grid-column: 2;
     justify-self: start;
+    margin-top: -4px;
+  }
+  .searchbar-enter-cue {
+    display: none;
   }
 }
 
+/* ── Shared Panel Tab Primitives (BioTab / HowToVoteTab / LegislationTab) ── */
 .bio-tab-content { padding: 16px 0; }
 .bio-tab-header  { display: flex; gap: 16px; margin-bottom: 16px; }
 
 .bio-tab-avatar {
-  width: 80px; height: 80px;
-  border-radius: 50%; overflow: hidden; flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
   background-color: var(--color-bg-elevated);
   border: 2px solid var(--color-border);
 }
@@ -195,9 +455,13 @@
 .bio-tab-avatar-img { width: 100%; height: 100%; object-fit: cover; }
 
 .bio-tab-avatar-placeholder {
-  width: 100%; height: 100%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 28px; color: var(--color-text-subtle);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: var(--color-text-subtle);
 }
 
 .bio-tab-meta    { margin: 0 0 4px; font-size: 13px; color: var(--color-text-muted); }
@@ -209,22 +473,24 @@
   padding: 12px;
   background: var(--color-error-bg);
   border-radius: var(--radius-md);
-  color: var(--color-error);
+  color: var(--color-error-text);
+  border: 1px solid var(--color-error);
   font-size: 14px;
 }
 
 .bio-tab-text {
-  font-size: 14px; line-height: 1.6;
+  font-size: 14px;
+  line-height: 1.6;
   color: var(--color-text-secondary);
   white-space: pre-wrap;
 }
 
-/* ── HowToVoteTab ───────────────────────────────────────────────────────── */
-
 .htv-tab-content { padding: 16px 0; }
 
 .htv-tab-title {
-  margin: 0 0 12px; font-size: 15px; font-weight: 600;
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
   color: var(--color-text-primary);
 }
 
@@ -234,30 +500,32 @@
   padding: 12px;
   background: var(--color-error-bg);
   border-radius: var(--radius-md);
-  color: var(--color-error);
+  color: var(--color-error-text);
+  border: 1px solid var(--color-error);
   font-size: 14px;
 }
 
 .htv-tab-text {
-  font-size: 14px; line-height: 1.6;
+  font-size: 14px;
+  line-height: 1.6;
   color: var(--color-text-secondary);
   white-space: pre-wrap;
 }
 
 .htv-tab-info {
-  margin-top: 16px; padding: 12px;
+  margin-top: 16px;
+  padding: 12px;
   background: var(--color-success-bg);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-success-border);
 }
 
 .htv-tab-info-text {
-  margin: 0; font-size: 13px;
+  margin: 0;
+  font-size: 13px;
   color: var(--color-success);
   font-weight: 500;
 }
-
-/* ── Coming-soon placeholder (shared) ───────────────────────────────────── */
 
 .tab-coming-soon {
   padding: 32px 16px;
@@ -267,9 +535,11 @@
   line-height: 1.6;
 }
 
-/* ── LegislationTab ─────────────────────────────────────────────────────── */
-
 .leg-tab-bill-num {
-  margin: 0 0 2px; font-size: 11px; font-weight: 600;
+  margin: 0 0 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   color: var(--color-text-muted);
 }

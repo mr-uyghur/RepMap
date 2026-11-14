@@ -1,230 +1,329 @@
-/* ── Root layout ──────────────────────────────────────────────────────────── */
+/* Shareable Civic Embed Card (/embed).
+   Non-overlapping split flex layout: map stage + docked dossier pane.
+   Editorial Civic Atlas tokens only (variables.css), strict WCAG 2.2 AA in light & dark. */
+
 .embed-root {
-  position: relative;
+  display: flex;
+  flex-direction: row;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: var(--color-bg-base, #f8fafc);
+  background: var(--color-map-bg);
+  font-family: var(--font-body);
+  color: var(--color-text-primary);
 }
 
-/* ── Compact panel ────────────────────────────────────────────────────────── */
+.embed-map-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 180px;
+  isolation: isolate;
+}
+
+/* ── Docked Editorial Civic Card ──────────────────────────────────────────── */
 .embed-panel {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 320px;
-  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+  width: 356px;
+  flex-shrink: 0;
+  height: 100%;
+  max-height: 100%;
   overflow-y: auto;
-  background: var(--color-surface, rgba(255, 255, 255, 0.92));
-  backdrop-filter: blur(16px) saturate(1.6);
-  -webkit-backdrop-filter: blur(16px) saturate(1.6);
-  border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18), 0 1px 4px rgba(0, 0, 0, 0.08);
+  background: var(--color-bg-primary);
+  border-left: 1px solid var(--color-border);
+  border-top: 4px solid var(--color-independent);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text-primary);
   z-index: 10;
-  font-family: Inter, system-ui, sans-serif;
-  color: var(--color-text-primary, #111827);
-  animation: embed-panel-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-@keyframes embed-panel-in {
-  from { transform: translateY(-8px) scale(0.97); opacity: 0; }
-  to   { transform: none; opacity: 1; }
+.embed-panel:focus-visible {
+  outline: 2px solid var(--color-accent-text);
+  outline-offset: -2px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .embed-panel { animation: none; }
+.embed-panel--democrat {
+  border-top-color: var(--color-democrat);
+}
+
+.embed-panel--republican {
+  border-top-color: var(--color-republican);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes embed-panel-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  .embed-panel {
+    animation: embed-panel-in 0.18s ease-out both;
+  }
 }
 
 .embed-panel-header {
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-surface);
+  flex-shrink: 0;
+}
+
+.embed-panel-top {
+  display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
-  padding: 12px 12px 8px;
-  border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+  gap: 10px;
 }
 
 .embed-panel-identity {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 12px;
   min-width: 0;
+  flex: 1;
 }
 
 .embed-panel-photo {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-full);
   object-fit: cover;
-  border: 2px solid transparent;
+  border: 2px solid var(--color-independent);
+  background: var(--color-bg-primary);
   flex-shrink: 0;
 }
 
-.embed-panel-name {
-  font-size: 14px;
+.embed-panel-photo--democrat {
+  border-color: var(--color-democrat);
+}
+
+.embed-panel-photo--republican {
+  border-color: var(--color-republican);
+}
+
+.embed-panel-photo--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 17px;
   font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.embed-panel-titles {
+  min-width: 0;
+  flex: 1;
+}
+
+.embed-panel-kicker {
   margin: 0 0 2px;
-  line-height: 1.2;
-  color: var(--color-text-primary, #111827);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 170px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent-text);
+}
+
+.embed-panel-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.22;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
 }
 
 .embed-panel-chamber {
-  font-size: 11px;
-  color: var(--color-text-subtle, #6b7280);
-  margin: 0 0 4px;
-  font-weight: 500;
+  margin: 3px 0 6px;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--color-text-secondary);
 }
 
 .embed-party-badge {
-  display: inline-block;
-  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: var(--radius-full);
+  font-size: 11.5px;
   font-weight: 700;
-  color: #fff;
-  padding: 1px 6px;
-  border-radius: 20px;
-  letter-spacing: 0.03em;
+  background: var(--color-independent-soft);
+  color: var(--color-independent-text);
+}
+
+.embed-party-badge--democrat {
+  background: var(--color-democrat-soft);
+  color: var(--color-democrat-text);
+}
+
+.embed-party-badge--republican {
+  background: var(--color-republican-soft);
+  color: var(--color-republican-text);
+}
+
+.embed-party-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+}
+
+.embed-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 45px;
+  height: 45px;
+  flex-shrink: 0;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  padding: 0;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.embed-close-btn:hover {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-border-control);
+  color: var(--color-text-primary);
 }
 
 .embed-panel-actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.embed-call-btn {
+  flex: 1 1 132px;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
+  justify-content: center;
+  gap: 6px;
+  min-height: 45px;
+  min-width: 45px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background var(--transition-fast);
+}
+
+.embed-call-btn:hover {
+  background: var(--color-accent-hover);
 }
 
 .embed-view-link {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-link, #2563eb);
+  flex: 1 1 132px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 45px;
+  min-width: 45px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-link);
+  font-size: 13px;
+  font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
-  padding: 3px 6px;
-  border-radius: 6px;
-  transition: background 0.15s;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .embed-view-link:hover {
-  background: var(--color-link-bg, rgba(37, 99, 235, 0.1));
-}
-
-.embed-close-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  cursor: pointer;
-  color: var(--color-text-subtle, #6b7280);
-  padding: 0;
-  transition: background 0.15s, color 0.15s;
-}
-
-.embed-close-btn:hover {
-  background: var(--color-hover, rgba(0, 0, 0, 0.06));
-  color: var(--color-text-primary, #111827);
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
 }
 
 .embed-panel-body {
-  padding: 0 12px 12px;
+  padding: 4px 14px 14px;
   font-size: 13px;
 }
 
 /* ── Skeleton loading ─────────────────────────────────────────────────────── */
 .embed-skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--color-skeleton-from, #e5e7eb) 25%,
-    var(--color-skeleton-to,   #f3f4f6) 50%,
-    var(--color-skeleton-from, #e5e7eb) 75%
-  );
-  background-size: 200% auto;
-  animation: embed-shimmer 1.4s ease-in-out infinite;
-  border-radius: 4px;
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-sm);
   height: 14px;
   margin-bottom: 8px;
 }
 
-.embed-skeleton--name  { height: 18px; width: 140px; }
-.embed-skeleton--line  { height: 12px; width: 100%; }
-.embed-skeleton--short { width: 60%; }
-
-@keyframes embed-shimmer {
-  0%   { background-position: -200% center; }
-  100% { background-position:  200% center; }
+.embed-skeleton--name {
+  height: 20px;
+  width: 160px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .embed-skeleton { animation: none; }
+.embed-skeleton--line {
+  height: 12px;
+  width: 100%;
 }
 
-/* ── Watermark ────────────────────────────────────────────────────────────── */
+.embed-skeleton--short {
+  width: 62%;
+}
+
+/* ── Attribution Pill (top-left of map stage, >=45px target, AA contrast) ── */
 .embed-watermark {
   position: absolute;
-  bottom: 10px;
-  right: 10px;
-  font-size: 10px;
-  font-weight: 600;
-  font-family: Inter, system-ui, sans-serif;
-  color: rgba(255, 255, 255, 0.9);
+  top: 12px;
+  left: 12px;
+  bottom: auto;
+  right: auto;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 45px;
+  min-width: 45px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 700;
   text-decoration: none;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-  z-index: 5;
-  letter-spacing: 0.02em;
-  background: rgba(0, 0, 0, 0.35);
-  padding: 3px 8px;
-  border-radius: 20px;
-  transition: background 0.15s;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
 .embed-watermark:hover {
-  background: rgba(0, 0, 0, 0.55);
+  border-color: var(--color-accent);
+  background: var(--color-bg-surface);
 }
 
-/* ── Scrollbar (thin) ─────────────────────────────────────────────────────── */
-.embed-panel::-webkit-scrollbar {
-  width: 4px;
-}
-.embed-panel::-webkit-scrollbar-track {
-  background: transparent;
-}
-.embed-panel::-webkit-scrollbar-thumb {
-  background: var(--color-border, rgba(0, 0, 0, 0.18));
-  border-radius: 2px;
+.embed-watermark-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
 }
 
-/* ── Dark mode ────────────────────────────────────────────────────────────── */
-:root.dark .embed-panel {
-  background: rgba(20, 24, 36, 0.92);
-  color: #e5e7eb;
-}
+@media (max-width: 640px) {
+  .embed-root {
+    flex-direction: column;
+  }
 
-:root.dark .embed-panel-name {
-  color: #f3f4f6;
-}
-
-:root.dark .embed-close-btn {
-  color: #9ca3af;
-}
-
-:root.dark .embed-close-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #f3f4f6;
-}
-
-:root.dark .embed-skeleton {
-  background: linear-gradient(
-    90deg,
-    rgba(55, 65, 81, 0.8) 25%,
-    rgba(75, 85, 99, 0.8) 50%,
-    rgba(55, 65, 81, 0.8) 75%
-  );
-  background-size: 200% auto;
-  animation: embed-shimmer 1.4s ease-in-out infinite;
+  .embed-panel {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: 62vh;
+    border-left: none;
+  }
 }

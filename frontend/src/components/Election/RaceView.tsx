@@ -4,8 +4,9 @@ import { useRepStore } from '../../store/repStore'
 import type { ElectionCycleData, ElectionCycleSummary, ElectionRace, FecCandidate, Representative } from '../../types'
 import {
   ballotpediaRaceUrl,
-  countdownText,
+  daysUntil,
   formatDate,
+  formatMoney,
   formatShortDate,
   raceTitle,
   senateRaceId,
@@ -53,10 +54,37 @@ function ChevronIcon() {
   )
 }
 
+function CalendarIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  )
+}
+
 /** "Tue, Nov 3", plus the year when it isn't this year (e.g. the next cycle after election day). */
 function electionDayText(iso: string): string {
   const short = formatShortDate(iso)
   return iso.slice(0, 4) === String(new Date().getFullYear()) ? short : `${short}, ${iso.slice(0, 4)}`
+}
+
+/** Positive/today countdown only (never emits "has passed"). */
+function activeCountdown(iso: string): string | null {
+  const days = daysUntil(iso)
+  if (days > 1) return `${days} days away`
+  if (days === 1) return 'Tomorrow'
+  if (days === 0) return 'Today'
+  return null
+}
+
+function raceCodeBadge(race: ElectionRace): string {
+  if (race.office === 'P') return 'US · PRES'
+  if (race.office === 'S') return race.special ? `${race.state} · SEN SP` : `${race.state} · SEN`
+  if (!race.district) return `${race.state}-AL`
+  return `${race.state}-${String(race.district).padStart(2, '0')}`
 }
 
 /** "Pete Ricketts (R) and 4 others filed" */
@@ -114,20 +142,42 @@ export default function RaceView({ raceId, fromZip, onSelectRep, onSelectRace, o
   const holder = useMemo(() => (race ? seatHolder(race, cycle, reps) : null), [race, cycle, reps])
   const members = useMemo(() => membersByFecId(reps), [reps])
 
+  const financeStats = useMemo(() => {
+    if (!race || race.candidates.length === 0) return null
+    let totalRaised = 0
+    let totalCash = 0
+    let demRaised = 0
+    let repRaised = 0
+    let indRaised = 0
+    for (const c of race.candidates) {
+      const r = Math.max(0, c.receipts ?? 0)
+      const cash = Math.max(0, c.cash ?? 0)
+      totalRaised += r
+      totalCash += cash
+      if (c.party === 'democrat') demRaised += r
+      else if (c.party === 'republican') repRaised += r
+      else indRaised += r
+    }
+    return { totalRaised, totalCash, demRaised, repRaised, indRaised }
+  }, [race])
+
   const state = race?.state ?? parsed?.state ?? null
   const office = stateElectionsOffice(state ?? '')
 
   const fromZipNote = fromZip && (
-    <p className="race-from-zip">
-      <strong>From ZIP {fromZip}</strong> · ZIPs can cross district lines.{' '}
-      {office ? (
-        <a href={office.boardUrl} target="_blank" rel="noopener noreferrer" className="race-inline-link">
-          Check your address<span className="sr-only"> with the {office.name} elections office (opens in a new tab)</span>
+    <div className="race-from-zip">
+      <p className="race-from-zip-text">
+        <strong>From ZIP {fromZip}</strong> · ZIPs can cross district lines.
+        {!office && <> Check your address with your state elections office.</>}
+      </p>
+      {office && (
+        <a href={office.boardUrl} target="_blank" rel="noopener noreferrer" className="race-pill-link">
+          Check your address
+          <span className="sr-only"> with the {office.name} elections office (opens in a new tab)</span>
+          <span aria-hidden="true"> ↗</span>
         </a>
-      ) : (
-        <>Check your address with your state elections office.</>
       )}
-    </p>
+    </div>
   )
 
   if (load.status === 'loading') {
@@ -189,14 +239,25 @@ export default function RaceView({ raceId, fromZip, onSelectRep, onSelectRace, o
   const { summary, data } = ready
   const rule = stateRule(race.state)
   const holderFec = new Set(holder?.external_ids?.fec_ids ?? [])
+  const incumbentRunning = groups.reporting.some((c) => holderFec.has(c.fec_id) || c.incumbent)
   const nameFor = (c: FecCandidate) => members.get(c.fec_id)?.name
-  const tagFor = (c: FecCandidate) =>
-    holderFec.has(c.fec_id) ? 'Current member' : members.has(c.fec_id) ? 'Member of Congress' : undefined
+  const baseTagFor = (c: FecCandidate) =>
+    holderFec.has(c.fec_id)
+      ? 'Current member'
+      : members.has(c.fec_id)
+        ? 'Member of Congress'
+        : c.incumbent
+          ? 'Incumbent'
+          : undefined
+  const reportingTagFor = (c: FecCandidate) =>
+    baseTagFor(c) ?? (incumbentRunning ? 'Challenger' : undefined)
+
   const max = Math.max(0, ...race.candidates.map((c) => c.receipts ?? 0))
   const latestReporting = groups.grouped
     ? groups.reporting.reduce((m, c) => (c.reports_through && c.reports_through > m ? c.reports_through : m), '')
     : ''
   const dayShort = formatShortDate(summary.general_date).replace(/^\w+, /, '') // "Nov 3"
+  const countdown = activeCountdown(summary.general_date)
 
   // Other races in the same state on this cycle's ballot.
   const senateIds = [senateRaceId(race.state, false), senateRaceId(race.state, true)].filter(
@@ -213,12 +274,69 @@ export default function RaceView({ raceId, fromZip, onSelectRep, onSelectRace, o
       {fromZipNote}
 
       <header className="race-header">
-        <p className="race-eyebrow">{eyebrow}</p>
+        <div className="race-header-top">
+          <span className="race-code-badge" aria-hidden="true">{raceCodeBadge(race)}</span>
+          <p className="race-eyebrow">{eyebrow}</p>
+        </div>
         <h2 id={titleId} ref={headingRef} tabIndex={-1} className="race-title">{raceTitle(race, summary.cycle)}</h2>
-        <p className="race-date">
-          Election Day {electionDayText(summary.general_date)} · <strong>{countdownText(summary.general_date)}</strong>
-        </p>
+        <div className="race-date-bar">
+          <p className="race-date">
+            <CalendarIcon />
+            <span>Election Day {electionDayText(summary.general_date)}</span>
+          </p>
+          {countdown && <strong className="race-countdown">{countdown}</strong>}
+        </div>
       </header>
+
+      {financeStats && (
+        <div className="race-finance" aria-label="Campaign finance summary">
+          <div className="race-finance-grid">
+            <div className="race-finance-stat">
+              <span className="race-finance-label">Total raised</span>
+              <span className="race-finance-val">
+                {financeStats.totalRaised > 0 ? formatMoney(financeStats.totalRaised) : '—'}
+              </span>
+              <span className="race-finance-sub">across race</span>
+            </div>
+            <div className="race-finance-stat">
+              <span className="race-finance-label">Cash on hand</span>
+              <span className="race-finance-val">
+                {financeStats.totalCash > 0 ? formatMoney(financeStats.totalCash) : '—'}
+              </span>
+              <span className="race-finance-sub">combined</span>
+            </div>
+            <div className="race-finance-stat">
+              <span className="race-finance-label">FEC filers</span>
+              <span className="race-finance-val">{race.candidates.length}</span>
+              <span className="race-finance-sub">
+                {groups.grouped ? `${groups.reporting.length} pre-election` : 'total filed'}
+              </span>
+            </div>
+          </div>
+          {financeStats.totalRaised > 0 && (
+            <div className="race-finance-split" aria-hidden="true">
+              {financeStats.demRaised > 0 && (
+                <span
+                  className="race-finance-seg race-finance-seg--dem"
+                  style={{ flexGrow: financeStats.demRaised }}
+                />
+              )}
+              {financeStats.indRaised > 0 && (
+                <span
+                  className="race-finance-seg race-finance-seg--ind"
+                  style={{ flexGrow: financeStats.indRaised }}
+                />
+              )}
+              {financeStats.repRaised > 0 && (
+                <span
+                  className="race-finance-seg race-finance-seg--rep"
+                  style={{ flexGrow: financeStats.repRaised }}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <p className="race-note" role="note">
         <strong>Who filed with the FEC, not the official ballot.</strong>{' '}
@@ -240,9 +358,11 @@ export default function RaceView({ raceId, fromZip, onSelectRep, onSelectRace, o
         <section className="race-candidates" aria-labelledby={reportingId}>
           {groups.grouped ? (
             <>
-              <h3 id={reportingId} className="race-subhead">
-                Filed a pre-election report <span className="race-count">{groups.reporting.length}</span>
-              </h3>
+              <div className="race-subhead-row">
+                <h3 id={reportingId} className="race-subhead">
+                  Filed a pre-election report <span className="race-count">{groups.reporting.length}</span>
+                </h3>
+              </div>
               <p className="race-explain">
                 These candidates reported to the FEC for the general election
                 {latestReporting && <> (through {formatShortDate(latestReporting).replace(/^\w+, /, '')})</>}.
@@ -251,9 +371,11 @@ export default function RaceView({ raceId, fromZip, onSelectRep, onSelectRace, o
             </>
           ) : (
             <>
-              <h3 id={reportingId} className="race-subhead">
-                Filed with the FEC <span className="race-count">{groups.reporting.length}</span>
-              </h3>
+              <div className="race-subhead-row">
+                <h3 id={reportingId} className="race-subhead">
+                  Filed with the FEC <span className="race-count">{groups.reporting.length}</span>
+                </h3>
+              </div>
               <p className="race-explain">
                 No one in this race has filed a pre-election report yet, so everyone who filed with the FEC is
                 listed. Some may not be on the ballot.
@@ -266,8 +388,9 @@ export default function RaceView({ raceId, fromZip, onSelectRep, onSelectRace, o
             legend={false}
             collapsible={false}
             max={max}
+            raceTotal={financeStats?.totalRaised}
             nameFor={nameFor}
-            tagFor={tagFor}
+            tagFor={reportingTagFor}
             describedBy={legendId}
             label={groups.grouped ? 'Candidates who filed a pre-election report' : 'Candidates who filed with the FEC'}
           />
@@ -291,15 +414,16 @@ export default function RaceView({ raceId, fromZip, onSelectRep, onSelectRace, o
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
               </button>
-              <div id={foldId} hidden={!showOthers}>
+              <div id={foldId} hidden={!showOthers} className="race-fold-panel">
                 {showOthers && (
                   <CandidateFunding
                     candidates={groups.others}
                     legend={false}
                     collapsible={false}
                     max={max}
+                    raceTotal={financeStats?.totalRaised}
                     nameFor={nameFor}
-                    tagFor={tagFor}
+                    tagFor={baseTagFor}
                     describedBy={legendId}
                     label="Other FEC filers"
                   />
@@ -312,10 +436,16 @@ export default function RaceView({ raceId, fromZip, onSelectRep, onSelectRace, o
 
       <nav className="race-related" aria-label="Related">
         {holder && (
-          <button type="button" className="race-row" onClick={() => onSelectRep(holder)}>
+          <button
+            type="button"
+            className={`race-row race-row--holder race-row--${holder.party}`}
+            onClick={() => onSelectRep(holder)}
+          >
             <span className="race-row-text">
               <span className="race-row-title">{holder.name} holds this seat now</span>
-              <span className="race-row-sub">{PARTY_NAMES[holder.party] ?? holder.party} · see votes, bills and committees</span>
+              <span className="race-row-sub">
+                {PARTY_NAMES[holder.party] ?? holder.party} · see votes, bills and committees
+              </span>
             </span>
             <ChevronIcon />
           </button>
@@ -351,8 +481,10 @@ export default function RaceView({ raceId, fromZip, onSelectRep, onSelectRace, o
 
       <HowToVote state={race.state} />
       <p className="race-more">
-        <a href={ballotpediaRaceUrl(race, summary.cycle)} target="_blank" rel="noopener noreferrer" className="race-inline-link">
-          This race on Ballotpedia<span className="sr-only"> (opens in a new tab)</span>
+        <a href={ballotpediaRaceUrl(race, summary.cycle)} target="_blank" rel="noopener noreferrer" className="race-pill-link">
+          This race on Ballotpedia
+          <span className="sr-only"> (opens in a new tab)</span>
+          <span aria-hidden="true"> ↗</span>
         </a>
       </p>
     </article>

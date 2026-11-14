@@ -1,9 +1,9 @@
-import { useEffect, useRef } from 'react'
-import { PARTY_COLORS } from '../../constants'
+import { useEffect, useRef, useState } from 'react'
 import { useRepStore } from '../../store/repStore'
 import { useMapStore } from '../../store/mapStore'
 import type { Representative } from '../../types'
 import StateOverview from '../Explore/StateOverview'
+import { partyKey, partyLabel } from '../Compare/compareFormat'
 import './StateTray.css'
 
 interface Props {
@@ -70,20 +70,13 @@ const STATE_NAMES: Record<string, string> = {
   DC: 'District of Columbia',
 }
 
-const PARTY_LABELS: Record<string, string> = {
-  democrat: 'Democrat',
-  republican: 'Republican',
-  independent: 'Independent',
-  other: 'Other',
-}
-
 function districtLabel(rep: Representative) {
   switch (rep.level) {
-    case 'us_senate':    return 'US Senator'
+    case 'us_senate':    return 'U.S. Senator'
     case 'state_senate': return 'State Senator'
     case 'state_house':
       return rep.district_number != null
-        ? `State House – District ${rep.district_number}`
+        ? `State House · District ${rep.district_number}`
         : 'State House'
     default:
       return rep.district_number != null
@@ -92,25 +85,32 @@ function districtLabel(rep: Representative) {
   }
 }
 
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return `${parts[0][0] ?? ''}${parts[parts.length - 1][0] ?? ''}`.toUpperCase()
+}
+
 function RepCard({ rep, onClick }: { rep: Representative; onClick: () => void }) {
-  const color = PARTY_COLORS[rep.party] ?? '#64748b'
+  const [photoFailed, setPhotoFailed] = useState(false)
+  const pKey = partyKey(rep.party)
 
   return (
-    <button className="state-tray-card" type="button" onClick={onClick}>
-      <span className="state-tray-avatar" style={{ borderColor: color }} aria-hidden="true">
-        {rep.photo_url ? (
-          <img src={rep.photo_url} alt="" />
+    <button className={`state-tray-card state-tray-card--${pKey}`} type="button" onClick={onClick}>
+      <span className={`state-tray-avatar state-tray-avatar--${pKey}`} aria-hidden="true">
+        {rep.photo_url && !photoFailed ? (
+          <img src={rep.photo_url} alt="" loading="lazy" onError={() => setPhotoFailed(true)} />
         ) : (
-          <span style={{ color }}>{rep.name.charAt(0)}</span>
+          <span className="state-tray-initials">{initialsOf(rep.name)}</span>
         )}
-        <span className="state-tray-party-dot" style={{ backgroundColor: color }} />
+        <span className={`state-tray-party-dot state-tray-party-dot--${pKey}`} />
       </span>
       <span className="state-tray-card-copy">
         <span className="state-tray-card-name">{rep.name}</span>
         <span className="state-tray-card-meta">{districtLabel(rep)}</span>
       </span>
-      <span className="state-tray-party-label" style={{ color }}>
-        {PARTY_LABELS[rep.party] ?? rep.party}
+      <span className={`state-tray-party-label state-tray-party-label--${pKey}`}>
+        {partyLabel(rep.party)}
       </span>
     </button>
   )
@@ -169,11 +169,12 @@ export default function StateTray({ stateCode, onClose, onSelectRep, onSelectRac
     <aside className="state-tray" aria-labelledby="state-tray-title">
       <header className="state-tray-header">
         <div>
+          <p className="state-tray-kicker">State Delegation</p>
           <h2 className="state-tray-title" id="state-tray-title">
             {stateName} {isStateView ? 'State' : ''} Representatives
           </h2>
           <p className="state-tray-subtitle">
-            {senators.length} {isStateView ? 'State Senate' : 'Senators'} –{' '}
+            {senators.length} {isStateView ? 'State Senate' : 'Senators'} ·{' '}
             {representatives.length} {isStateView ? 'State House' : 'Representatives'}
           </p>
         </div>
@@ -191,7 +192,7 @@ export default function StateTray({ stateCode, onClose, onSelectRep, onSelectRac
       <div className="state-tray-body">
         <section aria-labelledby="state-tray-senators">
           <h3 className="state-tray-section-title" id="state-tray-senators">
-            {isStateView ? 'State Senate' : 'US Senators'}
+            {isStateView ? 'State Senate' : 'U.S. Senators'}
           </h3>
           <div className="state-tray-senators">
             {senators.map((rep) => (
@@ -202,7 +203,7 @@ export default function StateTray({ stateCode, onClose, onSelectRep, onSelectRac
 
         <section className="state-tray-house" aria-labelledby="state-tray-house">
           <h3 className="state-tray-section-title" id="state-tray-house">
-            {isStateView ? 'State House' : 'US Representatives'}
+            {isStateView ? 'State House' : 'U.S. Representatives'}
           </h3>
           <div className="state-tray-list">
             {representatives.map((rep) => (

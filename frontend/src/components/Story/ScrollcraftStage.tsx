@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import './ScrollcraftStage.css'
 
 interface Props {
   onNavigateToMap: (searchParams: URLSearchParams) => void
@@ -66,17 +67,12 @@ export default function ScrollcraftStage({ onNavigateToMap }: Props) {
 
   return (
     // <main> gives the page its one main landmark; the Story itself lives in the iframe.
-    <main aria-label="Civic Story" style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
+    <main aria-label="Civic Story" className="story-stage">
       <iframe
         ref={iframeRef}
         src="/scrollcraft/index.html"
         title="RepMap Civic Story"
-        style={{
-          width: '100%',
-          height: '100%',
-          border: 'none',
-          display: 'block',
-        }}
+        className="story-stage__frame"
       />
     </main>
   )

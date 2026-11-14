@@ -84,7 +84,16 @@ class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError:
     if (this.state.hasError) {
       return (
         <div className="app-crash" role="alert">
-          Something went wrong. Please refresh the page.
+          <div className="app-crash-card">
+            <p className="app-crash-kicker">Application Error</p>
+            <h1 className="app-crash-title">Something went wrong</h1>
+            <p className="app-crash-body">
+              RepMap encountered an unexpected error while rendering this view. Please refresh the page to continue exploring.
+            </p>
+            <button type="button" className="app-crash-btn" onClick={() => window.location.reload()}>
+              Refresh page
+            </button>
+          </div>
         </div>
       )
     }
@@ -128,9 +137,14 @@ interface ZipState {
 
 function Loading({ what }: { what: string }) {
   return (
-    <p className="explore-status" role="status">
-      Loading {what}…
-    </p>
+    <div className="app-loading" role="status" aria-live="polite">
+      <p className="app-loading-text">Loading {what}…</p>
+      <div className="app-loading-bars" aria-hidden="true">
+        <span className="app-loading-bar app-loading-bar--wide skeleton" />
+        <span className="app-loading-bar app-loading-bar--mid skeleton" />
+        <span className="app-loading-bar app-loading-bar--short skeleton" />
+      </div>
+    </div>
   )
 }
 
@@ -205,6 +219,20 @@ export default function App() {
     return a && b ? ([a, b] as const) : null
   }, [nav.compare, allReps])
   const focusRep = compareReps?.[0] ?? memberRep
+  const shellRef = useRef<HTMLDivElement>(null)
+  const modalOpen = Boolean(compareReps || committeeGraph.open)
+
+  useLayoutEffect(() => {
+    const shell = shellRef.current
+    if (!shell) return
+    for (const sel of ['.navbar', '.explore-panel', '.app-map-area']) {
+      const el = shell.querySelector<HTMLElement>(sel)
+      if (!el) continue
+      el.inert = modalOpen
+      if (modalOpen) el.setAttribute('aria-hidden', 'true')
+      else el.removeAttribute('aria-hidden')
+    }
+  }, [modalOpen, nav.story])
 
   const raceId = level === 'race' ? nav.race : null
   const race = parseRaceId(raceId)
@@ -612,7 +640,7 @@ export default function App() {
           You&apos;re offline. Showing cached data.
         </div>
       )}
-      <div className="app-shell">
+      <div ref={shellRef} className="app-shell">
         <NavBar
           ref={searchRef}
           allRepresentatives={allReps}
@@ -638,7 +666,7 @@ export default function App() {
             <Suspense fallback={<Loading what="this view" />}>{content}</Suspense>
           </ExplorePanel>
           <section className="app-map-area" aria-label="Map">
-            <Suspense fallback={<div className="map-placeholder" style={{ width: '100%', height: '100%' }} />}>
+            <Suspense fallback={<div className="map-placeholder" aria-hidden="true" />}>
               <RepMap
                 mapRef={mapRef}
                 onRepSelect={handleRepSelect}

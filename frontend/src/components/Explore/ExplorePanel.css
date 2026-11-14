@@ -1,4 +1,4 @@
-/* ── Level shell: left column (desktop) / bottom sheet (phone) ─────────────── */
+/* ── Level shell: left editorial column (desktop) / bottom sheet (phone) ───── */
 .explore-panel {
   position: relative;
   z-index: 15;
@@ -13,29 +13,59 @@
 }
 
 /* Programmatic focus target only (moves screen readers to the new level). */
-.explore-panel:focus { outline: none; }
+.explore-panel:focus {
+  outline: none;
+}
 
 .explore-panel-scroll {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: var(--space-4) var(--space-5) var(--space-8);
+  padding: 0 var(--space-5) var(--space-8);
 }
 
-.explore-sheet-toggle { display: none; }
+.explore-panel-content {
+  padding-top: var(--space-4);
+}
 
-/* ── Breadcrumb ───────────────────────────────────────────────────────────── */
-.breadcrumb { margin: calc(-1 * var(--space-2)) 0 var(--space-2); }
+/* When breadcrumb is present, tighten top spacing so content flows naturally below the sticky bar */
+.breadcrumb + .explore-panel-content {
+  padding-top: var(--space-3);
+}
+
+.explore-sheet-toggle {
+  display: none;
+}
+
+/* ── Sticky Editorial Breadcrumb Bar ──────────────────────────────────────── */
+.breadcrumb {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  margin: 0 calc(-1 * var(--space-5));
+  padding: var(--space-1) var(--space-5);
+  background: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border-subtle);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.explore-panel--scrolled .breadcrumb {
+  border-bottom-color: var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
 
 .breadcrumb-list {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  row-gap: 0;
+  column-gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.3;
 }
 
 .breadcrumb-item {
@@ -47,42 +77,74 @@
 .breadcrumb-link {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  justify-content: flex-start;
+  gap: 4px;
   min-height: 44px;
-  padding: 0 2px;
-  border-radius: var(--radius-sm);
+  min-width: 44px;
+  padding: 0 var(--space-2);
+  margin: 0 calc(-1 * var(--space-1));
+  border-radius: var(--radius-md);
   color: var(--color-accent-text);
-  font-weight: 600;
+  font-weight: 650;
+  letter-spacing: -0.005em;
   text-decoration: none;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
-.breadcrumb-link:hover { text-decoration: underline; }
 
-.breadcrumb-back { display: none; font-size: 18px; line-height: 1; }
+.breadcrumb-link:hover {
+  background: var(--color-bg-surface);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.breadcrumb-link:focus-visible {
+  outline: 2px solid var(--color-accent-text);
+  outline-offset: -2px;
+}
+
+.breadcrumb-link-label {
+  overflow-wrap: anywhere;
+}
+
+.breadcrumb-back {
+  display: none;
+  flex-shrink: 0;
+}
 
 .breadcrumb-sep {
-  padding: 0 6px;
-  color: var(--color-text-muted);
+  flex-shrink: 0;
+  margin: 0 4px;
+  color: var(--color-text-subtle);
+}
+
+.breadcrumb-item--current {
+  min-height: 32px;
+  padding-left: 2px;
 }
 
 .breadcrumb-item--current span {
   color: var(--color-text-secondary);
+  font-weight: 600;
+  letter-spacing: -0.005em;
   overflow-wrap: anywhere;
 }
 
 /* ── Status / errors rendered by the shell itself ─────────────────────────── */
 .explore-status {
-  margin: var(--space-4) 0;
-  padding: var(--space-3) var(--space-4);
+  margin: var(--space-3) 0;
+  padding: var(--space-4);
   border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent-text);
   border-radius: var(--radius-md);
   background: var(--color-bg-surface);
   color: var(--color-text-secondary);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 .explore-status--error {
   border-color: var(--color-error);
+  border-left-width: 3px;
   background: var(--color-error-bg);
   color: var(--color-error-text);
 }
@@ -91,17 +153,33 @@
 .explore-status-action {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   min-height: 44px;
-  margin-top: var(--space-2);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  min-width: 44px;
+  margin-top: var(--space-3);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-full);
   background: var(--color-bg-primary);
   color: var(--color-accent-text);
   font: inherit;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   text-decoration: none;
   cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.explore-status a:hover,
+.explore-status-action:hover {
+  background: var(--color-bg-surface);
+  border-color: var(--color-accent-text);
+}
+
+.explore-status a:focus-visible,
+.explore-status-action:focus-visible {
+  outline: 2px solid var(--color-accent-text);
+  outline-offset: 2px;
 }
 
 /* ── Member level: the representative panel lives inside the shell ────────── */
@@ -110,7 +188,7 @@
   inset: auto;
   width: auto;
   height: auto;
-  margin: 0 calc(-1 * var(--space-5));
+  margin: calc(-1 * var(--space-3)) calc(-1 * var(--space-5)) 0;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -121,14 +199,25 @@
   animation: none;
   z-index: auto;
 }
+
 :root.dark .explore-panel .panel {
   background: transparent;
   border: 0;
   box-shadow: none;
 }
-.explore-panel .panel-header { border-radius: 0; }
-.explore-panel .panel-drag-handle { display: none; }
-.explore-panel .panel-body { overflow: visible; flex: none; }
+
+.explore-panel .panel-header {
+  border-radius: 0;
+}
+
+.explore-panel .panel-drag-handle {
+  display: none;
+}
+
+.explore-panel .panel-body {
+  overflow: visible;
+  flex: none;
+}
 
 /* ── Phone: bottom sheet under the map ────────────────────────────────────── */
 @media (max-width: 768px) {
@@ -146,7 +235,9 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
-  .explore-panel--expanded { height: calc(100% - 96px); }
+  .explore-panel--expanded {
+    height: calc(100% - 96px);
+  }
 
   .explore-sheet-toggle {
     display: flex;
@@ -155,10 +246,21 @@
     flex-shrink: 0;
     width: 100%;
     min-height: 44px;
+    min-width: 44px;
     border: 0;
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     background: transparent;
     cursor: pointer;
+    transition: background var(--transition-fast);
+  }
+
+  .explore-sheet-toggle:hover {
+    background: var(--color-bg-surface);
+  }
+
+  .explore-sheet-toggle:focus-visible {
+    outline: 2px solid var(--color-accent-text);
+    outline-offset: -2px;
   }
 
   .explore-sheet-grip {
@@ -168,16 +270,49 @@
     background: var(--color-text-muted);
   }
 
-  .explore-panel-scroll { padding: 0 var(--space-4) var(--space-8); }
-  .explore-panel .panel { margin: 0 calc(-1 * var(--space-4)); }
+  .explore-panel-scroll {
+    padding: 0 var(--space-4) var(--space-8);
+  }
 
-  /* Breadcrumb shrinks to one "‹ Parent" back link. */
-  .breadcrumb-item { display: none; }
-  .breadcrumb-item--parent { display: inline-flex; }
-  .breadcrumb-item--parent .breadcrumb-sep { display: none; }
-  .breadcrumb-back { display: inline; }
+  .explore-panel-content {
+    padding-top: var(--space-2);
+  }
+
+  .breadcrumb {
+    margin: 0 calc(-1 * var(--space-4));
+    padding: 2px var(--space-4);
+  }
+
+  .explore-panel .panel {
+    margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-4)) 0;
+  }
+
+  /* Breadcrumb shrinks cleanly to one ergonomic "‹ Parent" back link. */
+  .breadcrumb-item {
+    display: none;
+  }
+
+  .breadcrumb-item--parent {
+    display: inline-flex;
+  }
+
+  .breadcrumb-item--parent .breadcrumb-sep {
+    display: none;
+  }
+
+  .breadcrumb-back {
+    display: inline-block;
+  }
+
+  .breadcrumb-link {
+    margin-left: calc(-1 * var(--space-2));
+    padding: 0 var(--space-2);
+    font-size: 14px;
+  }
 }
 
 @media (max-width: 768px) and (prefers-reduced-motion: no-preference) {
-  .explore-panel { transition: height var(--transition-spring); }
+  .explore-panel {
+    transition: height var(--transition-spring);
+  }
 }

@@ -5,6 +5,32 @@
 (function () {
   "use strict";
 
+  var THEME_KEY = "repmap-theme";
+
+  // Sync explicit user theme preference when saved; otherwise CSS honors prefers-color-scheme.
+  (function initTheme() {
+    try {
+      var saved = window.localStorage.getItem(THEME_KEY);
+      if (saved === "dark" || saved === "light") {
+        document.documentElement.setAttribute("data-theme", saved);
+      }
+    } catch (e) { /* localStorage unavailable */ }
+
+    var themeBtn = document.getElementById("story-theme-btn");
+    if (themeBtn) {
+      themeBtn.addEventListener("click", function () {
+        var root = document.documentElement;
+        var currentAttr = root.getAttribute("data-theme");
+        var isCurrentlyDark = currentAttr
+          ? currentAttr === "dark"
+          : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        var next = isCurrentlyDark ? "light" : "dark";
+        root.setAttribute("data-theme", next);
+        try { window.localStorage.setItem(THEME_KEY, next); } catch (e) { /* ignore */ }
+      });
+    }
+  })();
+
   var ART = window.REPMAP_ATLAS_DATA || { nc116: [], nc119: [], heroStates: {} };
   var SD = window.REPMAP_STORY_DATA;
   if (!SD || !SD.anchors || !SD.anchors.length) {
@@ -43,8 +69,14 @@
   }
   function party(p) { return PARTY_LETTER[p] ? p : "independent"; }
   function partyName(p) { p = party(p); return p.charAt(0).toUpperCase() + p.slice(1); }
+  function initialsOf(name) {
+    var parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "?";
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  }
   function stateName(code) { return STATE_NAMES[code] || code; }
-  function seatCode(a) { return a.state + "-" + a.district; }
+  function seatCode(a) { return a.state + "-" + (a.district === 0 ? "AL" : a.district); }
   function districtLabel(a) { return a.district === 0 ? "at-large district" : "District " + a.district; }
   function ordinal(n) {
     var s = ["th", "st", "nd", "rd"], v = n % 100;
@@ -120,13 +152,12 @@
     });
     stateSvg.innerHTML = markup;
 
-    // The cut-out art was drawn for one district; only show it if that is still this ZIP's district.
     var fc = geo.focalCutout;
     if (fc && fc.d && Number(geo.district) === a.district) {
       focalSvg.innerHTML =
         '<path class="d-shape d-shape--lens" d="' + fc.d + '"/>' +
         '<circle class="focal-dot" cx="' + fc.cx + '" cy="' + fc.cy + '" r="5.5"/>' +
-        '<circle class="focal-ring" cx="' + fc.cx + '" cy="' + fc.cy + '" r="16"/>';
+        '<circle class="focal-ring" cx="' + fc.cx + '" cy="' + fc.cy + '" r="17"/>';
     } else {
       focalSvg.innerHTML = "";
     }
@@ -157,7 +188,6 @@
     });
     svg116.innerHTML = m116;
 
-    // Opaque ground so the older map's labels don't show through the newer one.
     var m119 = '<rect class="nc-ground" width="860" height="380"/>';
     ART.nc119.forEach(function (d) {
       var isNew = d.num > n116;
@@ -201,6 +231,7 @@
 
   // ------------------------------------------------------- delegation rail --
   function dossierCard(m, opts) {
+    var pKey = party(m.party);
     var seat = m.chamber === "senate"
       ? "U.S. Senate · " + stateName(m.state)
       : "U.S. House · " + stateName(m.state) + " " + (m.district === 0 ? "at-large" : "District " + m.district);
@@ -213,12 +244,17 @@
     return (
       '<article class="dossier-card' + (opts.active ? " dossier-card--active" : "") + '">' +
         "<div>" +
-          '<div class="dossier-card__top"><div>' +
-            '<div class="dossier-card__id">' + esc(opts.tag) + "</div>" +
-            '<h3 class="dossier-card__name">' + esc(m.name) + "</h3>" +
-            '<div class="dossier-card__seat">' + esc(seat) + "</div>" +
+          '<div class="dossier-card__top">' +
+            '<div class="dossier-card__person">' +
+              '<span class="dossier-monogram dossier-monogram--' + pKey + '" aria-hidden="true">' + esc(initialsOf(m.name)) + "</span>" +
+              "<div>" +
+                '<div class="dossier-card__id">' + esc(opts.tag) + "</div>" +
+                '<h3 class="dossier-card__name">' + esc(m.name) + "</h3>" +
+                '<div class="dossier-card__seat">' + esc(seat) + "</div>" +
+              "</div>" +
+            "</div>" +
+            '<span class="party-pill party-pill--' + pKey + '">' + partyName(m.party) + "</span>" +
           "</div>" +
-          '<span class="party-pill party-pill--' + party(m.party) + '">' + partyName(m.party) + "</span></div>" +
         "</div>" +
         '<dl class="dossier-metrics">' +
           "<div><dt>Committees</dt><dd>" + m.committees.length + "</dd></div>" +
@@ -336,10 +372,16 @@
         return { m: s, role: "U.S. Senate · " + stateName(a.state) };
       }));
       list.innerHTML = rows.map(function (r) {
-        return '<div class="hero-rep-row"><div>' +
-          '<div class="hero-rep-row__name">' + esc(r.m.name) + "</div>" +
-          '<div class="hero-rep-row__role">' + esc(r.role + (r.m.room ? " · " + r.m.room : "")) + "</div></div>" +
-          '<span class="party-pill party-pill--' + party(r.m.party) + '">' + partyName(r.m.party) + "</span></div>";
+        var pKey = party(r.m.party);
+        return '<div class="hero-rep-row">' +
+          '<div class="hero-rep-row__lead">' +
+            '<span class="rep-monogram rep-monogram--' + pKey + '" aria-hidden="true">' + esc(initialsOf(r.m.name)) + "</span>" +
+            "<div>" +
+              '<div class="hero-rep-row__name">' + esc(r.m.name) + "</div>" +
+              '<div class="hero-rep-row__role">' + esc(r.role + (r.m.room ? " · " + r.m.room : "")) + "</div>" +
+            "</div>" +
+          "</div>" +
+          '<span class="party-pill party-pill--' + pKey + '">' + partyName(r.m.party) + "</span></div>";
       }).join("");
     }
 
@@ -438,11 +480,48 @@
   var atlasSec = $("atlas"), heroStage = $("hero-stage");
   var redrawSec = $("redraw"), redrawStage = $("redraw-stage");
   var enterSec = $("enter"), enterStage = $("enter-stage");
-  var ncStack = $("nc-svg-stack"), ncCaliper = $("nc-caliper"), ncCaliperTag = $("nc-caliper-tag");
+  var ncStack = $("nc-svg-stack"), ncCaliperTag = $("nc-caliper-tag");
+  var chapterOrder = ["atlas", "scale", "redraw", "delegation", "committees", "enter"];
+  var chapterLinks = Array.prototype.slice.call(document.querySelectorAll(".atlas-chapter-link"));
+  var currentChapter = "atlas";
+
+  chapterLinks.forEach(function (link) {
+    link.addEventListener("click", function (e) {
+      var id = link.getAttribute("data-chapter");
+      var sec = id ? $(id) : null;
+      if (!sec) return;
+      e.preventDefault();
+      sec.scrollIntoView({ behavior: reducedMotion.matches ? "auto" : "smooth", block: "start" });
+    });
+  });
 
   function holdIf(el, cond) {
     if (cond) el.setAttribute("data-sc-verify-hold", "true");
     else el.removeAttribute("data-sc-verify-hold");
+  }
+
+  function updateActiveChapter() {
+    if (!chapterLinks.length) return;
+    var probeY = window.innerHeight * 0.36;
+    var picked = chapterOrder[0];
+    for (var i = 0; i < chapterOrder.length; i++) {
+      var sec = $(chapterOrder[i]);
+      if (!sec) continue;
+      var rect = sec.getBoundingClientRect();
+      if (rect.top <= probeY) picked = chapterOrder[i];
+    }
+    if (picked === currentChapter) return;
+    currentChapter = picked;
+    chapterLinks.forEach(function (link) {
+      var active = link.getAttribute("data-chapter") === picked;
+      if (active) {
+        link.setAttribute("data-active", "true");
+        link.setAttribute("aria-current", "location");
+      } else {
+        link.removeAttribute("data-active");
+        link.removeAttribute("aria-current");
+      }
+    });
   }
 
   function syncScrollDrivenStages() {
@@ -466,7 +545,6 @@
 
       var pct = Math.round(morph * 100);
       ncStack.style.setProperty("--nc-morph", morph.toFixed(3));
-      if (ncCaliper) ncCaliper.style.left = pct + "%";
       if (ncCaliperTag) {
         ncCaliperTag.textContent = pct < 35 ? "116th Congress · " + pct + "%"
           : (pct < 72 ? "Sweeping · " + pct + "%" : "119th Congress · " + pct + "%");
@@ -480,6 +558,8 @@
       enterStage.setAttribute("data-sc-verify-state", "enter:" + (ep < 0.22 ? Math.round(ep * 100) : 100));
       holdIf(enterStage, isReduced || ep >= 0.22);
     }
+
+    updateActiveChapter();
   }
 
   // Keyboard users: tabbing into a pinned act scrolls to the cue that holds the focused control.

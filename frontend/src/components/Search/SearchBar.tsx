@@ -8,17 +8,17 @@ import NameSearchDropdown, { type SearchOption } from './NameSearchDropdown'
 
 function SearchIcon() {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="11" cy="11" r="8"/>
-      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
   )
 }
 
 function SpinnerIcon() {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true" className="searchbar-spinner">
-      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true" className="searchbar-spinner">
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
     </svg>
   )
 }
@@ -42,13 +42,14 @@ function seatCounts(reps: Representative[]): Record<string, number> {
   return seats
 }
 
-/** One search box: ZIP -> its members, state -> State, "NE-2" -> district, name -> member. */
+/** Command-style search box: ZIP -> its members, state -> State, "NE-2" -> district, name -> member. */
 const SearchBar = forwardRef<HTMLInputElement, Props>(function SearchBar(
   { allRepresentatives, onSelectZip, onSelectState, onSelectRace, onSelectDistrict, onSelectRep },
   inputRef,
 ) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
+  const [focused, setFocused] = useState(false)
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeIndex, setActiveIndex] = useState(-1)
@@ -61,8 +62,9 @@ const SearchBar = forwardRef<HTMLInputElement, Props>(function SearchBar(
     [allRepresentatives],
   )
 
+  const intent = useMemo(() => parseSearch(query, ctx), [query, ctx])
+
   const options: SearchOption[] = useMemo(() => {
-    const intent = parseSearch(query, ctx)
     if (intent.kind === 'empty' || intent.kind === 'zip' || intent.kind === 'partialZip') return []
     const out: SearchOption[] = []
     if (intent.kind === 'district') {
@@ -84,9 +86,16 @@ const SearchBar = forwardRef<HTMLInputElement, Props>(function SearchBar(
       for (const rep of searchReps(query, federalReps).slice(0, 8 - out.length)) out.push({ kind: 'rep', rep })
     }
     return out
-  }, [query, ctx, federalReps])
+  }, [query, intent, federalReps])
 
   const showDropdown = open && options.length > 0
+  const showEmptyHint =
+    open &&
+    !error &&
+    options.length === 0 &&
+    federalReps.length > 0 &&
+    intent.kind === 'name' &&
+    query.trim().length >= 2
 
   const reset = (label: string) => {
     setQuery(label)
@@ -116,8 +125,8 @@ const SearchBar = forwardRef<HTMLInputElement, Props>(function SearchBar(
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Escape') {
-      // Close the list first; a second Esc (list closed) goes up a level in App.
-      if (showDropdown) {
+      // Close the list first; a second Esc (list closed, input blurred) goes up a level in App.
+      if (showDropdown || showEmptyHint) {
         event.preventDefault()
         setOpen(false)
         setActiveIndex(-1)
@@ -147,7 +156,6 @@ const SearchBar = forwardRef<HTMLInputElement, Props>(function SearchBar(
       choose(options[activeIndex])
       return
     }
-    const intent = parseSearch(query, ctx)
     switch (intent.kind) {
       case 'empty':
         return
@@ -213,8 +221,15 @@ const SearchBar = forwardRef<HTMLInputElement, Props>(function SearchBar(
             setActiveIndex(-1)
           }}
           onKeyDown={handleKeyDown}
-          onFocus={() => setOpen(true)}
-          onBlur={() => { setOpen(false); setActiveIndex(-1) }}
+          onFocus={() => {
+            setFocused(true)
+            setOpen(true)
+          }}
+          onBlur={() => {
+            setFocused(false)
+            setOpen(false)
+            setActiveIndex(-1)
+          }}
           placeholder="ZIP, state or member name"
           className="searchbar-input"
           role="combobox"
@@ -226,6 +241,11 @@ const SearchBar = forwardRef<HTMLInputElement, Props>(function SearchBar(
           autoComplete="off"
           enterKeyHint="search"
         />
+        {!focused && query.length === 0 && (
+          <kbd className="searchbar-kbd" aria-hidden="true" title="Press / to search">
+            /
+          </kbd>
+        )}
         <button type="submit" disabled={searching} className="searchbar-btn" aria-label="Search">
           {searching ? <SpinnerIcon /> : <SearchIcon />}
         </button>
@@ -243,6 +263,13 @@ const SearchBar = forwardRef<HTMLInputElement, Props>(function SearchBar(
           onSetActiveIndex={setActiveIndex}
           listboxId={listboxId}
         />
+      )}
+      {showEmptyHint && (
+        <div className="searchbar-popover">
+          <p className="searchbar-empty-hint">
+            No match for <strong>“{query.trim()}”</strong>. Try a 5-digit ZIP, state, district like <strong>NE-2</strong>, or member name.
+          </p>
+        </div>
       )}
     </div>
   )

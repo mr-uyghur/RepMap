@@ -1,21 +1,181 @@
-/* ── A–Z state list: 2-up grid in the 400px panel, 1-up on very narrow screens ── */
+/* ── A–Z State Directory: filter bar, region chips, tactile delegation cards ── */
+.state-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Mode bar when viewing /?view=races */
+.state-list-mode-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+}
+
+.state-list-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.state-list-mode-switch {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  color: var(--color-accent-text);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.state-list-mode-switch:hover {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-accent-text);
+}
+
+/* Filter controls */
+.state-list-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.state-list-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.state-list-search-icon {
+  position: absolute;
+  left: 12px;
+  pointer-events: none;
+  color: var(--color-text-muted);
+}
+
+.state-list-search {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 44px 0 36px;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 14px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.state-list-search::placeholder {
+  color: var(--color-text-muted);
+}
+
+.state-list-search:focus-visible {
+  outline: 2px solid var(--color-accent-text);
+  outline-offset: 1px;
+  border-color: var(--color-accent-text);
+}
+
+.state-list-search-clear {
+  position: absolute;
+  right: 0;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.state-list-search-clear:hover {
+  color: var(--color-text-primary);
+}
+
+.state-list-regions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.state-list-region-chip {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.state-list-region-chip:hover {
+  border-color: var(--color-border-control);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+.state-list-region-chip--active {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-weight: 700;
+}
+
+.state-list-region-chip--active:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  filter: brightness(1.08);
+}
+
+/* 2-up card grid in the 400px panel, 1-up on very narrow viewports */
 .state-list-grid {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
   gap: var(--space-2);
 }
 
 .state-list-item {
   width: 100%;
-  min-height: 52px;
+  height: 100%;
+  min-height: 68px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 2px;
-  padding: var(--space-2) var(--space-3);
+  justify-content: space-between;
+  gap: 4px;
+  padding: 10px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-primary);
@@ -23,12 +183,13 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: border-color var(--transition-fast), background var(--transition-fast);
+  transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .state-list-item:hover {
   border-color: var(--color-border-control);
   background: var(--color-bg-surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .state-list-item:focus-visible {
@@ -42,17 +203,115 @@
   box-shadow: inset 3px 0 0 var(--color-accent-text);
 }
 
+.state-list-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+}
+
 .state-list-name {
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 700;
   line-height: 1.25;
+  letter-spacing: -0.01em;
   overflow-wrap: anywhere;
+}
+
+.state-list-code {
+  flex-shrink: 0;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+}
+
+.state-list-item:hover .state-list-code {
+  background: var(--color-bg-primary);
+  border-color: var(--color-border);
 }
 
 .state-list-meta {
   font-size: 12px;
   line-height: 1.35;
   color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
-.state-list-meta--races { font-weight: 600; color: var(--color-accent-text); }
+.state-list-meta--races {
+  font-weight: 700;
+  color: var(--color-accent-text);
+}
+
+/* Mini delegation party-composition bar */
+.state-list-bar {
+  display: flex;
+  width: 100%;
+  height: 4px;
+  margin-top: 3px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-elevated);
+  gap: 1.5px;
+}
+
+.state-list-bar-seg {
+  height: 100%;
+  min-width: 4px;
+  border-radius: var(--radius-full);
+}
+
+.state-list-bar-seg--dem {
+  background: var(--color-democrat);
+}
+
+.state-list-bar-seg--ind {
+  background: var(--color-independent);
+}
+
+.state-list-bar-seg--rep {
+  background: var(--color-republican);
+}
+
+/* Empty filter state */
+.state-list-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border-control);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.state-list-empty p {
+  margin: 0;
+}
+
+.state-list-reset {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
+  color: var(--color-accent-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.state-list-reset:hover {
+  background: var(--color-bg-elevated);
+}
